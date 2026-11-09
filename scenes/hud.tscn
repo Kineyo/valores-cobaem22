@@ -1,0 +1,421 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1_script"]
+[ext_resource type="AudioStream" path="res://assets/audio/game_over.wav" id="2_sfx_go"]
+[ext_resource type="Theme" path="res://themes/pixel_theme.tres" id="3_theme"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player_idle.png" id="4_player"]
+[ext_resource type="Texture2D" path="res://assets/sprites/meta.png" id="5_meta"]
+[ext_resource type="AudioStream" path="res://assets/audio/ataque.wav" id="6_sfx_ui"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_top"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+bg_color = Color(0.08, 0.08, 0.14, 0.72)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.05, 0.05, 0.1, 0.9)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+corner_detail = 1
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pause"]
+content_margin_left = 28.0
+content_margin_top = 18.0
+content_margin_right = 28.0
+content_margin_bottom = 18.0
+bg_color = Color(0.08, 0.08, 0.14, 0.95)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.45, 0.7, 1, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+corner_detail = 1
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gameover"]
+content_margin_left = 28.0
+content_margin_top = 18.0
+content_margin_right = 28.0
+content_margin_bottom = 18.0
+bg_color = Color(0.1, 0.06, 0.1, 0.95)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.95, 0.3, 0.3, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+corner_detail = 1
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_victory"]
+content_margin_left = 28.0
+content_margin_top = 18.0
+content_margin_right = 28.0
+content_margin_bottom = 18.0
+bg_color = Color(0.06, 0.1, 0.1, 0.95)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.85, 0.35, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+corner_detail = 1
+anti_aliasing = false
+
+[node name="HUD" type="CanvasLayer"]
+process_mode = 3
+script = ExtResource("1_script")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("3_theme")
+
+[node name="TopPanel" type="PanelContainer" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 8.0
+offset_top = 6.0
+offset_right = -8.0
+offset_bottom = 40.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_top")
+
+[node name="TopBar" type="HBoxContainer" parent="Root/TopPanel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="TitleLabel" type="Label" parent="Root/TopPanel/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 16
+text = "Campeones de los valores"
+vertical_alignment = 1
+
+[node name="HeartsContainer" type="HBoxContainer" parent="Root/TopPanel/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="DifficultyLabel" type="Label" parent="Root/TopPanel/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "Dificultad: Normal"
+vertical_alignment = 1
+
+[node name="Spacer" type="Control" parent="Root/TopPanel/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="ProgressLabel" type="Label" parent="Root/TopPanel/TopBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "Meta:"
+vertical_alignment = 1
+
+[node name="ProgressBar" type="ProgressBar" parent="Root/TopPanel/TopBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 16)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+show_percentage = false
+
+[node name="RunnerIcon" type="TextureRect" parent="Root/TopPanel/TopBar/ProgressBar"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = -11.0
+offset_top = -9.0
+offset_right = 11.0
+offset_bottom = 13.0
+mouse_filter = 2
+texture = ExtResource("4_player")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="GoalIcon" type="TextureRect" parent="Root/TopPanel/TopBar"]
+custom_minimum_size = Vector2(20, 24)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("5_meta")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ControlsLabel" type="Label" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -30.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "Muévete: WASD / Flechas (3/4)  ·  Disparar: ESPACIO  ·  Pausa: ESC"
+horizontal_alignment = 1
+
+[node name="IntroBanner" type="Label" parent="Root"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_top = -90.0
+offset_bottom = -50.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 30
+text = "¡Llega a la meta!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Overlay" type="ColorRect" parent="Root"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.03, 0.02, 0.08, 0.6)
+
+[node name="PausePanel" type="PanelContainer" parent="Root"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -170.0
+offset_top = -105.0
+offset_right = 170.0
+offset_bottom = 105.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_pause")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Root/PausePanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Title" type="Label" parent="Root/PausePanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 30
+text = "PAUSA"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Root/PausePanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.95, 1)
+theme_override_font_sizes/font_size = 13
+text = "Respira hondo, campeón."
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="Root/PausePanel/VBoxContainer"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="BtnResume" type="Button" parent="Root/PausePanel/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 36)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Continuar (Esc)"
+
+[node name="BtnPauseMenu" type="Button" parent="Root/PausePanel/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 32)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 14
+text = "Menú principal (M)"
+
+[node name="GameOverPanel" type="PanelContainer" parent="Root"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -230.0
+offset_top = -140.0
+offset_right = 230.0
+offset_bottom = 140.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_gameover")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Root/GameOverPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Title" type="RichTextLabel" parent="Root/GameOverPanel/VBoxContainer"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.95, 0.3, 0.3, 1)
+theme_override_font_sizes/normal_font_size = 32
+bbcode_enabled = true
+text = "[center][shake rate=12.0 level=6]GAME OVER... :([/shake][/center]"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+
+[node name="Subtitle" type="Label" parent="Root/GameOverPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.95, 1)
+theme_override_font_sizes/font_size = 15
+text = "¡Los antivalores te alcanzaron!
+No te rindas, los valores siempre triunfan."
+horizontal_alignment = 1
+
+[node name="GameOverStats" type="Label" parent="Root/GameOverPanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 13
+text = "Antivalores vencidos: 0  ·  Progreso: 0 %"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="Root/GameOverPanel/VBoxContainer"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="BtnRetry" type="Button" parent="Root/GameOverPanel/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 36)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Reintentar (R)"
+
+[node name="BtnGameOverMenu" type="Button" parent="Root/GameOverPanel/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 32)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 14
+text = "Menú principal (Esc)"
+
+[node name="VictoryPanel" type="PanelContainer" parent="Root"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -270.0
+offset_top = -150.0
+offset_right = 270.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_victory")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Root/VictoryPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Title" type="RichTextLabel" parent="Root/VictoryPanel/VBoxContainer"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.3, 0.95, 0.5, 1)
+theme_override_font_sizes/normal_font_size = 32
+bbcode_enabled = true
+text = "[center][wave amp=30.0 freq=4.0]¡FELICIDADES! GANASTE :D[/wave][/center]"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+
+[node name="Subtitle" type="Label" parent="Root/VictoryPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "¡Llegaste a la meta esquivando los antivalores!
+Premio: Eres un promotor oficial de los buenos valores."
+horizontal_alignment = 1
+
+[node name="VictoryStats" type="Label" parent="Root/VictoryPanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 13
+text = "Tiempo: 0:00  ·  Antivalores vencidos: 0  ·  Corazones: 3/3"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="Root/VictoryPanel/VBoxContainer"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="BtnPlayAgain" type="Button" parent="Root/VictoryPanel/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 36)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Jugar de nuevo (Enter)"
+
+[node name="BtnVictoryMenu" type="Button" parent="Root/VictoryPanel/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 32)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 14
+text = "Menú principal (Esc)"
+
+[node name="SFXGameOver" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("2_sfx_go")
+
+[node name="SFXUi" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6_sfx_ui")
+volume_db = -12.0
+pitch_scale = 1.4

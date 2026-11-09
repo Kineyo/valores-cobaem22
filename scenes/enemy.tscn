@@ -1,0 +1,40 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemigo_groseria.png" id="2_sprite"]
+[ext_resource type="AudioStream" path="res://assets/audio/golpe_enemigo.wav" id="3_sfx_hit"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hitbox"]
+size = Vector2(30, 30)
+
+[node name="Enemy" type="CharacterBody2D"]
+y_sort_enabled = true
+collision_layer = 4
+collision_mask = 1
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -18)
+texture = ExtResource("2_sprite")
+
+[node name="Hitbox" type="Area2D" parent="." groups=["enemies"]]
+position = Vector2(0, -18)
+collision_layer = 4
+collision_mask = 10
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
+shape = SubResource("RectangleShape2D_hitbox")
+
+[node name="Label" type="Label" parent="."]
+offset_left = -50.0
+offset_top = -46.0
+offset_right = 50.0
+offset_bottom = -23.0
+theme_override_colors/font_outline_color = Color(0.07, 0.06, 0.13, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 12
+text = "Grosería"
+horizontal_alignment = 1
+
+[node name="SFXHit" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_sfx_hit")

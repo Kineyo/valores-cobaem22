@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2a3250"/>
+      <stop offset="100%" stop-color="#141824"/>
+    </radialGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF2A3"/>
+      <stop offset="50%" stop-color="#F5C32C"/>
+      <stop offset="100%" stop-color="#B87D18"/>
+    </linearGradient>
+    <linearGradient id="heartGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF758C"/>
+      <stop offset="100%" stop-color="#E52D48"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Escudo circular base con borde dorado -->
+  <circle cx="64" cy="64" r="58" fill="url(#bgGrad)" stroke="url(#goldGrad)" stroke-width="4"/>
+  <circle cx="64" cy="64" r="52" fill="none" stroke="#485B82" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+  <!-- Laureles laterales -->
+  <!-- Izquierda -->
+  <g fill="#5EC97B">
+    <path d="M 32 86 C 26 76 26 56 34 46 C 36 52 34 60 38 66 C 34 72 34 80 32 86 Z"/>
+    <ellipse cx="28" cy="54" rx="4" ry="2" transform="rotate(-30 28 54)"/>
+    <ellipse cx="26" cy="68" rx="4" ry="2" transform="rotate(-15 26 68)"/>
+    <ellipse cx="28" cy="80" rx="4" ry="2" transform="rotate(10 28 80)"/>
+  </g>
+  <!-- Derecha -->
+  <g fill="#4EAB68">
+    <path d="M 96 86 C 102 76 102 56 94 46 C 92 52 94 60 90 66 C 94 72 94 80 96 86 Z"/>
+    <ellipse cx="100" cy="54" rx="4" ry="2" transform="rotate(30 100 54)"/>
+    <ellipse cx="102" cy="68" rx="4" ry="2" transform="rotate(15 102 68)"/>
+    <ellipse cx="100" cy="80" rx="4" ry="2" transform="rotate(-10 100 80)"/>
+  </g>
+
+  <!-- Asas de la copa -->
+  <path d="M 44 42 C 30 42 30 62 46 66 L 46 60 C 38 58 38 48 44 48 Z" fill="url(#goldGrad)"/>
+  <path d="M 84 42 C 98 42 98 62 82 66 L 82 60 C 90 58 90 48 84 48 Z" fill="url(#goldGrad)"/>
+
+  <!-- Copa central del trofeo -->
+  <path d="M 42 36 L 86 36 L 86 42 L 80 64 C 76 74 68 76 64 76 C 60 76 52 74 48 64 L 42 42 Z" fill="url(#goldGrad)" stroke="#8C5C0F" stroke-width="1"/>
+  <rect x="40" y="34" width="48" height="4" rx="2" fill="#FFF8C7"/>
+
+  <!-- Corazón de valores radiante en el centro de la copa -->
+  <path d="M 64 64 C 64 64 54 58 54 52 C 54 48 57 46 60 46 C 62 46 63.5 47.5 64 49 C 64.5 47.5 66 46 68 46 C 71 46 74 48 74 52 C 74 58 64 64 64 64 Z" fill="url(#heartGrad)"/>
+  <circle cx="61" cy="49" r="1.5" fill="#FFFFFF"/>
+
+  <!-- Tallo del trofeo -->
+  <rect x="60" y="76" width="8" height="12" fill="url(#goldGrad)"/>
+
+  <!-- Base del trofeo -->
+  <polygon points="52,88 76,88 78,94 50,94" fill="#B87D18"/>
+  <rect x="46" y="94" width="36" height="8" rx="2" fill="#2E233B" stroke="url(#goldGrad)" stroke-width="1"/>
+  <rect x="54" y="96" width="20" height="4" rx="1" fill="url(#goldGrad)"/>
+
+  <!-- Destellos y estrellas -->
+  <polygon points="64,18 66,24 72,26 66,28 64,34 62,28 56,26 62,24" fill="#FFF2A3"/>
+  <polygon points="34,26 35,29 38,30 35,31 34,34 33,31 30,30 33,29" fill="#50DCF5"/>
+  <polygon points="94,26 95,29 98,30 95,31 94,34 93,31 90,30 93,29" fill="#50DCF5"/>
+</svg>
