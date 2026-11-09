@@ -29,6 +29,7 @@ __pycache__/
 *.wasm
 *.html
 !planos_interactivos.html
+!plano_3d.html
 *.zip
 *.tar.gz
 export_presets.cfg

@@ -1,0 +1,3011 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>CEMSaD 22 ENTHAVI — Plano 3D Arquitectónico Interactivo (3 Poses & RPG 3/4)</title>
+  <meta name="description" content="Visualizador 3D interactivo a escala real del plantel CEMSaD 22 ENTHAVI con 3 poses de cámara (3/4 tipo RPG, cámara baja peatonal y vista general aérea), medidas en cm y cm², y corte de techos.">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Three.js + OrbitControls + Tween.js desde CDN de alta velocidad -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+  <style>
+    /* ==========================================================================
+       SISTEMA DE ESTILOS ARQUITECTÓNICO CAD 3D
+       ========================================================================== */
+    :root {
+      --bg-canvas: #f8fafc;
+      --bg-panel: rgba(255, 255, 255, 0.94);
+      --bg-subtle: #f1f5f9;
+      --border-color: #cbd5e1;
+      --border-dark: #0f172a;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent-blue: #0284c7;
+      --accent-blue-dark: #0369a1;
+      --accent-blue-soft: #e0f2fe;
+      --accent-red: #dc2626;
+      --accent-red-soft: #fee2e2;
+      --accent-green: #16a34a;
+      --accent-amber: #d97706;
+      --accent-rpg: #7c3aed;
+      --accent-rpg-soft: #ede9fe;
+      
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      
+      --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.08);
+      --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.12);
+      --shadow-lg: 0 16px 36px rgba(15, 23, 42, 0.18);
+      
+      --header-h: 64px;
+      --inspector-w: 430px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-canvas);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #canvas3d-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      display: block;
+    }
+
+    /* ==========================================================================
+       CABECERA SUPERIOR FLOTANTE
+       ========================================================================== */
+    .top-cad-header {
+      position: absolute;
+      top: 14px;
+      left: 16px;
+      right: 16px;
+      height: var(--header-h);
+      background: var(--bg-panel);
+      backdrop-filter: blur(8px);
+      border: 1.5px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 20;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: #0f172a;
+      color: #ffffff;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .brand-badge small {
+      font-size: 8px;
+      font-family: var(--font-mono);
+      color: #38bdf8;
+    }
+
+    .brand-info h1 {
+      font-family: var(--font-display);
+      font-size: 15.5px;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-info h1 .pill-3d {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      background: var(--accent-rpg-soft);
+      color: var(--accent-rpg);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid #c4b5fd;
+    }
+
+    .brand-info p {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* BOTONERA CENTRAL DE LAS 3 POSES DE CÁMARA */
+    .poses-control-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #ffffff;
+      padding: 5px;
+      border: 1.5px solid var(--border-color);
+      border-radius: 10px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .pose-btn {
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      background: transparent;
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 160ms ease;
+    }
+
+    .pose-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .pose-btn:hover {
+      background: var(--bg-subtle);
+      border-color: var(--border-color);
+    }
+
+    .pose-btn.active {
+      background: #0f172a;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+    }
+
+    .pose-btn.active-rpg {
+      background: var(--accent-rpg) !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35) !important;
+    }
+
+    /* ACCIONES DE HERRAMIENTA DERECHA */
+    .top-actions-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-action-top {
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border-color);
+      background: #ffffff;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 160ms ease;
+    }
+
+    .btn-action-top svg {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .btn-action-top:hover {
+      background: var(--bg-subtle);
+      border-color: #0f172a;
+    }
+
+    .btn-action-top.active {
+      background: #0f172a;
+      color: #ffffff;
+      border-color: #0f172a;
+    }
+
+    .btn-back-2d {
+      background: var(--accent-blue-soft);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue-dark);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .btn-back-2d:hover {
+      background: var(--accent-blue);
+      color: #ffffff;
+    }
+
+    /* ==========================================================================
+       PANEL INSPECTOR LATERAL FLOTANTE (MEDIDAS CM Y CM²)
+       ========================================================================== */
+    .cad-inspector-3d {
+      position: absolute;
+      top: 90px;
+      right: 16px;
+      bottom: 46px;
+      width: var(--inspector-w);
+      background: var(--bg-panel);
+      backdrop-filter: blur(10px);
+      border: 1.5px solid var(--border-color);
+      border-radius: 14px;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+      transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+
+    .cad-inspector-3d.collapsed {
+      transform: translateX(calc(100% + 30px));
+    }
+
+    .insp-head {
+      padding: 14px 18px;
+      background: #ffffff;
+      border-bottom: 1.5px solid var(--border-color);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .insp-head-code {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent-blue-dark);
+      background: var(--accent-blue-soft);
+      padding: 2px 7px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 3px;
+    }
+
+    .insp-head h2 {
+      font-family: var(--font-display);
+      font-size: 16.5px;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1.2;
+    }
+
+    .insp-head p {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .btn-close-insp {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+    }
+
+    .btn-close-insp:hover {
+      background: var(--bg-subtle);
+      color: var(--text-main);
+    }
+
+    .insp-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* TARJETA HEROICA: ÁREA TOTAL EN CM² Y M² */
+    .hero-area-card {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border: 1.5px solid #7dd3fc;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .hero-area-card .label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #0369a1;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .hero-val-cm2 {
+      font-family: var(--font-mono);
+      font-size: 26px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      margin: 4px 0;
+    }
+
+    .hero-val-m2 {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #0369a1;
+      border-top: 1px dashed #7dd3fc;
+      padding-top: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* REJILLA DE 4 DIMENSIONES LINEALES */
+    .dims-grid-3d {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .dim-box {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 9px 12px;
+    }
+
+    .dim-box-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+
+    .dim-box-val {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .dim-box-sub {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--accent-blue-dark);
+      margin-top: 1px;
+    }
+
+    /* ESPECIFICACIONES CONSTRUCTIVAS Y VOLUMETRÍA */
+    .table-spec-3d {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .table-spec-3d th {
+      text-align: left;
+      padding: 6px 10px;
+      background: var(--bg-subtle);
+      color: var(--text-muted);
+      font-weight: 600;
+      width: 45%;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .table-spec-3d td {
+      text-align: right;
+      padding: 6px 10px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .table-spec-3d tr:last-child th,
+    .table-spec-3d tr:last-child td {
+      border-bottom: none;
+    }
+
+    .note-box-3d {
+      background: #ffffff;
+      border-left: 3px solid #0f172a;
+      border-radius: 0 6px 6px 0;
+      padding: 9px 12px;
+      font-size: 11.5px;
+      color: var(--text-main);
+      line-height: 1.45;
+      border-top: 1px solid var(--border-color);
+      border-right: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .btn-focus-room {
+      width: 100%;
+      height: 38px;
+      background: #0f172a;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-display);
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: var(--shadow-sm);
+      transition: background 160ms ease;
+    }
+
+    .btn-focus-room:hover {
+      background: var(--accent-blue-dark);
+    }
+
+    /* ==========================================================================
+       BARRA INFERIOR DE ESTADO Y CONTROLES FLOTANTES
+       ========================================================================== */
+    .bottom-statusbar {
+      position: absolute;
+      bottom: 12px;
+      left: 16px;
+      right: 16px;
+      height: 32px;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(6px);
+      border-radius: 8px;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      z-index: 20;
+    }
+
+    .sb-section {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .sb-status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 6px #4ade80;
+    }
+
+    /* TOOLTIP FLOTANTE 3D */
+    .tooltip-3d {
+      position: absolute;
+      z-index: 30;
+      pointer-events: none;
+      background: rgba(15, 23, 42, 0.95);
+      color: #ffffff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      display: none;
+      transform: translate(-50%, -120%);
+      box-shadow: var(--shadow-md);
+    }
+
+    .tooltip-3d strong {
+      font-family: var(--font-display);
+      font-size: 12.5px;
+      display: block;
+      color: #38bdf8;
+    }
+
+    /* BOTÓN FLOTANTE PARA REABRIR EL INSPECTOR */
+    .btn-reopen-insp {
+      position: absolute;
+      top: 90px;
+      right: 16px;
+      height: 38px;
+      padding: 0 14px;
+      background: #ffffff;
+      border: 1.5px solid var(--border-color);
+      border-radius: 8px;
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-main);
+      box-shadow: var(--shadow-md);
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 7px;
+      z-index: 15;
+    }
+
+    .btn-reopen-insp.visible {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+  <!-- CONTENEDOR THREE.JS -->
+  <div id="canvas3d-container"></div>
+
+  <!-- TOOLTIP FLOTANTE -->
+  <div class="tooltip-3d" id="tooltip-3d">
+    <strong id="tt-title">Aula 1</strong>
+    <span id="tt-dims">800.0 cm × 700.0 cm</span> • <span id="tt-area" style="color: #4ade80;">560,000 cm²</span>
+  </div>
+
+  <!-- CABECERA PRINCIPAL SUPERIOR -->
+  <header class="top-cad-header">
+    <div class="brand-wrap">
+      <div class="brand-badge">
+        <span>C22</span>
+        <small>3D</small>
+      </div>
+      <div class="brand-info">
+        <h1>
+          CEMSaD 22 ENTHAVI
+          <span class="pill-3d">MODELO 3D ARQUITECTÓNICO</span>
+        </h1>
+        <p>SUPERFICIE TERRENO: 4,462 m² (44,620,000 cm²) | CONSTRUIDO: 1,460.81 m² (14,608,100 cm²)</p>
+      </div>
+    </div>
+
+    <!-- LAS 3 POSES DE CÁMARA (RPG 3/4, CÁMARA BAJA, VISTA AÉREA) -->
+    <div class="poses-control-bar" role="toolbar" aria-label="Poses de Cámara">
+      <button class="pose-btn active-rpg" id="btn-pose-rpg" title="Pose 1: Vista 3/4 isométrica axonométrica tipo RPG (Tecla 1)">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        <span>1. 3/4 Tipo RPG</span>
+      </button>
+
+      <button class="pose-btn" id="btn-pose-low" title="Pose 2: Cámara baja a nivel peatonal / ojo humano desplantada a 1.8m (Tecla 2)">
+        <svg viewBox="0 0 24 24"><path d="M4 19h16M7 15l5-5 5 5M12 10v9"/></svg>
+        <span>2. Cámara Baja (Peatonal)</span>
+      </button>
+
+      <button class="pose-btn" id="btn-pose-aerial" title="Pose 3: Vista general aérea de conjunto 3D en planta alta (Tecla 3)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+        <span>3. Vista General Aérea</span>
+      </button>
+    </div>
+
+    <!-- HERRAMIENTAS ADICIONALES Y RETORNO A PLANO 2D -->
+    <div class="top-actions-group">
+      <button class="btn-action-top" id="btn-toggle-roofs" title="Alternar visibilidad de losas y techumbres (Tecla T)">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+        <span id="lbl-toggle-roofs">Quitar Techos (Interiores)</span>
+      </button>
+
+      <button class="btn-action-top" id="btn-cad-style" title="Alternar estilo blanco puro CAD vs estilo realista de materiales">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 000 18z"/></svg>
+        <span id="lbl-cad-style">Estilo CAD Blanco</span>
+      </button>
+
+      <a href="planos_interactivos.html" class="btn-action-top btn-back-2d" title="Volver al plano 2D vectorial original">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span>← Plano 2D CAD</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- BOTÓN FLOTANTE PARA REABRIR PANEL -->
+  <button class="btn-reopen-insp" id="btn-reopen-insp">
+    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+    <span>Ver Ficha Técnica 3D</span>
+  </button>
+
+  <!-- PANEL INSPECTOR LATERAL FLOTANTE -->
+  <aside class="cad-inspector-3d" id="cad-inspector-3d">
+    <div class="insp-head">
+      <div>
+        <span class="insp-head-code" id="insp-code">EDIF-A • AULA-01</span>
+        <h2 id="insp-title">Aula 1 (Grupo 101)</h2>
+        <p id="insp-subtitle">Edificio A • Planta Baja • U-1C H. AYTO. 2007</p>
+      </div>
+      <button class="btn-close-insp" id="btn-close-insp" title="Ocultar panel">✕</button>
+    </div>
+
+    <div class="insp-body">
+      <!-- ÁREA HEROICA -->
+      <div class="hero-area-card">
+        <div class="label">
+          <span>SUPERFICIE / ÁREA TOTAL</span>
+          <span id="insp-formula">800.0 cm × 700.0 cm</span>
+        </div>
+        <div class="hero-val-cm2" id="insp-area-cm2">560,000 cm²</div>
+        <div class="hero-val-m2">
+          <span id="insp-area-m2">Equivalente a: 56.00 m²</span>
+          <span id="insp-area-dm2">5,600 dm²</span>
+        </div>
+      </div>
+
+      <!-- BOTÓN VOLAR AL SALÓN -->
+      <button class="btn-focus-room" id="btn-focus-room">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+        <span>Volar Cámara a este Salón (Zoom 3D)</span>
+      </button>
+
+      <!-- REJILLA DE 4 COTAS LINEALES -->
+      <div class="dims-grid-3d">
+        <div class="dim-box">
+          <div class="dim-box-lbl"><span>Largo (Frente)</span><small>EJE X</small></div>
+          <div class="dim-box-val" id="insp-len-cm">800.0 cm</div>
+          <div class="dim-box-sub" id="insp-len-m">8.00 m (8,000 mm)</div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-box-lbl"><span>Ancho (Fondo)</span><small>EJE Z</small></div>
+          <div class="dim-box-val" id="insp-wid-cm">700.0 cm</div>
+          <div class="dim-box-sub" id="insp-wid-m">7.00 m (7,000 mm)</div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-box-lbl"><span>Perímetro</span><small>2X + 2Z</small></div>
+          <div class="dim-box-val" id="insp-per-cm">3,000.0 cm</div>
+          <div class="dim-box-sub" id="insp-per-m">30.00 m lineales</div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-box-lbl"><span>Diagonal</span><small>HIPOTENUSA</small></div>
+          <div class="dim-box-val" id="insp-diag-cm">1,063.0 cm</div>
+          <div class="dim-box-sub" id="insp-diag-m">10.63 m diagonal</div>
+        </div>
+      </div>
+
+      <!-- ESPECIFICACIONES CONSTRUCTIVAS -->
+      <table class="table-spec-3d">
+        <tbody>
+          <tr>
+            <th>Altura Libre (Interior)</th>
+            <td id="insp-height">300.0 cm (3.00 m)</td>
+          </tr>
+          <tr>
+            <th>Volumen Cúbico de Aire</th>
+            <td id="insp-vol">168,000,000 cm³ (168.00 m³)</td>
+          </tr>
+          <tr>
+            <th>Nivel de Piso Terminado</th>
+            <td id="insp-npt">NPT +0.00 M</td>
+          </tr>
+          <tr>
+            <th>Capacidad de Aforo</th>
+            <td id="insp-capacity">40 alumnos + 1 docente</td>
+          </tr>
+          <tr>
+            <th>Densidad por Ocupante</th>
+            <td id="insp-density">14,000 cm²/persona (1.40 m²)</td>
+          </tr>
+          <tr>
+            <th>Normativa Oficial</th>
+            <td id="insp-norm">U-1C • H. AYTO. 2007</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- NOTA ARQUITECTÓNICA -->
+      <div class="note-box-3d" id="insp-notes">
+        Aula didáctica estándar del sistema CAPFCE / U-1C estructurada en marcos rígidos de concreto y muros de tabique con iluminación y ventilación cruzada.
+      </div>
+    </div>
+  </aside>
+
+  <!-- BARRA DE ESTADO INFERIOR -->
+  <footer class="bottom-statusbar">
+    <div class="sb-section">
+      <span class="sb-status-dot"></span>
+      <span>CEMSaD 22 ENTHAVI • RENDER 3D VECTORIAL ACTIVO (60 FPS)</span>
+    </div>
+    <div class="sb-section">
+      <span>Cámara: <strong id="sb-cam-pose" style="color: #c4b5fd;">1. 3/4 TIPO RPG (ISOMÉTRICA)</strong></span>
+      <span>•</span>
+      <span>Salón: <strong id="sb-active-room" style="color: #38bdf8;">Aula 1 (560,000 cm²)</strong></span>
+      <span>•</span>
+      <span style="color: #94a3b8;">Atajos: [1] RPG 3/4 | [2] Cámara Baja | [3] Vista Aérea | [T] Techos | [F] Encuadrar</span>
+    </div>
+  </footer>
+
+  <!-- ========================================================================
+       MOTOR JAVASCRIPT THREE.JS Y BASE DE DATOS
+       ======================================================================== -->
+  <script>
+  (function() {
+    'use strict';
+
+    /* BASE DE DATOS DE LOS 35 ESPACIOS (IMPORTADA DIRECTAMENTE DEL PLANO) */
+    const SPACES_DB = [
+      /* -------------------- EDIFICIO A (PLANTA BAJA: 339.19 m²) -------------------- */
+      {
+        id: 'edif_a',
+        code: 'EDIF-A-GEN',
+        name: 'Edificio "A" (Envolvente General)',
+        short_name: 'Edificio A',
+        building: 'Edificio A',
+        zone: 'edif_a',
+        level: 'Planta Baja',
+        category: 'servicio',
+        layout_type: 'building',
+        length_cm: 3500.0,
+        length_m: 35.00,
+        width_cm: 969.1,
+        width_m: 9.69,
+        area_cm2: 3391900,
+        area_m2: 339.19,
+        perimeter_cm: 8938.2,
+        perimeter_m: 89.38,
+        height_cm: 320.0,
+        wall_cm: 15.0,
+        door_cm: 'Múltiples vanos de 90 × 210 cm',
+        npt: 'NPT +0.00 M',
+        capacity: '120 usuarios simultáneos',
+        students_count: 120,
+        bldg_total_m2: 339.19,
+        norm: 'U-1C • H. AYTO. 2007',
+        equipment: ['Desayunador / Cafetería', 'Almacén general', 'Aula 1 (Grupo 101)', 'Aula 2 (Grupo 201)', 'Módulo de Sanitarios H/M', 'Pórtico y andador cubierto'],
+        notes: 'Cuerpo constructivo sur-poniente de un nivel estructurado mediante marcos rígidos de concreto armado y muros de tabique rojo recocido de 15 cm. Superficie oficial en tabla de planos: 339.19 m² (3,391,900 cm²).',
+        svg_id: 'svg-edif-a'
+      },
+      {
+        id: 'a_cafeteria',
+        code: 'EDIF-A-01',
+        name: 'Desayunador y Cafetería Escolar',
+        short_name: 'Cafetería',
+        building: 'Edificio A',
+        zone: 'edif_a',
+        level: 'Planta Baja',
+        category: 'servicio',
+        layout_type: 'cafeteria',
+        length_cm: 620.0,
+        length_m: 6.20,
+        width_cm: 700.0,
+        width_m: 7.00,
+        area_cm2: 434000,
+        area_m2: 43.40,
+        perimeter_cm: 2640.0,
+        perimeter_m: 26.40,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: '100.0 × 210.0 cm (21,000 cm²)',
+        npt: 'NPT +0.00 M',
+        capacity: '32 comensales',
+        students_count: 32,
+        bldg_total_m2: 339.19,
+        norm: 'U-1C • H. AYTO. 2007',
+        equipment: ['Barra de servicio de concreto (240 × 65 cm)', 'Tarja doble de acero inoxidable', 'Área de desayunador cubierto norte', 'Mesas de preparación', 'Instalación hidráulica, sanitaria y eléctrica'],
+        notes: 'Ubicado en el extremo poniente del Edificio A. Integra área de preparación cerrada al sur (Cafetería) con barra de atención al centro y terraza cubierta de desayunador hacia el norte.',
+        svg_id: 'svg-a-cafeteria'
+      },
+      {
+        id: 'a_almacen',
+        code: 'EDIF-A-02',
+        name: 'Almacén General e Intendencia',
+        short_name: 'Almacén A',
+        building: 'Edificio A',
+        zone: 'edif_a',
+        level: 'Planta Baja',
+        category: 'servicio',
+        layout_type: 'storage',
+        length_cm: 380.0,
+        length_m: 3.80,
+        width_cm: 700.0,
+        width_m: 7.00,
+        area_cm2: 266000,
+        area_m2: 26.60,
+        perimeter_cm: 2160.0,
+        perimeter_m: 21.60,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: '90.0 × 210.0 cm (18,900 cm²)',
+        npt: 'NPT +0.00 M',
+        capacity: '4 operadores / resguardo',
+        students_count: 4,
+        bldg_total_m2: 339.19,
+        norm: 'U-1C • H. AYTO. 2007',
+        equipment: ['Anaqueles metálicos de carga pesada (45 cm fondo)', 'Zona de resguardo deportivo y cívico', ' Tablero eléctrico secundario', 'Ventilación superior por celosía'],
+        notes: 'Bodega general del plantel para resguardo de insumos de mantenimiento, material didáctico, equipo de banda de guerra y mobiliario de reserva.',
+        svg_id: 'svg-a-almacen'
+      },
+      {
+        id: 'a_aula1',
+        code: 'EDIF-A-03',
+        name: 'Aula 1 (Salón Didáctico Grupo 101)',
+        short_name: 'Aula 1',
+        building: 'Edificio A',
+        zone: 'edif_a',
+        level: 'Planta Baja',
+        category: 'aula',
+        layout_type: 'classroom',
+        length_cm: 800.0,
+        length_m: 8.00,
+        width_cm: 700.0,
+        width_m: 7.00,
+        area_cm2: 560000,
+        area_m2: 56.00,
+        perimeter_cm: 3000.0,
+        perimeter_m: 30.00,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: '90.0 × 210.0 cm (18,900 cm²)',
+        npt: 'NPT +0.00 M',
+        capacity: '40 alumnos + 1 docente',
+        students_count: 40,
+        bldg_total_m2: 339.19,
+        norm: 'U-1C • H. AYTO. 2007',
+        equipment: ['Pizarrón acrílico blanco 300 × 120 cm', '40 pupitres ergonómicos individuales', 'Escritorio y silla para docente', '6 luminarias LED 2×32W', 'Cancelería corrida de aluminio norte/sur'],
+        notes: 'Aula didáctica modular de 2 entre-ejes estructurales (2 × 400 cm = 800 cm de frente por 700 cm de fondo), dando una superficie neta de 560,000 cm² (56.00 m²) con iluminación natural bilateral.',
+        svg_id: 'svg-a-aula1'
+      },
+      {
+        id: 'a_aula2',
+        code: 'EDIF-A-04',
+        name: 'Aula 2 (Salón Didáctico Grupo 201)',
+        short_name: 'Aula 2',
+        building: 'Edificio A',
+        zone: 'edif_a',
+        level: 'Planta Baja',
+        category: 'aula',
+        layout_type: 'classroom',
+        length_cm: 800.0,
+        length_m: 8.00,
+        width_cm: 700.0,
+        width_m: 7.00,
+        area_cm2: 560000,
+        area_m2: 56.00,
+        perimeter_cm: 3000.0,
+        perimeter_m: 30.00,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: '90.0 × 210.0 cm (18,900 cm²)',
+        npt: 'NPT +0.00 M',
+        capacity: '40 alumnos + 1 docente',
+        students_count: 40,
+        bldg_total_m2: 339.19,
+        norm: 'U-1C • H. AYTO. 2007',
+        equipment: ['Pizarrón acrílico blanco 300 × 120 cm', '40 pupitres ergonómicos individuales', 'Escritorio y silla para docente', '6 luminarias LED 2×32W', 'Contactos polarizados 127V'],
+        notes: 'Aula didáctica contigua al Aula 1 y al módulo sanitario. Dimensiones normativas de 800.0 cm de largo por 700.0 cm de ancho (560,000 cm²).',
+        svg_id: 'svg-a-aula2'
+      },
+      {
+        id: 'a_sanitarios',
+        code: 'EDIF-A-05',
+        name: 'Módulo de Sanitarios Estudiantiles (H / M)',
+        short_name: 'Sanitarios A',
+        building: 'Edificio A',
+        zone: 'edif_a',
+        level: 'Planta Baja',
+        category: 'servicio',
+        layout_type: 'restrooms',
+        length_cm: 600.0,
+        length_m: 6.00,
+        width_cm: 700.0,
+        width_m: 7.00,
+        area_cm2: 420000,
+        area_m2: 42.00,
+        perimeter_cm: 2600.0,
+        perimeter_m: 26.00,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: 'Doble acceso con mampara laberinto (110 cm)',
+        npt: 'NPT +0.00 M',
+        capacity: '12 usuarios simultáneos',
+        students_count: 12,
+        bldg_total_m2: 339.19,
+        norm: 'U-1C • H. AYTO. 2007',
+        equipment: ['8 cubículos con inodoro de fluxómetro (4 Mujeres / 4 Hombres)', 'Muro técnico central de instalaciones hidrosanitarias (ducto registrable)', 'Barras de lavabos ovalines', 'Mampara vestíbulo en T para privacidad visual', 'Recubrimiento cerámico antiderrapante'],
+        notes: 'Núcleo sanitario general estudiantil ubicado en la cabecera oriente del Edificio A. Cuenta con ducto central de plomería y mamparas divisorias.',
+        svg_id: 'svg-a-sanitarios'
+      },
+
+      /* -------------------- EDIFICIO B (PLANTA BAJA: 312.85 m²) -------------------- */
+      {
+        id: 'edif_b',
+        code: 'EDIF-B-GEN',
+        name: 'Edificio "B" (Envolvente General)',
+        short_name: 'Edificio B',
+        building: 'Edificio B',
+        zone: 'edif_b',
+        level: 'Planta Baja (Terraza +4.00m)',
+        category: 'aula',
+        layout_type: 'building',
+        length_cm: 3200.0,
+        length_m: 32.00,
+        width_cm: 977.6,
+        width_m: 9.78,
+        area_cm2: 3128500,
+        area_m2: 312.85,
+        perimeter_cm: 8355.2,
+        perimeter_m: 83.55,
+        height_cm: 320.0,
+        wall_cm: 15.0,
+        door_cm: 'Vanos de 90 × 210 cm hacia andador sur',
+        npt: 'NPT +4.00 M',
+        capacity: '130 usuarios simultáneos',
+        students_count: 130,
+        bldg_total_m2: 312.85,
+        norm: 'U-2C • AYTTO. 2010',
+        equipment: ['Aula 3 (Grupo 301)', 'Aula 4 (Grupo 401)', 'Biblioteca Escolar', 'Sala de Maestros', 'Andador frontal y escalera de enlace'],
+        notes: 'Edificio desplantado en la plataforma superior norte (NPT +4.00 m). Superficie construida oficial en cuadro de áreas: 312.85 m² (3,128,500 cm²).',
+        svg_id: 'svg-edif-b'
+      },
+      {
+        id: 'b_aula3',
+        code: 'EDIF-B-01',
+        name: 'Aula 3 (Salón Didáctico Grupo 301)',
+        short_name: 'Aula 3',
+        building: 'Edificio B',
+        zone: 'edif_b',
+        level: 'Planta Baja (NPT +4.00m)',
+        category: 'aula',
+        layout_type: 'classroom',
+        length_cm: 800.0,
+        length_m: 8.00,
+        width_cm: 720.0,
+        width_m: 7.20,
+        area_cm2: 576000,
+        area_m2: 57.60,
+        perimeter_cm: 3040.0,
+        perimeter_m: 30.40,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: '90.0 × 210.0 cm (Abatimiento interior derecho)',
+        npt: 'NPT +4.00 M',
+        capacity: '42 alumnos + 1 docente',
+        students_count: 42,
+        bldg_total_m2: 312.85,
+        norm: 'U-2C • AYTTO. 2010',
+        equipment: ['Pizarrón blanco magnético 300 × 120 cm', '42 butacas individuales', 'Mesa de cátedra', 'Iluminación LED de alta eficiencia', 'Ventanales de aluminio de 200 cm'],
+        notes: 'Ubicada en el extremo poniente del Edificio B. Cuenta con 800.0 cm de largo por 720.0 cm de ancho, generando un área útil de 576,000 cm² (57.60 m²).',
+        svg_id: 'svg-b-aula3'
+      },
+      {
+        id: 'b_aula4',
+        code: 'EDIF-B-02',
+        name: 'Aula 4 (Salón Didáctico Grupo 401)',
+        short_name: 'Aula 4',
+        building: 'Edificio B',
+        zone: 'edif_b',
+        level: 'Planta Baja (NPT +4.00m)',
+        category: 'aula',
+        layout_type: 'classroom',
+        length_cm: 800.0,
+        length_m: 8.00,
+        width_cm: 720.0,
+        width_m: 7.20,
+        area_cm2: 576000,
+        area_m2: 57.60,
+        perimeter_cm: 3040.0,
+        perimeter_m: 30.40,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: '90.0 × 210.0 cm (Abatimiento interior derecho)',
+        npt: 'NPT +4.00 M',
+        capacity: '42 alumnos + 1 docente',
+        students_count: 42,
+        bldg_total_m2: 312.85,
+        norm: 'U-2C • AYTTO. 2010',
+        equipment: ['Pizarrón blanco magnético 300 × 120 cm', '42 butacas individuales', 'Mesa de cátedra', 'Iluminación LED', 'Cancelería de proyección norte-sur'],
+        notes: 'Segundo módulo de aula del Edificio B, entre el Aula 3 y la Biblioteca Escolar. Superficie exacta de 576,000 cm² (57.60 m²).',
+        svg_id: 'svg-b-aula4'
+      },
+      {
+        id: 'b_biblioteca',
+        code: 'EDIF-B-03',
+        name: 'Biblioteca Escolar y Acervo Bibliográfico',
+        short_name: 'Biblioteca',
+        building: 'Edificio B',
+        zone: 'edif_b',
+        level: 'Planta Baja (NPT +4.00m)',
+        category: 'admin',
+        layout_type: 'library',
+        length_cm: 520.0,
+        length_m: 5.20,
+        width_cm: 720.0,
+        width_m: 7.20,
+        area_cm2: 374400,
+        area_m2: 37.44,
+        perimeter_cm: 2480.0,
+        perimeter_m: 24.80,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: '2 puertas de 90 × 210 cm (acceso y acervo)',
+        npt: 'NPT +4.00 M',
+        capacity: '20 lectores simultáneos',
+        students_count: 20,
+        bldg_total_m2: 312.85,
+        norm: 'U-2C • AYTTO. 2010',
+        equipment: ['2 mesas centrales de lectura grupal', 'Mostrador de préstamo y control con 4 módulos', 'Sub-sala norte de acervo cerrado (520 × 270 cm)', 'Sala de lectura sur (520 × 450 cm)', 'Estantería perimetral para libros'],
+        notes: 'Espacio subdividido por un muro interior con puerta de intercomunicación: aloja el acervo bibliográfico en la sección norte y la sala de consulta con mesas y mostrador en la sección sur.',
+        svg_id: 'svg-b-biblioteca'
+      },
+      {
+        id: 'b_sala_maestros',
+        code: 'EDIF-B-04',
+        name: 'Sala de Maestros y Cuerpo Académico',
+        short_name: 'Sala de Maestros',
+        building: 'Edificio B',
+        zone: 'edif_b',
+        level: 'Planta Baja (NPT +4.00m)',
+        category: 'admin',
+        layout_type: 'teachers',
+        length_cm: 780.0,
+        length_m: 7.80,
+        width_cm: 720.0,
+        width_m: 7.20,
+        area_cm2: 561600,
+        area_m2: 56.16,
+        perimeter_cm: 3000.0,
+        perimeter_m: 30.00,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: '90.0 × 210.0 cm (Abatimiento izquierdo)',
+        npt: 'NPT +4.00 M',
+        capacity: '24 docentes',
+        students_count: 24,
+        bldg_total_m2: 312.85,
+        norm: 'U-2C • AYTTO. 2010',
+        equipment: ['Mesa de juntas colegiadas para 16 docentes', 'Casilleros (lockers) individuales para profesores', 'Estación de trabajo e impresión', 'Pizarrón de avisos académicos'],
+        notes: 'Situada en el extremo oriente del Edificio B, con acceso inmediato a la escalera de enlace y al edificio administrativo C.',
+        svg_id: 'svg-b-maestros'
+      },
+
+      /* -------------------- EDIFICIO C • PLANTA BAJA (312.85 m²) -------------------- */
+      {
+        id: 'edif_c_pb',
+        code: 'EDIF-C-PB',
+        name: 'Edificio "C" • Planta Baja (Envolvente)',
+        short_name: 'Edif. C (PB)',
+        building: 'Edificio C',
+        zone: 'edif_c_pb',
+        level: 'Planta Baja',
+        category: 'admin',
+        layout_type: 'building',
+        length_cm: 3200.0,
+        length_m: 32.00,
+        width_cm: 977.6,
+        width_m: 9.78,
+        area_cm2: 3128500,
+        area_m2: 312.85,
+        perimeter_cm: 8355.2,
+        perimeter_m: 83.55,
+        height_cm: 310.0,
+        wall_cm: 15.0,
+        door_cm: 'Accesos múltiples administrativos y docentes',
+        npt: 'NPT +4.00 M',
+        capacity: '90 ocupantes en Planta Baja',
+        students_count: 90,
+        bldg_total_m2: 625.70,
+        norm: 'U-1C • CAP. 6000-2013',
+        equipment: ['Enfermería', 'Tutorías', 'Archivo', 'Sanitario Administrativo (S.S.)', 'Dirección (Responsable del CEMSaD)', 'Apoyo Académico', 'Escalera principal', 'Aula 5'],
+        notes: 'Planta baja del Edificio C de dos niveles (312.85 m² en PB + 312.85 m² en PA = 625.70 m² totales, equivalente a 6,257,000 cm²).',
+        svg_id: 'svg-edif-c-pb'
+      },
+      {
+        id: 'c_enfermeria',
+        code: 'EDIF-C-PB01',
+        name: 'Consultorio de Enfermería y Primeros Auxilios',
+        short_name: 'Enfermería',
+        building: 'Edificio C',
+        zone: 'edif_c_pb',
+        level: 'Planta Baja',
+        category: 'servicio',
+        layout_type: 'office',
+        length_cm: 380.0,
+        length_m: 3.80,
+        width_cm: 350.0,
+        width_m: 3.50,
+        area_cm2: 133000,
+        area_m2: 13.30,
+        perimeter_cm: 1460.0,
+        perimeter_m: 14.60,
+        height_cm: 290.0,
+        wall_cm: 15.0,
+        door_cm: '85.0 × 210.0 cm',
+        npt: 'NPT +4.00 M',
+        capacity: '1 médico/enfermero + 2 pacientes',
+        students_count: 3,
+        bldg_total_m2: 312.85,
+        norm: 'U-1C • CAP. 6000-2013',
+        equipment: ['Camilla de exploración clínica (190 × 65 cm)', 'Vitrina metálica para botiquín y primeros auxilios', 'Escritorio de valoración', 'Báscula con estadímetro'],
+        notes: 'Cubículo norponiente del bloque administrativo del Edificio C, destinado a la atención médica primaria y valoración de salud estudiantil.',
+        svg_id: 'svg-c-enfermeria'
+      },
+      {
+        id: 'c_tutorias',
+        code: 'EDIF-C-PB02',
+        name: 'Cubículo de Tutorías y Orientación Educativa',
+        short_name: 'Tutorías',
+        building: 'Edificio C',
+        zone: 'edif_c_pb',
+        level: 'Planta Baja',
+        category: 'admin',
+        layout_type: 'office',
+        length_cm: 380.0,
+        length_m: 3.80,
+        width_cm: 350.0,
+        width_m: 3.50,
+        area_cm2: 133000,
+        area_m2: 13.30,
+        perimeter_cm: 1460.0,
+        perimeter_m: 14.60,
+        height_cm: 290.0,
+        wall_cm: 15.0,
+        door_cm: '85.0 × 210.0 cm hacia pórtico sur',
+        npt: 'NPT +4.00 M',
+        capacity: '1 orientador + 4 alumnos/padres',
+        students_count: 5,
+        bldg_total_m2: 312.85,
+        norm: 'U-1C • CAP. 6000-2013',
+        equipment: ['Escritorio de atención psicopedagógica', 'Mesa redonda de entrevista', 'Archivero de seguimiento académico'],
+        notes: 'Espacio ubicado en la esquina surponiente del Edificio C con acceso directo desde el corredor exterior para atención a alumnos y padres de familia.',
+        svg_id: 'svg-c-tutorias'
+      },
+      {
+        id: 'c_archivo',
+        code: 'EDIF-C-PB03',
+        name: 'Archivo Escolar y Resguardo de Actas',
+        short_name: 'Archivo',
+        building: 'Edificio C',
+        zone: 'edif_c_pb',
+        level: 'Planta Baja',
+        category: 'admin',
+        layout_type: 'storage',
+        length_cm: 340.0,
+        length_m: 3.40,
+        width_cm: 350.0,
+        width_m: 3.50,
+        area_cm2: 119000,
+        area_m2: 11.90,
+        perimeter_cm: 1380.0,
+        perimeter_m: 13.80,
+        height_cm: 290.0,
+        wall_cm: 15.0,
+        door_cm: '80.0 × 210.0 cm intercomunicado con Dirección',
+        npt: 'NPT +4.00 M',
+        capacity: '2 administrativos (acceso restringido)',
+        students_count: 2,
+        bldg_total_m2: 312.85,
+        norm: 'U-1C • CAP. 6000-2013',
+        equipment: ['6 archiveros verticales de 4 gavetas con cerradura', 'Estantería metálica para kárdex e historial académico', 'Mesa de clasificación documental'],
+        notes: 'Área de seguridad documental contigua a la oficina del Responsable del CEMSaD y Apoyo Académico.',
+        svg_id: 'svg-c-archivo'
+      },
+      {
+        id: 'c_ss_admin',
+        code: 'EDIF-C-PB04',
+        name: 'Sanitario de Personal Directivo y Administrativo (S.S.)',
+        short_name: 'S.S. Admin',
+        building: 'Edificio C',
+        zone: 'edif_c_pb',
+        level: 'Planta Baja',
+        category: 'servicio',
+        layout_type: 'office',
+        length_cm: 220.0,
+        length_m: 2.20,
+        width_cm: 350.0,
+        width_m: 3.50,
+        area_cm2: 77000,
+        area_m2: 7.70,
+        perimeter_cm: 1140.0,
+        perimeter_m: 11.40,
+        height_cm: 290.0,
+        wall_cm: 15.0,
+        door_cm: '75.0 × 210.0 cm con abatimiento interior',
+        npt: 'NPT +4.00 M',
+        capacity: '1 usuario (Sanitario privado)',
+        students_count: 1,
+        bldg_total_m2: 312.85,
+        norm: 'U-1C • CAP. 6000-2013',
+        equipment: ['Inodoro de tanque bajo', 'Lavabo de pedestal con mezcladora', 'Espejo y extractor de aire', 'Ventana alta de ventilación en muro norte'],
+        notes: 'Servicio sanitario exclusivo para el personal administrativo y docente dentro del núcleo central del Edificio C.',
+        svg_id: 'svg-c-ss-admin'
+      },
+      {
+        id: 'c_direccion',
+        code: 'EDIF-C-PB05',
+        name: 'Dirección • Oficina del Responsable del CEMSaD',
+        short_name: 'Dirección CEMSaD',
+        building: 'Edificio C',
+        zone: 'edif_c_pb',
+        level: 'Planta Baja',
+        category: 'admin',
+        layout_type: 'office',
+        length_cm: 480.0,
+        length_m: 4.80,
+        width_cm: 350.0,
+        width_m: 3.50,
+        area_cm2: 168000,
+        area_m2: 16.80,
+        perimeter_cm: 1660.0,
+        perimeter_m: 16.60,
+        height_cm: 290.0,
+        wall_cm: 15.0,
+        door_cm: '90.0 × 210.0 cm hacia recepción académica',
+        npt: 'NPT +4.00 M',
+        capacity: '1 director + 4 visitantes',
+        students_count: 5,
+        bldg_total_m2: 312.85,
+        norm: 'U-1C • CAP. 6000-2013',
+        equipment: ['Escritorio ejecutivo en L', 'Sillón directivo y 4 sillas de visita', 'Credenza y librero institucional', 'Equipo de cómputo y comunicación'],
+        notes: 'Despacho titular del Responsable del CEMSaD 22 ENTHAVI, con vista hacia la explanada central y comunicación directa con Archivo y Apoyo Académico.',
+        svg_id: 'svg-c-direccion'
+      },
+      {
+        id: 'c_apoyo_acad',
+        code: 'EDIF-C-PB06',
+        name: 'Apoyo Académico, Control Escolar y Recepción',
+        short_name: 'Apoyo Académico',
+        building: 'Edificio C',
+        zone: 'edif_c_pb',
+        level: 'Planta Baja',
+        category: 'admin',
+        layout_type: 'office',
+        length_cm: 480.0,
+        length_m: 4.80,
+        width_cm: 350.0,
+        width_m: 3.50,
+        area_cm2: 168000,
+        area_m2: 16.80,
+        perimeter_cm: 1660.0,
+        perimeter_m: 16.60,
+        height_cm: 290.0,
+        wall_cm: 15.0,
+        door_cm: '90.0 × 210.0 cm',
+        npt: 'NPT +4.00 M',
+        capacity: '3 administrativos + 6 solicitantes',
+        students_count: 9,
+        bldg_total_m2: 312.85,
+        norm: 'U-1C • CAP. 6000-2013',
+        equipment: ['2 estaciones de trabajo administrativo', 'Mostrador de atención a alumnos', 'Impresora multifuncional de alto volumen', 'Banca de espera en vestíbulo'],
+        notes: 'Área encargada de inscripciones, constancias, control de calificaciones y atención administrativa a la comunidad escolar.',
+        svg_id: 'svg-c-apoyo-acad'
+      },
+      {
+        id: 'c_escalera_pb',
+        code: 'EDIF-C-PB07',
+        name: 'Núcleo de Escalera Principal (Planta Baja a Planta Alta)',
+        short_name: 'Escalera PB',
+        building: 'Edificio C',
+        zone: 'edif_c_pb',
+        level: 'Planta Baja',
+        category: 'servicio',
+        layout_type: 'stairs',
+        length_cm: 380.0,
+        length_m: 3.80,
+        width_cm: 720.0,
+        width_m: 7.20,
+        area_cm2: 273600,
+        area_m2: 27.36,
+        perimeter_cm: 2200.0,
+        perimeter_m: 22.00,
+        height_cm: 310.0,
+        wall_cm: 15.0,
+        door_cm: 'Circulación abierta de 380 cm de ancho',
+        npt: 'NPT +4.00 M a +7.10 M',
+        capacity: 'Flujo continuo (180 personas/min)',
+        students_count: 20,
+        bldg_total_m2: 312.85,
+        norm: 'U-1C • CAP. 6000-2013',
+        equipment: ['2 rampas de escalones de concreto armado (165 cm ancho c/u)', 'Descanso intermedio de 380 × 150 cm', 'Barandal metálico tubular de 95 cm de altura', 'Huellas de 30 cm y peraltes de 17.5 cm'],
+        notes: 'Circulación vertical en U que articula el bloque administrativo con el Aula 5 en Planta Baja y conduce al Taller de Cómputo y Aula 6 en Planta Alta.',
+        svg_id: 'svg-c-escalera-pb'
+      },
+      {
+        id: 'c_aula5',
+        code: 'EDIF-C-PB08',
+        name: 'Aula 5 (Salón Didáctico Grupo 501)',
+        short_name: 'Aula 5',
+        building: 'Edificio C',
+        zone: 'edif_c_pb',
+        level: 'Planta Baja',
+        category: 'aula',
+        layout_type: 'classroom',
+        length_cm: 800.0,
+        length_m: 8.00,
+        width_cm: 720.0,
+        width_m: 7.20,
+        area_cm2: 576000,
+        area_m2: 57.60,
+        perimeter_cm: 3040.0,
+        perimeter_m: 30.40,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: '90.0 × 210.0 cm (Abatimiento interior izquierdo)',
+        npt: 'NPT +4.00 M',
+        capacity: '42 alumnos + 1 docente',
+        students_count: 42,
+        bldg_total_m2: 312.85,
+        norm: 'U-1C • CAP. 6000-2013',
+        equipment: ['Pizarrón acrílico blanco 300 × 120 cm', '42 pupitres individuales', 'Escritorio de profesor', '6 luminarias LED sobrepuestas', 'Ventanales de aluminio'],
+        notes: 'Ubicada en el ala oriente de la Planta Baja del Edificio C, colindante con la Cancha de Usos Múltiples y el núcleo de escaleras.',
+        svg_id: 'svg-c-aula5'
+      },
+
+      /* -------------------- EDIFICIO C • PLANTA ALTA (312.85 m²) -------------------- */
+      {
+        id: 'edif_c_pa',
+        code: 'EDIF-C-PA',
+        name: 'Edificio "C" • Planta Alta (Envolvente)',
+        short_name: 'Edif. C (PA)',
+        building: 'Edificio C',
+        zone: 'edif_c_pa',
+        level: 'Planta Alta',
+        category: 'lab',
+        layout_type: 'building',
+        length_cm: 3200.0,
+        length_m: 32.00,
+        width_cm: 977.6,
+        width_m: 9.78,
+        area_cm2: 3128500,
+        area_m2: 312.85,
+        perimeter_cm: 8355.2,
+        perimeter_m: 83.55,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: '3 puertas de 90 × 210 cm hacia pasillo',
+        npt: 'NPT +7.10 M',
+        capacity: '90 alumnos simultáneos',
+        students_count: 90,
+        bldg_total_m2: 625.70,
+        norm: 'E.A.M.-2023 • U-1C',
+        equipment: ['Taller de Cómputo (115.20 m²)', 'Desembarque de Escalera (27.36 m²)', 'Aula 6 (57.60 m²)', 'Pasillo mirador con barandal de protección'],
+        notes: 'Segundo nivel del Edificio C registrado en la tabla de superficies con exactamente 312.8500 m² (3,128,500 cm²) bajo clave constructiva E.A.M.-2023.',
+        svg_id: 'svg-edif-c-pa'
+      },
+      {
+        id: 'c_computo',
+        code: 'EDIF-C-PA01',
+        name: 'Taller de Cómputo y Laboratorio de Informática',
+        short_name: 'Taller de Cómputo',
+        building: 'Edificio C',
+        zone: 'edif_c_pa',
+        level: 'Planta Alta',
+        category: 'lab',
+        layout_type: 'computer_lab',
+        length_cm: 1600.0,
+        length_m: 16.00,
+        width_cm: 720.0,
+        width_m: 7.20,
+        area_cm2: 1152000,
+        area_m2: 115.20,
+        perimeter_cm: 4640.0,
+        perimeter_m: 46.40,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: '2 puertas de 90 × 210 cm (Doble salida de emergencia)',
+        npt: 'NPT +7.10 M',
+        capacity: '45 alumnos en estaciones de cómputo + 1 docente',
+        students_count: 45,
+        bldg_total_m2: 312.85,
+        norm: 'E.A.M.-2023',
+        equipment: ['45 equipos de cómputo de escritorio con regulador', 'Mesas perimetrales e islas centrales con canaleta de voz y datos', 'Rack de telecomunicaciones y switch Gigabit', 'Pizarrón interactivo y proyector', 'Centro de carga bifásico con tierra física dedicada'],
+        notes: 'Salón de doble módulo estructural (4 entre-ejes de 400 cm = 1,600.0 cm de largo por 720.0 cm de ancho), alcanzando 1,152,000 cm² (115.20 m²). Es el recinto cerrado más amplio del plantel.',
+        svg_id: 'svg-c-computo'
+      },
+      {
+        id: 'c_escalera_pa',
+        code: 'EDIF-C-PA02',
+        name: 'Desembarque y Vestíbulo de Escalera (Planta Alta)',
+        short_name: 'Escalera PA',
+        building: 'Edificio C',
+        zone: 'edif_c_pa',
+        level: 'Planta Alta',
+        category: 'servicio',
+        layout_type: 'stairs',
+        length_cm: 380.0,
+        length_m: 3.80,
+        width_cm: 720.0,
+        width_m: 7.20,
+        area_cm2: 273600,
+        area_m2: 27.36,
+        perimeter_cm: 2200.0,
+        perimeter_m: 22.00,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: 'Vestíbulo abierto con murete de protección',
+        npt: 'NPT +7.10 M',
+        capacity: 'Flujo vestibular',
+        students_count: 15,
+        bldg_total_m2: 312.85,
+        norm: 'E.A.M.-2023',
+        equipment: ['Murete y barandal perimetral de seguridad en vacío de escalera', 'Luminaria de emergencia autónoma', 'Señalética de ruta de evacuación'],
+        notes: 'Núcleo de llegada en Planta Alta que distribuye hacia el Taller de Cómputo al poniente y hacia el Aula 6 al oriente.',
+        svg_id: 'svg-c-escalera-pa'
+      },
+      {
+        id: 'c_aula6',
+        code: 'EDIF-C-PA03',
+        name: 'Aula 6 (Salón Didáctico Grupo 601)',
+        short_name: 'Aula 6',
+        building: 'Edificio C',
+        zone: 'edif_c_pa',
+        level: 'Planta Alta',
+        category: 'aula',
+        layout_type: 'classroom',
+        length_cm: 800.0,
+        length_m: 8.00,
+        width_cm: 720.0,
+        width_m: 7.20,
+        area_cm2: 576000,
+        area_m2: 57.60,
+        perimeter_cm: 3040.0,
+        perimeter_m: 30.40,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: '90.0 × 210.0 cm (Abatimiento interior izquierdo)',
+        npt: 'NPT +7.10 M',
+        capacity: '42 alumnos + 1 docente',
+        students_count: 42,
+        bldg_total_m2: 312.85,
+        norm: 'E.A.M.-2023',
+        equipment: ['Pizarrón acrílico blanco 300 × 120 cm', '42 pupitres individuales', 'Escritorio de docente', '6 luminarias LED', 'Ventanales corredizos con vista panorámica'],
+        notes: 'Aula didáctica superior ubicada exactamente sobre el Aula 5 en el extremo oriente del Edificio C. Superficie: 576,000 cm² (57.60 m²).',
+        svg_id: 'svg-c-aula6'
+      },
+
+      /* -------------------- EDIFICIO D • LABORATORIO (183.07 m²) -------------------- */
+      {
+        id: 'edif_d',
+        code: 'EDIF-D-GEN',
+        name: 'Edificio "D" • Unidad de Laboratorio (Envolvente)',
+        short_name: 'Edificio D',
+        building: 'Edificio D',
+        zone: 'edif_d',
+        level: 'Planta Baja',
+        category: 'lab',
+        layout_type: 'building',
+        length_cm: 1900.0,
+        length_m: 19.00,
+        width_cm: 963.5,
+        width_m: 9.64,
+        area_cm2: 1830700,
+        area_m2: 183.07,
+        perimeter_cm: 5727.0,
+        perimeter_m: 57.27,
+        height_cm: 330.0,
+        wall_cm: 15.0,
+        door_cm: 'Puerta de seguridad de 100 × 210 cm',
+        npt: 'NPT +0.00 M',
+        capacity: '45 alumnos + 2 laboratoristas',
+        students_count: 45,
+        bldg_total_m2: 183.07,
+        norm: 'CAPFCE / INIFED Lab',
+        equipment: ['Laboratorio de Usos Múltiples (92.16 m²)', 'Cubículo de Preparación y Reactivos (13.68 m²)', 'Almacén de Instrumental y Cristalería (12.92 m²)', 'Pórtico sur y andadores perimetrales'],
+        notes: 'Módulo especializado de ciencias experimentales ubicado en el sector suroriente del plantel. Superficie oficial construida en cuadro de datos: 183.07 m² (1,830,700 cm²).',
+        svg_id: 'svg-edif-d'
+      },
+      {
+        id: 'd_laboratorio',
+        code: 'EDIF-D-01',
+        name: 'Laboratorio de Usos Múltiples (Química, Física y Biología)',
+        short_name: 'Laboratorio Ciencias',
+        building: 'Edificio D',
+        zone: 'edif_d',
+        level: 'Planta Baja',
+        category: 'lab',
+        layout_type: 'science_lab',
+        length_cm: 1280.0,
+        length_m: 12.80,
+        width_cm: 720.0,
+        width_m: 7.20,
+        area_cm2: 921600,
+        area_m2: 92.16,
+        perimeter_cm: 4000.0,
+        perimeter_m: 40.00,
+        height_cm: 320.0,
+        wall_cm: 15.0,
+        door_cm: '100.0 × 210.0 cm con abatimiento de emergencia',
+        npt: 'NPT +0.00 M',
+        capacity: '42 alumnos en 6 mesas de trabajo',
+        students_count: 42,
+        bldg_total_m2: 183.07,
+        norm: 'INIFED Ciencias',
+        equipment: ['6 mesas centrales de laboratorio con cubierta resistente a ácidos, tarja, agua, gas y contactos eléctricos', 'Mesa de demostración del docente con tarja', 'Regadera de emergencia y lavaojos', 'Campana de extracción de gases', 'Bancos altos metálicos de laboratorio'],
+        notes: 'Nave principal del Edificio D estructurada con columnas circulares/cuadradas perimetrales. Dimensiones interiores de 1,280.0 cm por 720.0 cm (921,600 cm² / 92.16 m²).',
+        svg_id: 'svg-d-laboratorio'
+      },
+      {
+        id: 'd_reactivos',
+        code: 'EDIF-D-02',
+        name: 'Cubículo de Preparación y Resguardo de Reactivos',
+        short_name: 'Reactivos Lab',
+        building: 'Edificio D',
+        zone: 'edif_d',
+        level: 'Planta Baja',
+        category: 'lab',
+        layout_type: 'storage',
+        length_cm: 380.0,
+        length_m: 3.80,
+        width_cm: 360.0,
+        width_m: 3.60,
+        area_cm2: 136800,
+        area_m2: 13.68,
+        perimeter_cm: 1480.0,
+        perimeter_m: 14.80,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: '85.0 × 210.0 cm con cerradura de seguridad',
+        npt: 'NPT +0.00 M',
+        capacity: '2 docentes / laboratoristas',
+        students_count: 2,
+        bldg_total_m2: 183.07,
+        norm: 'NOM-018-STPS / INIFED',
+        equipment: ['Gabinete de seguridad para sustancias químicas', 'Tarja de lavado profundo', 'Mesa de preparación de soluciones', 'Extintor CO2 y ventilación forzada'],
+        notes: 'Anexo surponiente del Laboratorio de Usos Múltiples con muros divisorios reforzados para el control seguro de reactivos.',
+        svg_id: 'svg-d-reactivos'
+      },
+      {
+        id: 'd_almacen_lab',
+        code: 'EDIF-D-03',
+        name: 'Almacén de Material de Vidrio, Microscopios e Instrumental',
+        short_name: 'Almacén Lab',
+        building: 'Edificio D',
+        zone: 'edif_d',
+        level: 'Planta Baja',
+        category: 'lab',
+        layout_type: 'storage',
+        length_cm: 380.0,
+        length_m: 3.80,
+        width_cm: 340.0,
+        width_m: 3.40,
+        area_cm2: 129200,
+        area_m2: 12.92,
+        perimeter_cm: 1440.0,
+        perimeter_m: 14.40,
+        height_cm: 300.0,
+        wall_cm: 15.0,
+        door_cm: '85.0 × 210.0 cm',
+        npt: 'NPT +0.00 M',
+        capacity: '2 encargados de laboratorio',
+        students_count: 2,
+        bldg_total_m2: 183.07,
+        norm: 'INIFED Ciencias',
+        equipment: ['Vitrinas para microscopios ópticos y balanzas granatarias', 'Anaqueles para matraces, probetas y tubos de ensayo', 'Ventanilla de entrega de material'],
+        notes: 'Anexo suroriente del Edificio D dedicado al resguardo de instrumental óptico, físico y cristalería de laboratorio.',
+        svg_id: 'svg-d-almacen'
+      },
+
+      /* -------------------- EXTERIORES, DEPORTES Y PLAZAS -------------------- */
+      {
+        id: 'cancha_deportiva',
+        code: 'EXT-DEP-01',
+        name: 'Cancha de Usos Múltiples (Básquetbol, Voleibol y Fútbol Rápido)',
+        short_name: 'Cancha Deportiva',
+        building: 'Área Deportiva',
+        zone: 'exteriores',
+        level: 'Terraza Superior (NPT +4.00m)',
+        category: 'exterior',
+        layout_type: 'court',
+        length_cm: 3000.0,
+        length_m: 30.00,
+        width_cm: 1800.0,
+        width_m: 18.00,
+        area_cm2: 5400000,
+        area_m2: 540.00,
+        perimeter_cm: 9600.0,
+        perimeter_m: 96.00,
+        height_cm: 700.0,
+        wall_cm: 0.0,
+        door_cm: 'Acceso abierto por rampa y andadores perimetrales',
+        npt: 'NPT +4.00 M',
+        capacity: '200 espectadores / 10 jugadores en cancha',
+        students_count: 50,
+        bldg_total_m2: 540.00,
+        norm: 'CONADE / INIFED Reglamentaria',
+        equipment: ['2 estructuras metálicas con tableros acrílicos, aros abatibles y porterías integradas', 'Losa de concreto hidráulico con juntas de dilatación', 'Pintura deportiva de alto tráfico (líneas de 5 cm)', 'Andador perimetral de seguridad'],
+        notes: 'Cancha deportiva reglamentaria ubicada en el sector nororiente del plantel (3,000.0 cm de largo × 1,800.0 cm de ancho = 5,400,000 cm² / 540.00 m²).',
+        svg_id: 'svg-cancha'
+      },
+      {
+        id: 'plaza_civica',
+        code: 'EXT-PLZ-01',
+        name: 'Plaza Cívica con Techumbre Metálica (Techumbre Aytto. 2021)',
+        short_name: 'Plaza Cívica',
+        building: 'Explanada Central',
+        zone: 'exteriores',
+        level: 'Nivel Principal (NPT +0.00m)',
+        category: 'exterior',
+        layout_type: 'court',
+        length_cm: 3400.0,
+        length_m: 34.00,
+        width_cm: 2200.0,
+        width_m: 22.00,
+        area_cm2: 7480000,
+        area_m2: 748.00,
+        perimeter_cm: 11200.0,
+        perimeter_m: 112.00,
+        height_cm: 650.0,
+        wall_cm: 0.0,
+        door_cm: 'Explanada cubierta abierta en sus 4 costados',
+        npt: 'NPT +0.00 M',
+        capacity: '450 personas en actos cívicos y culturales',
+        students_count: 300,
+        bldg_total_m2: 748.00,
+        norm: 'Techumbre Aytto. 2021',
+        equipment: ['Cubierta autosoportante de lámina pintro arqueada sobre 12 columnas de acero', 'Firme de concreto acabado escobillado en tableros modulares', 'Asta bandera y zona de presídium', 'Bajada de aguas pluviales conectada al captador pluvial'],
+        notes: 'Corazón cívico y social del plantel CEMSaD 22 ENTHAVI. Sus dimensiones de 3,400.0 × 2,200.0 cm proporcionan 7,480,000 cm² (748.00 m²) protegidos de la intemperie.',
+        svg_id: 'svg-plaza-civica'
+      },
+      {
+        id: 'zona_bancas',
+        code: 'EXT-CONV-01',
+        name: 'Zona de Bancas, Mesas de Estudio y Convivencia (CAP. 6000-2014)',
+        short_name: 'Zona de Bancas',
+        building: 'Áreas Exteriores',
+        zone: 'exteriores',
+        level: 'Terraza Intermedia',
+        category: 'exterior',
+        layout_type: 'cafeteria',
+        length_cm: 2600.0,
+        length_m: 26.00,
+        width_cm: 1000.0,
+        width_m: 10.00,
+        area_cm2: 2600000,
+        area_m2: 260.00,
+        perimeter_cm: 7200.0,
+        perimeter_m: 72.00,
+        height_cm: 0.0,
+        wall_cm: 0.0,
+        door_cm: 'Área abierta jardinada',
+        npt: 'NPT +2.00 M / +0.50 M',
+        capacity: '32 alumnos sentados',
+        students_count: 32,
+        bldg_total_m2: 260.00,
+        norm: 'CAP. 6000-2014',
+        equipment: ['2 módulos de mesas rectangulares con 4 bancas integradas', '2 módulos de mesas circulares con 4 bancos perimetrales', 'Jardineras y barrera vegetal norte/sur'],
+        notes: 'Espacio de estudio al aire libre y convivencia estudiantil situado entre la Cancha de Usos Múltiples y el área de Estacionamiento.',
+        svg_id: 'svg-bancas'
+      },
+      {
+        id: 'estacionamiento',
+        code: 'EXT-EST-01',
+        name: 'Patio de Maniobras y Estacionamiento Vehicular (6 Cajones)',
+        short_name: 'Estacionamiento',
+        building: 'Áreas Exteriores',
+        zone: 'exteriores',
+        level: 'Nivel Acceso (NPT +0.00m)',
+        category: 'exterior',
+        layout_type: 'building',
+        length_cm: 2200.0,
+        length_m: 22.00,
+        width_cm: 1200.0,
+        width_m: 12.00,
+        area_cm2: 2640000,
+        area_m2: 264.00,
+        perimeter_cm: 6800.0,
+        perimeter_m: 68.00,
+        height_cm: 0.0,
+        wall_cm: 0.0,
+        door_cm: 'Acceso vehicular desde Plaza de Acceso',
+        npt: 'NPT +0.00 M',
+        capacity: '6 cajones de estacionamiento en batería (250 × 500 cm c/u)',
+        students_count: 6,
+        bldg_total_m2: 264.00,
+        norm: 'Reglamento de Construcción Edomex',
+        equipment: ['4 cajones superiores en batería a 90°', '2 cajones inferiores junto a acceso', 'Guarniciones de concreto y topes vehiculares'],
+        notes: 'Zona de estacionamiento para personal docente, administrativo y visitantes, ubicada entre la Plaza Cívica y el Edificio D.',
+        svg_id: 'svg-estacionamiento'
+      },
+      {
+        id: 'captador_pluvial',
+        code: 'EXT-HID-01',
+        name: 'Sistema Captador de Agua Pluvial y Cisterna de Filtrado',
+        short_name: 'Captador Pluvial',
+        building: 'Sustentabilidad',
+        zone: 'exteriores',
+        level: 'Nivel +0.00m / Subterráneo',
+        category: 'servicio',
+        layout_type: 'storage',
+        length_cm: 500.0,
+        length_m: 5.00,
+        width_cm: 500.0,
+        width_m: 5.00,
+        area_cm2: 250000,
+        area_m2: 25.00,
+        perimeter_cm: 2000.0,
+        perimeter_m: 20.00,
+        height_cm: 240.0,
+        wall_cm: 20.0,
+        door_cm: 'Registro hermético superior de 80 × 80 cm',
+        npt: 'NPT +0.00 M (Profundidad -2.40 M)',
+        capacity: '60,000 litros (60.0 m³)',
+        students_count: 1,
+        bldg_total_m2: 25.00,
+        norm: 'CONAGUA / Sustentabilidad Escolar',
+        equipment: ['Trampa de sólidos y separador de primeras lluvias', 'Cisterna de concreto armado impermeabilizada', 'Bomba sumergible e hidroneumático para suministro a sanitarios y riego'],
+        notes: 'Infraestructura ecológica clave del CEMSaD 22 ENTHAVI que recolecta el agua de lluvia proveniente de los 748 m² de la techumbre de la Plaza Cívica.',
+        svg_id: 'svg-captador'
+      },
+      {
+        id: 'caseta_vigilancia',
+        code: 'EXT-ACC-01',
+        name: 'Caseta de Vigilancia y Control de Acceso (C.V.)',
+        short_name: 'Caseta C.V.',
+        building: 'Acceso Principal',
+        zone: 'exteriores',
+        level: 'Planta Baja (NPT +0.00m)',
+        category: 'servicio',
+        layout_type: 'office',
+        length_cm: 300.0,
+        length_m: 3.00,
+        width_cm: 250.0,
+        width_m: 2.50,
+        area_cm2: 75000,
+        area_m2: 7.50,
+        perimeter_cm: 1100.0,
+        perimeter_m: 11.00,
+        height_cm: 270.0,
+        wall_cm: 15.0,
+        door_cm: '80.0 × 210.0 cm',
+        npt: 'NPT +0.00 M',
+        capacity: '2 elementos de vigilancia',
+        students_count: 2,
+        bldg_total_m2: 7.50,
+        norm: 'INIFED Pórtico Tipo',
+        equipment: ['Barra de registro de visitantes y bitácora', 'Medio baño integrado para guardia', 'Ventanales de control visual hacia Plaza de Acceso', 'Interruptor general de alumbrado exterior'],
+        notes: 'Módulo de seguridad y control de ingreso situado inmediatamente al poniente del portón principal.',
+        svg_id: 'svg-caseta'
+      },
+      {
+        id: 'plaza_acceso',
+        code: 'EXT-ACC-02',
+        name: 'Plaza de Acceso Principal y Portón Triple Abatible',
+        short_name: 'Plaza de Acceso',
+        building: 'Acceso Principal',
+        zone: 'exteriores',
+        level: 'Nivel Calle a NPT +0.00m',
+        category: 'exterior',
+        layout_type: 'building',
+        length_cm: 1400.0,
+        length_m: 14.00,
+        width_cm: 800.0,
+        width_m: 8.00,
+        area_cm2: 1120000,
+        area_m2: 112.00,
+        perimeter_cm: 4400.0,
+        perimeter_m: 44.00,
+        height_cm: 0.0,
+        wall_cm: 25.0,
+        door_cm: '3 portones dobles de herrería (6 hojas abatibles)',
+        npt: 'NPT -0.45 M a +0.00 M',
+        capacity: 'Acceso peatonal y vehicular',
+        students_count: 60,
+        bldg_total_m2: 112.00,
+        norm: 'Acceso Oficial CEMSaD 22',
+        equipment: ['3 módulos de reja de doble hoja con arcos de abatimiento hacia el interior', 'Escalinata de bienvenida y rampa peatonal', 'Muros cabeceros de recepción'],
+        notes: 'Bahía de acceso remetida en la colindancia sur del predio que permite el ascenso y descenso seguro de los estudiantes fuera del arroyo vehicular.',
+        svg_id: 'svg-plaza-acceso'
+      },
+      {
+        id: 'escalinata_s',
+        code: 'EXT-CIR-01',
+        name: 'Escalinata Monumental Poniente "S" (Enlace NPT +0.00m a +4.00m)',
+        short_name: 'Escalinata S',
+        building: 'Circulaciones Exteriores',
+        zone: 'exteriores',
+        level: 'Desnivel +0.00m a +4.00m',
+        category: 'exterior',
+        layout_type: 'stairs',
+        length_cm: 1800.0,
+        length_m: 18.00,
+        width_cm: 450.0,
+        width_m: 4.50,
+        area_cm2: 810000,
+        area_m2: 81.00,
+        perimeter_cm: 4500.0,
+        perimeter_m: 45.00,
+        height_cm: 400.0,
+        wall_cm: 20.0,
+        door_cm: 'Circulación abierta en 3 tramos',
+        npt: 'NPT +0.00 M a +4.00 M',
+        capacity: 'Tránsito masivo entre terrazas',
+        students_count: 40,
+        bldg_total_m2: 81.00,
+        norm: 'INIFED Obras Exteriores',
+        equipment: ['3 tramos de escalinata con descansos intermedios', 'Muros laterales de contención (alfardas)', 'Flechas direccionales de ascenso norte'],
+        notes: 'Salva el desnivel topográfico de 400.0 cm (4.00 m) entre la plataforma de la Plaza Cívica y la terraza superior de los Edificios B y C.',
+        svg_id: 'svg-escalinata'
+      },
+      {
+        id: 'rampa_edif_c',
+        code: 'EXT-CIR-02',
+        name: 'Rampa y Escalera de Enlace Edificio C — Cancha Deportiva',
+        short_name: 'Rampa Edif. C',
+        building: 'Circulaciones Exteriores',
+        zone: 'edif_c_pb',
+        level: 'Terraza Superior (NPT +4.00m)',
+        category: 'exterior',
+        layout_type: 'stairs',
+        length_cm: 1200.0,
+        length_m: 12.00,
+        width_cm: 350.0,
+        width_m: 3.50,
+        area_cm2: 420000,
+        area_m2: 42.00,
+        perimeter_cm: 3100.0,
+        perimeter_m: 31.00,
+        height_cm: 0.0,
+        wall_cm: 15.0,
+        door_cm: 'Paso peatonal accesible',
+        npt: 'NPT +4.00 M',
+        capacity: 'Accesibilidad universal y tránsito deportivo',
+        students_count: 20,
+        bldg_total_m2: 42.00,
+        norm: 'CAP. 6000-2013 Accesibilidad',
+        equipment: ['Rampa con pendiente normativa antideslizante', 'Tramo de escalones hacia el andador de la Cancha de Usos Múltiples'],
+        notes: 'Conecta el corredor frontal del Edificio C con la plataforma de la Cancha de Usos Múltiples.',
+        svg_id: 'svg-rampa-c'
+      },
+      {
+        id: 'barda_perimetral',
+        code: 'EXT-PER-52',
+        name: 'Barda Perimetral Oriente Acotada (52.00 m / 5,200 cm)',
+        short_name: 'Barda Este 52m',
+        building: 'Colindancia Oriente',
+        zone: 'exteriores',
+        level: 'Perímetro General',
+        category: 'exterior',
+        layout_type: 'building',
+        length_cm: 5200.0,
+        length_m: 52.00,
+        width_cm: 25.0,
+        width_m: 0.25,
+        area_cm2: 1300000,
+        area_m2: 130.00,
+        perimeter_cm: 10450.0,
+        perimeter_m: 104.50,
+        height_cm: 280.0,
+        wall_cm: 25.0,
+        door_cm: 'Colindancia cerrada de seguridad',
+        npt: 'Variable según topografía',
+        capacity: 'Cerramiento perimetral',
+        students_count: 1,
+        bldg_total_m2: 130.00,
+        norm: 'Cota Oficial en Plano: 52.00 m',
+        equipment: ['Muro de block/tabique confinado con dalas y castillos cada 300 cm', 'Cimentación de mampostería de piedra braza', 'Juntas constructivas de dilatación'],
+        notes: 'Cota de referencia maestra impresa en el plano original (52.00 metros lineales = 5,200.0 centímetros) sobre el lindero oriente del terreno.',
+        svg_id: 'svg-barda-oriente'
+      },
+      {
+        id: 'predio_general',
+        code: 'PREDIO-C22',
+        name: 'Poligonal General del Terreno • CEMSaD 22 ENTHAVI',
+        short_name: 'Predio Total',
+        building: 'Conjunto General',
+        zone: 'exteriores',
+        level: 'Conjunto (NPT +0.00m a +4.00m)',
+        category: 'exterior',
+        layout_type: 'building',
+        length_cm: 8580.8,
+        length_m: 85.81,
+        width_cm: 5200.0,
+        width_m: 52.00,
+        area_cm2: 44620000,
+        area_m2: 4462.00,
+        perimeter_cm: 27561.6,
+        perimeter_m: 275.62,
+        height_cm: 0.0,
+        wall_cm: 25.0,
+        door_cm: 'Plaza de Acceso Sur de 1,400 cm',
+        npt: 'NPT +0.00 M y Terraza +4.00 M',
+        capacity: 'Capacidad total del plantel: 350 alumnos y personal',
+        students_count: 350,
+        bldg_total_m2: 4462.00,
+        norm: 'Cédula Oficial CEMSaD 22 ENTHAVI',
+        equipment: ['Superficie Terreno: 4,462.00 m² (44,620,000 cm²)', 'Superficie Construida Total: 1,460.81 m² (14,608,100 cm²)', 'Edificio A: 339.19 m² (3,391,900 cm²)', 'Edificio B: 312.85 m² (3,128,500 cm²)', 'Edificio C (PB + PA): 625.70 m² (6,257,000 cm²)', 'Edificio D: 183.07 m² (1,830,700 cm²)'],
+        notes: 'Poligonal completa del plantel CEMSaD 22 ENTHAVI. El área edificada en Planta Baja suma 1,147.96 m² (11,479,600 cm²), dejando un coeficiente de área libre, plazas, canchas y jardines de 3,314.04 m² (33,140,400 cm²).',
+        svg_id: 'svg-predio-general'
+      }
+    ];
+
+    /* ==========================================================================
+       CONFIGURACIÓN DE LAS 3 POSES DE CÁMARA
+       ========================================================================== */
+    const CAMERA_POSES = {
+      rpg: {
+        name: '1. 3/4 TIPO RPG (ISOMÉTRICA)',
+        pos: new THREE.Vector3(52, 50, 52),
+        target: new THREE.Vector3(-8, 2, -6),
+        fov: 35
+      },
+      low: {
+        name: '2. CÁMARA BAJA (NIVEL PEATONAL 1.75M)',
+        pos: new THREE.Vector3(-6, 1.75, 6),
+        target: new THREE.Vector3(-16, 4.0, -18),
+        fov: 65
+      },
+      aerial: {
+        name: '3. VISTA GENERAL AÉREA DE CONJUNTO',
+        pos: new THREE.Vector3(8, 96, 40),
+        target: new THREE.Vector3(8, 2, -6),
+        fov: 46
+      }
+    };
+
+    let currentPoseKey = 'rpg';
+    let isRoofCutaway = false;
+    let isCadWhiteStyle = false;
+    let selectedSpaceId = 'a_aula1';
+
+    /* TRES.JS ELEMENTOS GLOBALES */
+    let scene, camera, renderer, controls;
+    const interactiveMeshes = [];
+    const roofMeshes = [];
+    const cadMaterials = [];
+    const realisticMaterials = [];
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    const tooltipEl = document.getElementById('tooltip-3d');
+    const ttTitle = document.getElementById('tt-title');
+    const ttDims = document.getElementById('tt-dims');
+    const ttArea = document.getElementById('tt-area');
+
+    /* FORMATEADORES */
+    const fmtInt = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
+    const fmtDec1 = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const fmtDec2 = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    function fCm(v) { return `${fmtDec1.format(v)} cm`; }
+    function fM(v) { return `${fmtDec2.format(v)} m`; }
+    function fCm2(v) { return `${fmtInt.format(Math.round(v))} cm²`; }
+    function fM2(v) { return `${fmtDec2.format(v)} m²`; }
+
+    /* ==========================================================================
+       INICIALIZACIÓN DEL MOTOR THREE.JS
+       ========================================================================== */
+    function init3D() {
+      const container = document.getElementById('canvas3d-container');
+
+      // 1. Escena
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf8fafc);
+      scene.fog = new THREE.Fog(0xf8fafc, 60, 220);
+
+      // 2. Cámara (iniciando en Pose 1: RPG 3/4)
+      const aspect = window.innerWidth / window.innerHeight;
+      camera = new THREE.PerspectiveCamera(CAMERA_POSES.rpg.fov, aspect, 0.2, 500);
+      camera.position.copy(CAMERA_POSES.rpg.pos);
+
+      // 3. Renderizador WebGL con sombras suaves y preservación de buffer
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
+      container.appendChild(renderer.domElement);
+
+      // 4. OrbitControls con límites suaves
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.target.copy(CAMERA_POSES.rpg.target);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.maxPolarAngle = Math.PI / 2 - 0.02; // No descender por debajo del suelo
+      controls.minDistance = 3.0;
+      controls.maxDistance = 160.0;
+
+      // 5. Iluminación Arquitectónica (Luz Solar + Cielo Hemisférico)
+      setupLighting();
+
+      // 6. Construcción del Modelo 3D del Plantel (a escala 1:1 en metros)
+      buildCampus3D();
+
+      // 7. Eventos de ratón y ventana
+      setupEvents();
+
+      // 8. Seleccionar Aula 1 de inicio
+      selectSpace('a_aula1', false);
+
+      // Parámetros de URL para inicio directo o automatización (?pose=low|rpg|aerial)
+      const urlParams = new URLSearchParams(window.location.search);
+      const reqPose = urlParams.get('pose');
+      if (reqPose && CAMERA_POSES[reqPose]) {
+        switchCameraPose(reqPose, false);
+      }
+      if (urlParams.get('cutaway') === '1') {
+        document.getElementById('btn-toggle-roofs').click();
+      }
+      if (urlParams.get('white') === '1') {
+        document.getElementById('btn-cad-style').click();
+      }
+
+      // Bucle de Render
+      animate();
+
+      // Render sincrónico inicial garantizado
+      controls.update();
+      renderer.render(scene, camera);
+
+      // Si se solicita modo instantánea (?snapshot=1), reflejar canvas en <img> para compatibilidad headless
+      if (urlParams.get('snapshot') === '1') {
+        const mirrorImg = document.createElement('img');
+        mirrorImg.id = 'snapshot-canvas-mirror';
+        mirrorImg.src = renderer.domElement.toDataURL('image/png');
+        mirrorImg.style.position = 'absolute';
+        mirrorImg.style.top = '0';
+        mirrorImg.style.left = '0';
+        mirrorImg.style.width = '100%';
+        mirrorImg.style.height = '100%';
+        mirrorImg.style.pointerEvents = 'none';
+        mirrorImg.style.zIndex = '2';
+        document.getElementById('canvas3d-container').appendChild(mirrorImg);
+      }
+    }
+
+    function setupLighting() {
+      // Luz ambiente suave
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0xe2e8f0, 0.75);
+      hemiLight.position.set(0, 80, 0);
+      scene.add(hemiLight);
+
+      // Sol principal proyectando sombras arquitectónicas nítidas
+      const sunLight = new THREE.DirectionalLight(0xffffff, 0.95);
+      sunLight.position.set(-45, 65, 55);
+      sunLight.castShadow = true;
+      sunLight.shadow.mapSize.width = 2048;
+      sunLight.shadow.mapSize.height = 2048;
+      sunLight.shadow.camera.near = 10;
+      sunLight.shadow.camera.far = 200;
+      sunLight.shadow.camera.left = -60;
+      sunLight.shadow.camera.right = 60;
+      sunLight.shadow.camera.top = 60;
+      sunLight.shadow.camera.bottom = -60;
+      sunLight.shadow.bias = -0.0004;
+      scene.add(sunLight);
+
+      // Luz de relleno lateral
+      const fillLight = new THREE.DirectionalLight(0xe0f2fe, 0.35);
+      fillLight.position.set(45, 30, -35);
+      scene.add(fillLight);
+    }
+
+    /* ==========================================================================
+       CONSTRUCCIÓN 3D PROCEDURAL DEL PLANTEL CEMSaD 22
+       ========================================================================== */
+    function buildCampus3D() {
+      const materials = createMaterialsPalette();
+
+      // 1. TERRENO DE DOS PLATAFORMAS (NPT +0.00M y NPT +4.00M)
+      buildTopography(materials);
+
+      // 2. EDIFICIO A (Planta Baja - Cafetería, Almacén, Aulas 1 y 2, Baños)
+      buildEdificioA(materials);
+
+      // 3. EDIFICIO B (Terraza Superior +4.00M - Aulas 3 y 4, Biblioteca, Maestros)
+      buildEdificioB(materials);
+
+      // 4. EDIFICIO C (2 Niveles: PB Administrativa en +4.00M y PA Cómputo en +7.10M)
+      buildEdificioC(materials);
+
+      // 5. EDIFICIO D (Laboratorio de Usos Múltiples)
+      buildEdificioD(materials);
+
+      // 6. PLAZA CÍVICA CON TECHUMBRE METÁLICA ARQUEADA (Techumbre Aytto. 2021)
+      buildPlazaCivica(materials);
+
+      // 7. CANCHA DE USOS MÚLTIPLES REGLAMENTARIA (30 × 18m)
+      buildCanchaDeportiva(materials);
+
+      // 8. ESCALINATA MONUMENTAL "S" (Enlace entre terrazas de 4m)
+      buildEscalinataS(materials);
+
+      // 9. BANCAS, ESTACIONAMIENTO CON VEHÍCULOS Y CAPTADOR PLUVIAL
+      buildExteriores(materials);
+
+      // 10. PLAZA DE ACCESO, PORTÓN TRIPLE Y CASETA C.V.
+      buildAccesoPrincipal(materials);
+
+      // 11. BARDA PERIMETRAL Y COTA ESTE 52.00M
+      buildBardaPerimetral(materials);
+
+      // 12. VEGETACIÓN Y ÁRBOLES 3D SEGÚN EL PLANO ORIGINAL
+      buildVegetacion(materials);
+    }
+
+    function createMaterialsPalette() {
+      return {
+        // Suelo y pavimentos
+        groundLower: new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.85, metalness: 0.05 }),
+        groundUpper: new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.85, metalness: 0.05 }),
+        retainingWall: new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.7, metalness: 0.15 }),
+        plazaTile: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, metalness: 0.1 }),
+        courtBlue: new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.45, metalness: 0.1 }),
+        courtWhiteLines: new THREE.MeshBasicMaterial({ color: 0xffffff }),
+
+        // Muros de edificios
+        wallExterior: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, metalness: 0.05 }),
+        wallInterior: new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.7, metalness: 0.05 }),
+        columns: new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5, metalness: 0.3 }),
+        roofConcrete: new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.65, metalness: 0.15, transparent: true, opacity: 0.96 }),
+        roofArchedSheet: new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.35, metalness: 0.45, side: THREE.DoubleSide, transparent: true, opacity: 0.95 }),
+
+        // Ventanales y Puertas
+        glassWindows: new THREE.MeshPhysicalMaterial({ color: 0xe0f2fe, roughness: 0.1, transmission: 0.75, thickness: 0.5, transparent: true, opacity: 0.65 }),
+        doorFrame: new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.6 }),
+
+        // Mobiliario
+        furnitureWood: new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.7 }),
+        furnitureMetal: new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.4, metalness: 0.6 }),
+        labBench: new THREE.MeshStandardMaterial({ color: 0x0369a1, roughness: 0.3, metalness: 0.2 }),
+        chalkboard: new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.8 }),
+
+        // Autos y vegetación
+        carPaint: [
+          new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.3, metalness: 0.6 }),
+          new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3, metalness: 0.6 }),
+          new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.3, metalness: 0.6 }),
+          new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0.3 }),
+          new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.3, metalness: 0.6 }),
+          new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3, metalness: 0.7 })
+        ],
+        treeTrunk: new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 }),
+        treeLeaves: new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.65 }),
+        shrubLeaves: new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.7 }),
+
+        // Selección interactiva y cotas
+        highlight: new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.35, transparent: true, opacity: 0.85 }),
+        dimensionLine: new THREE.MeshBasicMaterial({ color: 0xdc2626 })
+      };
+    }
+
+    /* 1. TOPOGRAFÍA DE DOS TERRAZAS */
+    function buildTopography(mat) {
+      // Terraza Baja (NPT +0.00M)
+      const lowerGeo = new THREE.BoxGeometry(90, 1.0, 36);
+      const lowerMesh = new THREE.Mesh(lowerGeo, mat.groundLower);
+      lowerMesh.position.set(0, -0.5, 14);
+      lowerMesh.receiveShadow = true;
+      scene.add(lowerMesh);
+
+      // Terraza Alta (NPT +4.00M)
+      const upperGeo = new THREE.BoxGeometry(90, 5.0, 36);
+      const upperMesh = new THREE.Mesh(upperGeo, mat.groundUpper);
+      upperMesh.position.set(0, 1.5, -22);
+      upperMesh.receiveShadow = true;
+      scene.add(upperMesh);
+
+      // Muro de contención masivo con albardilla azul
+      const wallGeo = new THREE.BoxGeometry(90, 4.2, 0.8);
+      const wallMesh = new THREE.Mesh(wallGeo, mat.retainingWall);
+      wallMesh.position.set(0, 2.1, -4.0);
+      wallMesh.castShadow = true;
+      wallMesh.receiveShadow = true;
+      scene.add(wallMesh);
+
+      // Barandal de protección superior sobre muro de contención
+      const railingGeo = new THREE.BoxGeometry(90, 0.9, 0.1);
+      const railingMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.7, roughness: 0.3 });
+      const railingMesh = new THREE.Mesh(railingGeo, railingMat);
+      railingMesh.position.set(0, 4.65, -3.95);
+      scene.add(railingMesh);
+    }
+
+    /* REGISTRADOR DE SALÓN INTERACTIVO */
+    function registerInteractiveRoom(mesh, spaceId, name, w, h, l) {
+      mesh.userData = {
+        spaceId: spaceId,
+        name: name,
+        width: w,
+        height: h,
+        length: l
+      };
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      interactiveMeshes.push(mesh);
+    }
+
+    /* GENERADOR DE SALONES ARQUITECTÓNICOS CON INTERIOR DETALLADO */
+    function createModularRoom(bldgGroup, r, mat, baseY, baseZ, isClassroom, isComputo, isLab) {
+      const rw = r.w - 0.2;
+      const rd = r.d - 0.2;
+      const wallH = 2.6;
+      const wt = 0.20;
+      const cz = (r.z !== undefined) ? r.z : baseZ;
+
+      // 1. Piso del salón coloreado
+      const floorMat = new THREE.MeshStandardMaterial({ color: r.color, roughness: 0.5 });
+      const floorMesh = new THREE.Mesh(new THREE.BoxGeometry(rw, 0.12, rd), floorMat);
+      floorMesh.position.set(r.x, baseY + 0.06, cz);
+      floorMesh.receiveShadow = true;
+      registerInteractiveRoom(floorMesh, r.id, r.name, r.w, wallH, r.d);
+      bldgGroup.add(floorMesh);
+
+      // 2. Muros perimetrales
+      const wy = baseY + wallH / 2;
+      
+      const wN = new THREE.Mesh(new THREE.BoxGeometry(rw, wallH, wt), mat.wallExterior);
+      wN.position.set(r.x, wy, cz - rd / 2 + wt / 2);
+      wN.castShadow = true;
+      wN.receiveShadow = true;
+      wN.userData = { spaceId: r.id, name: r.name };
+      interactiveMeshes.push(wN);
+      bldgGroup.add(wN);
+
+      const wS = new THREE.Mesh(new THREE.BoxGeometry(rw, wallH, wt), mat.wallExterior);
+      wS.position.set(r.x, wy, cz + rd / 2 - wt / 2);
+      wS.castShadow = true;
+      wS.receiveShadow = true;
+      wS.userData = { spaceId: r.id, name: r.name };
+      interactiveMeshes.push(wS);
+      bldgGroup.add(wS);
+
+      const wW = new THREE.Mesh(new THREE.BoxGeometry(wt, wallH, rd - 2 * wt), mat.wallInterior);
+      wW.position.set(r.x - rw / 2 + wt / 2, wy, cz);
+      wW.castShadow = true;
+      wW.receiveShadow = true;
+      wW.userData = { spaceId: r.id, name: r.name };
+      interactiveMeshes.push(wW);
+      bldgGroup.add(wW);
+
+      const wE = new THREE.Mesh(new THREE.BoxGeometry(wt, wallH, rd - 2 * wt), mat.wallInterior);
+      wE.position.set(r.x + rw / 2 - wt / 2, wy, cz);
+      wE.castShadow = true;
+      wE.receiveShadow = true;
+      wE.userData = { spaceId: r.id, name: r.name };
+      interactiveMeshes.push(wE);
+      bldgGroup.add(wE);
+
+      // 3. Mobiliario Interior
+      if (isClassroom) {
+        for (let px = -rw / 2 + 1.2; px <= rw / 2 - 1.2; px += 1.8) {
+          for (let pz = -rd / 2 + 1.6; pz <= rd / 2 - 1.2; pz += 1.5) {
+            const desk = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.7, 0.45), mat.furnitureWood);
+            desk.position.set(r.x + px, baseY + 0.35, cz + pz);
+            desk.castShadow = true;
+            bldgGroup.add(desk);
+          }
+        }
+        const pizarron = new THREE.Mesh(new THREE.BoxGeometry(Math.min(3.2, rw * 0.6), 1.2, 0.05), mat.chalkboard);
+        pizarron.position.set(r.x, baseY + 1.5, cz - rd / 2 + wt + 0.03);
+        bldgGroup.add(pizarron);
+      } else if (isComputo) {
+        for (let px = -rw / 2 + 1.8; px <= rw / 2 - 1.8; px += 2.0) {
+          for (let pz = -1.5; pz <= 1.5; pz += 3.0) {
+            const pcDesk = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.75, 0.7), mat.furnitureMetal);
+            pcDesk.position.set(r.x + px, baseY + 0.375, cz + pz);
+            bldgGroup.add(pcDesk);
+            const monitor = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.32, 0.06), mat.columns);
+            monitor.position.set(r.x + px, baseY + 0.92, cz + pz);
+            bldgGroup.add(monitor);
+          }
+        }
+      } else if (isLab) {
+        for (let px = -rw / 2 + 2.0; px <= rw / 2 - 2.0; px += 2.8) {
+          const bench = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.85, 1.0), mat.labBench);
+          bench.position.set(r.x + px, baseY + 0.425, cz);
+          bldgGroup.add(bench);
+        }
+      }
+    }
+
+    /* 2. EDIFICIO A */
+    function buildEdificioA(mat) {
+      const bldgGroup = new THREE.Group();
+      bldgGroup.position.set(0, 0, 17.5);
+
+      // Losa de piso
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(35.0, 0.25, 9.69), mat.wallInterior);
+      slab.position.set(-20.5, 0.125, 0);
+      slab.receiveShadow = true;
+      bldgGroup.add(slab);
+
+      // Salones de Edificio A
+      const rooms = [
+        { id: 'a_cafeteria', name: 'Desayunador / Cafetería', w: 6.2, d: 7.0, x: -34.9, color: 0xfef3c7 },
+        { id: 'a_almacen', name: 'Almacén General', w: 3.8, d: 7.0, x: -29.9, color: 0xf1f5f9 },
+        { id: 'a_aula1', name: 'Aula 1 (Grupo 101)', w: 8.0, d: 7.0, x: -24.0, color: 0xe0f2fe },
+        { id: 'a_aula2', name: 'Aula 2 (Grupo 201)', w: 8.0, d: 7.0, x: -16.0, color: 0xe0f2fe },
+        { id: 'a_sanitarios', name: 'Sanitarios H/M', w: 6.0, d: 7.0, x: -9.0, color: 0xdcfce7 }
+      ];
+
+      rooms.forEach(r => {
+        createModularRoom(bldgGroup, r, mat, 0.25, 1.345, r.id.includes('aula'), false, false);
+      });
+
+      // Columnas del andador exterior
+      for (let cx = -37.5; cx <= -3.5; cx += 4.0) {
+        const col = new THREE.Mesh(new THREE.BoxGeometry(0.35, 3.2, 0.35), mat.columns);
+        col.position.set(cx, 1.725, -3.3);
+        col.castShadow = true;
+        bldgGroup.add(col);
+      }
+
+      // Losa de Techo (Desmontable con botón de Techos)
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(35.4, 0.25, 10.0), mat.roofConcrete);
+      roof.position.set(-20.5, 2.98, 0);
+      roof.castShadow = true;
+      roofMeshes.push(roof);
+      bldgGroup.add(roof);
+
+      scene.add(bldgGroup);
+    }
+
+    /* 3. EDIFICIO B */
+    function buildEdificioB(mat) {
+      const bldgGroup = new THREE.Group();
+      bldgGroup.position.set(0, 4.0, -17.4);
+
+      // Losa de piso desplantada en +4.00M
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(32.0, 0.25, 9.78), mat.wallInterior);
+      slab.position.set(-22.0, 0.125, 0);
+      slab.receiveShadow = true;
+      bldgGroup.add(slab);
+
+      const rooms = [
+        { id: 'b_aula3', name: 'Aula 3 (Grupo 301)', w: 8.0, d: 7.2, x: -34.0, color: 0xe0f2fe },
+        { id: 'b_aula4', name: 'Aula 4 (Grupo 401)', w: 8.0, d: 7.2, x: -26.0, color: 0xe0f2fe },
+        { id: 'b_biblioteca', name: 'Biblioteca Escolar', w: 5.2, d: 7.2, x: -19.4, color: 0xfef3c7 },
+        { id: 'b_sala_maestros', name: 'Sala de Maestros', w: 7.8, d: 7.2, x: -12.9, color: 0xede9fe }
+      ];
+
+      rooms.forEach(r => {
+        createModularRoom(bldgGroup, r, mat, 0.25, -1.29, r.id.includes('aula'), false, false);
+      });
+
+      // Columnas del andador sur
+      for (let cx = -37.5; cx <= -6.5; cx += 4.0) {
+        const col = new THREE.Mesh(new THREE.BoxGeometry(0.35, 3.2, 0.35), mat.columns);
+        col.position.set(cx, 1.725, 3.4);
+        col.castShadow = true;
+        bldgGroup.add(col);
+      }
+
+      // Techo Edificio B
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(32.4, 0.25, 10.1), mat.roofConcrete);
+      roof.position.set(-22.0, 2.98, 0);
+      roof.castShadow = true;
+      roofMeshes.push(roof);
+      bldgGroup.add(roof);
+
+      scene.add(bldgGroup);
+    }
+
+    /* 4. EDIFICIO C (2 NIVELES) */
+    function buildEdificioC(mat) {
+      const bldgGroup = new THREE.Group();
+      bldgGroup.position.set(0, 4.0, -17.4);
+
+      // PLANTA BAJA (Y = 4.0M a 7.1M)
+      const roomsPB = [
+        { id: 'c_enfermeria', name: 'Enfermería', w: 3.8, d: 3.5, x: 2.1, z: -3.1, color: 0xdcfce7 },
+        { id: 'c_tutorias', name: 'Tutorías', w: 3.8, d: 3.5, x: 2.1, z: 0.5, color: 0xfef3c7 },
+        { id: 'c_archivo', name: 'Archivo Escolar', w: 3.4, d: 3.5, x: 5.7, z: -3.1, color: 0xf1f5f9 },
+        { id: 'c_ss_admin', name: 'Sanitario Admin (S.S.)', w: 2.2, d: 3.5, x: 8.5, z: -3.1, color: 0xdcfce7 },
+        { id: 'c_direccion', name: 'Dirección CEMSaD', w: 4.8, d: 3.5, x: 6.4, z: 0.5, color: 0xede9fe },
+        { id: 'c_apoyo_acad', name: 'Apoyo Académico', w: 4.8, d: 3.5, x: 11.2, z: -1.3, color: 0xe0f2fe },
+        { id: 'c_escalera_pb', name: 'Escaleras Principales', w: 3.8, d: 7.2, x: 15.5, z: -1.3, color: 0xcbd5e1 },
+        { id: 'c_aula5', name: 'Aula 5 (Grupo 501)', w: 8.0, d: 7.2, x: 21.4, z: -1.3, color: 0xe0f2fe }
+      ];
+
+      roomsPB.forEach(r => {
+        createModularRoom(bldgGroup, r, mat, 0.25, -1.3, r.id === 'c_aula5', false, false);
+      });
+
+      // Losa de entrepiso (Nivel +7.10M)
+      const midSlab = new THREE.Mesh(new THREE.BoxGeometry(32.4, 0.3, 10.1), mat.roofConcrete);
+      midSlab.position.set(12.0, 3.0, 0);
+      midSlab.castShadow = true;
+      bldgGroup.add(midSlab);
+
+      // PLANTA ALTA (Y = 7.1M a 10.1M)
+      const roomsPA = [
+        { id: 'c_computo', name: 'Taller de Cómputo (115.2 m²)', w: 16.0, d: 7.2, x: 4.0, z: -1.3, color: 0x38bdf8 },
+        { id: 'c_escalera_pa', name: 'Desembarque Escalera PA', w: 3.8, d: 7.2, x: 15.5, z: -1.3, color: 0x94a3b8 },
+        { id: 'c_aula6', name: 'Aula 6 (Grupo 601)', w: 8.0, d: 7.2, x: 21.4, z: -1.3, color: 0xe0f2fe }
+      ];
+
+      roomsPA.forEach(r => {
+        createModularRoom(bldgGroup, r, mat, 3.3, -1.3, r.id === 'c_aula6', r.id === 'c_computo', false);
+      });
+
+      // Losa de Azotea de Planta Alta (desmontable)
+      const topRoof = new THREE.Mesh(new THREE.BoxGeometry(32.4, 0.25, 10.1), mat.roofConcrete);
+      topRoof.position.set(12.0, 6.1, 0);
+      topRoof.castShadow = true;
+      roofMeshes.push(topRoof);
+      bldgGroup.add(topRoof);
+
+      scene.add(bldgGroup);
+    }
+
+    /* 5. EDIFICIO D (LABORATORIO) */
+    function buildEdificioD(mat) {
+      const bldgGroup = new THREE.Group();
+      bldgGroup.position.set(26.5, 0, 17.8);
+
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(19.0, 0.25, 9.64), mat.wallInterior);
+      slab.position.set(0, 0.125, 0);
+      bldgGroup.add(slab);
+
+      const rooms = [
+        { id: 'd_laboratorio', name: 'Laboratorio de Usos Múltiples', w: 12.8, d: 7.2, x: -3.1, z: -1.22, color: 0xbae6fd },
+        { id: 'd_reactivos', name: 'Cubículo de Reactivos', w: 3.8, d: 3.6, x: 5.2, z: -3.02, color: 0xfef08a },
+        { id: 'd_almacen_lab', name: 'Almacén de Laboratorio', w: 3.8, d: 3.4, x: 5.2, z: 0.58, color: 0xf1f5f9 }
+      ];
+
+      rooms.forEach(r => {
+        createModularRoom(bldgGroup, r, mat, 0.25, -1.22, false, false, r.id === 'd_laboratorio');
+      });
+
+      // Techo Edificio D
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(19.4, 0.25, 10.0), mat.roofConcrete);
+      roof.position.set(0, 2.98, 0);
+      roof.castShadow = true;
+      roofMeshes.push(roof);
+      bldgGroup.add(roof);
+
+      scene.add(bldgGroup);
+    }
+
+    /* 6. PLAZA CÍVICA TECHADA */
+    function buildPlazaCivica(mat) {
+      const plazaGroup = new THREE.Group();
+      plazaGroup.position.set(-8.0, 0, 0);
+
+      // Firme de concreto con despiece modular (34 × 22m)
+      const floor = new THREE.Mesh(new THREE.BoxGeometry(34.0, 0.2, 22.0), mat.plazaTile);
+      floor.position.set(0, 0.1, 0);
+      floor.receiveShadow = true;
+      registerInteractiveRoom(floor, 'plaza_civica', 'Plaza Cívica Techada (748 m²)', 34.0, 6.5, 22.0);
+      plazaGroup.add(floor);
+
+      // 12 Columnas de acero estructural
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3, metalness: 0.8 });
+      const colPositions = [-15.5, -9.3, -3.1, 3.1, 9.3, 15.5];
+      colPositions.forEach(cx => {
+        // Fila Norte
+        const cN = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 5.2, 16), colMat);
+        cN.position.set(cx, 2.7, -10.5);
+        cN.castShadow = true;
+        plazaGroup.add(cN);
+        // Fila Sur
+        const cS = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 5.2, 16), colMat);
+        cS.position.set(cx, 2.7, 10.5);
+        cS.castShadow = true;
+        plazaGroup.add(cS);
+      });
+
+      // Techumbre metálica arqueada (Bóveda autosoportante tipo domo)
+      const arcGeo = new THREE.CylinderGeometry(11.2, 11.2, 34.4, 32, 1, true, -Math.PI / 2 + 0.3, Math.PI - 0.6);
+      const arcMesh = new THREE.Mesh(arcGeo, mat.roofArchedSheet);
+      arcMesh.rotation.z = Math.PI / 2;
+      arcMesh.position.set(0, 1.2, 0);
+      arcMesh.castShadow = true;
+      roofMeshes.push(arcMesh);
+      plazaGroup.add(arcMesh);
+
+      scene.add(plazaGroup);
+    }
+
+    /* 7. CANCHA DE USOS MÚLTIPLES (30 × 18M) */
+    function buildCanchaDeportiva(mat) {
+      const canchaGroup = new THREE.Group();
+      canchaGroup.position.set(27.0, 4.0, -17.0);
+
+      // Superficie azul de juego
+      const court = new THREE.Mesh(new THREE.BoxGeometry(30.0, 0.2, 18.0), mat.courtBlue);
+      court.position.set(0, 0.1, 0);
+      court.receiveShadow = true;
+      registerInteractiveRoom(court, 'cancha_deportiva', 'Cancha de Usos Múltiples (540 m²)', 30.0, 7.0, 18.0);
+      canchaGroup.add(court);
+
+      // Líneas de cancha blancas
+      const lineMat = mat.courtWhiteLines;
+      const centerCircle = new THREE.Mesh(new THREE.RingGeometry(2.8, 2.95, 32), lineMat);
+      centerCircle.rotation.x = -Math.PI / 2;
+      centerCircle.position.set(0, 0.21, 0);
+      canchaGroup.add(centerCircle);
+
+      const centerLine = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 18.0), lineMat);
+      centerLine.rotation.x = -Math.PI / 2;
+      centerLine.position.set(0, 0.21, 0);
+      canchaGroup.add(centerLine);
+
+      // Porterías y Tableros de Básquetbol (Oriente y Poniente)
+      [-14.5, 14.5].forEach(bx => {
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 3.8, 12), mat.columns);
+        post.position.set(bx, 1.9, 0);
+        canchaGroup.add(post);
+
+        const board = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.2, 1.8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        board.position.set(bx - Math.sign(bx) * 0.5, 3.4, 0);
+        canchaGroup.add(board);
+
+        const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.03, 8, 24), new THREE.MeshBasicMaterial({ color: 0xdc2626 }));
+        hoop.rotation.x = Math.PI / 2;
+        hoop.position.set(bx - Math.sign(bx) * 0.85, 3.05, 0);
+        canchaGroup.add(hoop);
+      });
+
+      scene.add(canchaGroup);
+    }
+
+    /* 8. ESCALINATA MONUMENTAL "S" */
+    function buildEscalinataS(mat) {
+      const stairGroup = new THREE.Group();
+      stairGroup.position.set(-29.0, 0, -4.0);
+
+      const numSteps = 18;
+      const totalH = 4.0;
+      const totalD = 7.5;
+      const stepH = totalH / numSteps;
+      const stepD = totalD / numSteps;
+      const stepW = 4.5;
+
+      for (let i = 0; i < numSteps; i++) {
+        const sGeo = new THREE.BoxGeometry(stepW, (i + 1) * stepH, stepD);
+        const sMesh = new THREE.Mesh(sGeo, mat.retainingWall);
+        sMesh.position.set(0, ((i + 1) * stepH) / 2, -(i * stepD));
+        sMesh.receiveShadow = true;
+        sMesh.castShadow = true;
+        stairGroup.add(sMesh);
+      }
+
+      // Rampa lateral de alfarda
+      const rampGeo = new THREE.BoxGeometry(0.5, 4.4, 8.0);
+      const ramp1 = new THREE.Mesh(rampGeo, mat.columns);
+      ramp1.position.set(-2.5, 2.2, -3.5);
+      stairGroup.add(ramp1);
+      const ramp2 = new THREE.Mesh(rampGeo, mat.columns);
+      ramp2.position.set(2.5, 2.2, -3.5);
+      stairGroup.add(ramp2);
+
+      const hitbox = new THREE.Mesh(new THREE.BoxGeometry(stepW, 4.0, totalD), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 }));
+      hitbox.position.set(0, 2.0, -3.75);
+      registerInteractiveRoom(hitbox, 'escalinata_s', 'Escalinata Monumental "S" (81 m²)', 4.5, 4.0, totalD);
+      stairGroup.add(hitbox);
+
+      scene.add(stairGroup);
+    }
+
+    /* 9. EXTERIORES (BANCAS, AUTOS, CAPTADOR) */
+    function buildExteriores(mat) {
+      // Bancas de convivencia
+      const bancasGroup = new THREE.Group();
+      bancasGroup.position.set(26.0, 4.0, -3.0);
+      for (let bx = -10; bx <= 10; bx += 6.5) {
+        const table = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.75, 1.2), mat.furnitureWood);
+        table.position.set(bx, 0.45, 0);
+        bancasGroup.add(table);
+        const bench1 = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.45, 0.4), mat.furnitureWood);
+        bench1.position.set(bx, 0.25, -1.0);
+        bancasGroup.add(bench1);
+        const bench2 = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.45, 0.4), mat.furnitureWood);
+        bench2.position.set(bx, 0.25, 1.0);
+        bancasGroup.add(bench2);
+      }
+      scene.add(bancasGroup);
+
+      // Estacionamiento con 6 autos 3D
+      const carGroup = new THREE.Group();
+      carGroup.position.set(16.0, 0, 5.0);
+      const carX = [-6.0, -2.5, 2.5, 6.0];
+      carX.forEach((cx, idx) => {
+        buildCar3D(carGroup, cx, 0, mat.carPaint[idx % mat.carPaint.length]);
+      });
+      buildCar3D(carGroup, -1.0, 6.5, mat.carPaint[4]);
+      buildCar3D(carGroup, 3.5, 6.5, mat.carPaint[5]);
+      scene.add(carGroup);
+
+      // Captador de Agua Pluvial
+      const captador = new THREE.Mesh(new THREE.BoxGeometry(5.0, 2.4, 5.0), new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3, metalness: 0.6 }));
+      captador.position.set(14.0, 1.2, 17.5);
+      captador.castShadow = true;
+      registerInteractiveRoom(captador, 'captador_pluvial', 'Captador de Agua Pluvial (25 m²)', 5.0, 2.4, 5.0);
+      scene.add(captador);
+    }
+
+    function buildCar3D(parent, x, z, bodyMat) {
+      const car = new THREE.Group();
+      car.position.set(x, 0, z);
+
+      // Carrocería
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.8, 4.4), bodyMat);
+      body.position.set(0, 0.6, 0);
+      body.castShadow = true;
+      car.add(body);
+
+      // Cabina y parabrisas
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.65, 2.4), new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.1 }));
+      cabin.position.set(0, 1.25, -0.2);
+      car.add(cabin);
+
+      // Ruedas
+      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+      [[-0.95, 1.3], [0.95, 1.3], [-0.95, -1.3], [0.95, -1.3]].forEach(wp => {
+        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16), wheelMat);
+        wheel.rotation.z = Math.PI / 2;
+        wheel.position.set(wp[0], 0.35, wp[1]);
+        car.add(wheel);
+      });
+
+      parent.add(car);
+    }
+
+    /* 10. ACCESO PRINCIPAL Y CASETA C.V. */
+    function buildAccesoPrincipal(mat) {
+      const accesoGroup = new THREE.Group();
+      accesoGroup.position.set(8.0, 0, 28.0);
+
+      // Plaza de acceso
+      const plaza = new THREE.Mesh(new THREE.BoxGeometry(14.0, 0.2, 8.0), mat.plazaTile);
+      plaza.position.set(0, 0.1, 0);
+      registerInteractiveRoom(plaza, 'plaza_acceso', 'Plaza de Acceso Principal (112 m²)', 14.0, 0.2, 8.0);
+      accesoGroup.add(plaza);
+
+      // Caseta C.V.
+      const caseta = new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.8, 2.5), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 }));
+      caseta.position.set(-6.5, 1.4, 0);
+      caseta.castShadow = true;
+      registerInteractiveRoom(caseta, 'caseta_vigilancia', 'Caseta de Vigilancia C.V. (7.5 m²)', 3.0, 2.8, 2.5);
+      accesoGroup.add(caseta);
+
+      // Portón triple abatible de herrería
+      const gateMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.2 });
+      const gate = new THREE.Mesh(new THREE.BoxGeometry(9.0, 2.4, 0.15), gateMat);
+      gate.position.set(0.5, 1.2, 3.8);
+      accesoGroup.add(gate);
+
+      scene.add(accesoGroup);
+    }
+
+    /* 11. BARDA PERIMETRAL Y COTA DE 52.00M */
+    function buildBardaPerimetral(mat) {
+      const bardaMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.8 });
+
+      // Muro perimetral oriente (52.00m)
+      const eastWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 2.8, 52.0), bardaMat);
+      eastWall.position.set(43.5, 1.4, -2.0);
+      eastWall.castShadow = true;
+      registerInteractiveRoom(eastWall, 'barda_perimetral', 'Barda Perimetral Oriente (52.00 m / 5,200 cm)', 0.3, 2.8, 52.0);
+      scene.add(eastWall);
+
+      // COTA ARQUITECTÓNICA 3D FLOTANTE (52.00 m)
+      const dimGroup = new THREE.Group();
+      dimGroup.position.set(45.5, 2.0, -2.0);
+      const dimLine = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 52.0, 8), mat.dimensionLine);
+      dimLine.rotation.x = Math.PI / 2;
+      dimGroup.add(dimLine);
+      scene.add(dimGroup);
+    }
+
+    /* 12. VEGETACIÓN 3D SEGÚN EL PLANO */
+    function buildVegetacion(mat) {
+      const treePositions = [
+        // Hilera bajo Edificio B
+        [-34, 4, -9], [-30, 4, -9], [-26, 4, -9], [-16, 4, -9], [-12, 4, -9],
+        // Hilera a lo largo del muro de contención NPT+4.00
+        [-34, 4, -3], [-30, 4, -3], [-25, 4, -3], [-20, 4, -3], [-15, 4, -3],
+        [-10, 4, -3], [-5, 4, -3], [0, 4, -3], [5, 4, -3], [10, 4, -3],
+        [15, 4, -3], [20, 4, -3], [25, 4, -3], [30, 4, -3], [35, 4, -3],
+        // Árboles al sur de Edificio A
+        [-34, 0, 24], [-27, 0, 24], [-19, 0, 24], [-11, 0, 24], [-4, 0, 24]
+      ];
+
+      treePositions.forEach(tp => {
+        const tree = new THREE.Group();
+        tree.position.set(tp[0], tp[1], tp[2]);
+
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.25, 1.8, 8), mat.treeTrunk);
+        trunk.position.y = 0.9;
+        trunk.castShadow = true;
+        tree.add(trunk);
+
+        const leaves = new THREE.Mesh(new THREE.SphereGeometry(1.4, 8, 8), mat.treeLeaves);
+        leaves.position.y = 2.4;
+        leaves.scale.set(1.1, 1.3, 1.1);
+        leaves.castShadow = true;
+        tree.add(leaves);
+
+        scene.add(tree);
+      });
+    }
+
+    /* ==========================================================================
+       TRANSICIONES CINEMÁTICAS ENTRE LAS 3 POSES DE CÁMARA
+       ========================================================================== */
+    function switchCameraPose(poseKey, animate = true) {
+      const pose = CAMERA_POSES[poseKey];
+      if (!pose) return;
+
+      currentPoseKey = poseKey;
+
+      // Actualizar botones en cabecera
+      document.querySelectorAll('.pose-btn').forEach(btn => {
+        btn.classList.remove('active', 'active-rpg');
+      });
+
+      const activeBtn = document.getElementById(`btn-pose-${poseKey}`);
+      if (activeBtn) {
+        if (poseKey === 'rpg') activeBtn.classList.add('active-rpg');
+        else activeBtn.classList.add('active');
+      }
+
+      // Actualizar texto en barra de estado
+      const sbEl = document.getElementById('sb-cam-pose');
+      if (sbEl) sbEl.textContent = pose.name;
+
+      if (!animate) {
+        camera.position.copy(pose.pos);
+        controls.target.copy(pose.target);
+        camera.fov = pose.fov;
+        camera.updateProjectionMatrix();
+        controls.update();
+        renderer.render(scene, camera);
+        return;
+      }
+
+      // Animación suave con TWEEN
+      new TWEEN.Tween(camera.position)
+        .to({ x: pose.pos.x, y: pose.pos.y, z: pose.pos.z }, 1200)
+        .easing(TWEEN.Easing.Cubic.Out)
+        .start();
+
+      new TWEEN.Tween(controls.target)
+        .to({ x: pose.target.x, y: pose.target.y, z: pose.target.z }, 1200)
+        .easing(TWEEN.Easing.Cubic.Out)
+        .start();
+
+      new TWEEN.Tween(camera)
+        .to({ fov: pose.fov }, 1200)
+        .easing(TWEEN.Easing.Cubic.Out)
+        .onUpdate(() => camera.updateProjectionMatrix())
+        .start();
+    }
+
+    /* ==========================================================================
+       INSPECCIÓN Y SELECCIÓN DE SALONES EN 3D
+       ========================================================================== */
+    function selectSpace(spaceId, flyCamera = false) {
+      const space = SPACES_DB.find(s => s.id === spaceId);
+      if (!space) return;
+
+      selectedSpaceId = spaceId;
+
+      // Actualizar Ficha Técnica en el Inspector
+      document.getElementById('insp-code').textContent = `${space.code} • ${space.building.toUpperCase()}`;
+      document.getElementById('insp-title').textContent = space.name;
+      document.getElementById('insp-subtitle').textContent = `${space.building} • ${space.level} • ${space.norm}`;
+
+      document.getElementById('insp-formula').textContent = `${fCm(space.length_cm)} × ${fCm(space.width_cm)}`;
+      document.getElementById('insp-area-cm2').textContent = fCm2(space.area_cm2);
+      document.getElementById('insp-area-m2').textContent = `Equivalente a: ${fM2(space.area_m2)}`;
+      document.getElementById('insp-area-dm2').textContent = `${fmtInt.format(space.area_m2 * 100)} dm²`;
+
+      document.getElementById('insp-len-cm').textContent = fCm(space.length_cm);
+      document.getElementById('insp-len-m').textContent = `${fM(space.length_m)} (${fmtInt.format(space.length_cm * 10)} mm)`;
+
+      document.getElementById('insp-wid-cm').textContent = fCm(space.width_cm);
+      document.getElementById('insp-wid-m').textContent = `${fM(space.width_m)} (${fmtInt.format(space.width_cm * 10)} mm)`;
+
+      document.getElementById('insp-per-cm').textContent = fCm(space.perimeter_cm);
+      document.getElementById('insp-per-m').textContent = `${fM(space.perimeter_m)} lineales`;
+
+      const diagCm = Math.hypot(space.length_cm, space.width_cm);
+      document.getElementById('insp-diag-cm').textContent = fCm(diagCm);
+      document.getElementById('insp-diag-m').textContent = `${fM(diagCm / 100)} diagonal`;
+
+      document.getElementById('insp-height').textContent =
+        space.height_cm > 0 ? `${fCm(space.height_cm)} (${fM(space.height_cm / 100)})` : 'Cielo abierto';
+      
+      const volCm3 = space.height_cm > 0 ? space.area_cm2 * space.height_cm : 0;
+      document.getElementById('insp-vol').textContent =
+        volCm3 > 0 ? `${fmtInt.format(volCm3)} cm³ (${fmtDec2.format(volCm3 / 1000000)} m³)` : 'N/A';
+
+      document.getElementById('insp-npt').textContent = space.npt;
+      document.getElementById('insp-capacity').textContent = space.capacity;
+
+      const density = space.students_count > 0 ? space.area_cm2 / space.students_count : 0;
+      document.getElementById('insp-density').textContent =
+        `${fmtInt.format(density)} cm²/persona (${fmtDec2.format(density / 10000)} m²)`;
+
+      document.getElementById('insp-norm').textContent = space.norm;
+      document.getElementById('insp-notes').textContent = space.notes;
+
+      document.getElementById('sb-active-room').textContent =
+        `${space.short_name}: ${fCm(space.length_cm)} × ${fCm(space.width_cm)} = ${fCm2(space.area_cm2)}`;
+
+      // Mostrar inspector si estaba cerrado
+      document.getElementById('cad-inspector-3d').classList.remove('collapsed');
+      document.getElementById('btn-reopen-insp').classList.remove('visible');
+
+      // Volar cámara al objeto si fue requerido
+      if (flyCamera) {
+        const mesh = interactiveMeshes.find(m => m.userData.spaceId === spaceId);
+        if (mesh) {
+          const targetPos = new THREE.Vector3();
+          mesh.getWorldPosition(targetPos);
+
+          new TWEEN.Tween(controls.target)
+            .to({ x: targetPos.x, y: targetPos.y + 1.2, z: targetPos.z }, 1000)
+            .easing(TWEEN.Easing.Cubic.Out)
+            .start();
+
+          new TWEEN.Tween(camera.position)
+            .to({ x: targetPos.x - 14, y: targetPos.y + 12, z: targetPos.z + 16 }, 1000)
+            .easing(TWEEN.Easing.Cubic.Out)
+            .start();
+        }
+      }
+    }
+
+    /* ==========================================================================
+       EVENTOS DE INTERACCIÓN, CORTE DE TECHOS Y ATAJOS
+       ========================================================================== */
+    function setupEvents() {
+      // Hover y Clic 3D con Raycasting
+      window.addEventListener('mousemove', (e) => {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(interactiveMeshes);
+
+        if (intersects.length > 0) {
+          const hit = intersects[0].object;
+          const space = SPACES_DB.find(s => s.id === hit.userData.spaceId);
+          if (space) {
+            tooltipEl.style.display = 'block';
+            tooltipEl.style.left = `${e.clientX}px`;
+            tooltipEl.style.top = `${e.clientY}px`;
+            ttTitle.textContent = space.short_name;
+            ttDims.textContent = `${fCm(space.length_cm)} × ${fCm(space.width_cm)}`;
+            ttArea.textContent = fCm2(space.area_cm2);
+            document.body.style.cursor = 'pointer';
+            return;
+          }
+        }
+
+        tooltipEl.style.display = 'none';
+        document.body.style.cursor = 'default';
+      });
+
+      window.addEventListener('click', (e) => {
+        if (e.target.closest('.top-cad-header, .cad-inspector-3d, .btn-reopen-insp')) return;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(interactiveMeshes);
+
+        if (intersects.length > 0) {
+          const hit = intersects[0].object;
+          selectSpace(hit.userData.spaceId, false);
+        }
+      });
+
+      // Botones de las 3 Poses
+      document.getElementById('btn-pose-rpg').addEventListener('click', () => switchCameraPose('rpg'));
+      document.getElementById('btn-pose-low').addEventListener('click', () => switchCameraPose('low'));
+      document.getElementById('btn-pose-aerial').addEventListener('click', () => switchCameraPose('aerial'));
+
+      // Alternar corte de techos (Cutaway)
+      document.getElementById('btn-toggle-roofs').addEventListener('click', () => {
+        isRoofCutaway = !isRoofCutaway;
+        roofMeshes.forEach(m => {
+          m.visible = !isRoofCutaway;
+        });
+        document.getElementById('lbl-toggle-roofs').textContent =
+          isRoofCutaway ? 'Ver Techos Completos' : 'Quitar Techos (Interiores)';
+        document.getElementById('btn-toggle-roofs').classList.toggle('active', isRoofCutaway);
+      });
+
+      // Alternar estilo blanco CAD vs Realista
+      document.getElementById('btn-cad-style').addEventListener('click', () => {
+        isCadWhiteStyle = !isCadWhiteStyle;
+        document.getElementById('lbl-cad-style').textContent =
+          isCadWhiteStyle ? 'Estilo Realista' : 'Estilo CAD Blanco';
+        document.getElementById('btn-cad-style').classList.toggle('active', isCadWhiteStyle);
+
+        scene.background.set(isCadWhiteStyle ? 0xffffff : 0xf8fafc);
+        scene.fog.color.set(isCadWhiteStyle ? 0xffffff : 0xf8fafc);
+      });
+
+      // Volar al salón seleccionado
+      document.getElementById('btn-focus-room').addEventListener('click', () => {
+        selectSpace(selectedSpaceId, true);
+      });
+
+      // Cerrar y abrir panel inspector
+      document.getElementById('btn-close-insp').addEventListener('click', () => {
+        document.getElementById('cad-inspector-3d').classList.add('collapsed');
+        document.getElementById('btn-reopen-insp').classList.add('visible');
+      });
+
+      document.getElementById('btn-reopen-insp').addEventListener('click', () => {
+        document.getElementById('cad-inspector-3d').classList.remove('collapsed');
+        document.getElementById('btn-reopen-insp').classList.remove('visible');
+      });
+
+      // Atajos de teclado
+      window.addEventListener('keydown', (e) => {
+        if (e.key === '1') switchCameraPose('rpg');
+        else if (e.key === '2') switchCameraPose('low');
+        else if (e.key === '3') switchCameraPose('aerial');
+        else if (e.key === 't' || e.key === 'T') document.getElementById('btn-toggle-roofs').click();
+        else if (e.key === 'f' || e.key === 'F') selectSpace(selectedSpaceId, true);
+        else if (e.key === 'Escape') document.getElementById('btn-close-insp').click();
+      });
+
+      // Redimensionamiento
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    /* BUCLE DE ANIMACIÓN CONTINUO */
+    function animate(time) {
+      requestAnimationFrame(animate);
+      TWEEN.update();
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // Iniciar al cargar el DOM
+    window.addEventListener('DOMContentLoaded', init3D);
+  })();
+  </script>
+</body>
+</html>
