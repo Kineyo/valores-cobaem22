@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-"""Script para generar el video de Remotion a través del servidor MCP."""
+"""Generador de video de Remotion a través del servidor MCP oficial.
+
+Crea el bundle del proyecto y genera el reproductor interactivo
+'video_presentacion.html' en la raíz del repositorio.
+"""
 
 import json
+import os
 import urllib.request
 
 files = {}
@@ -22,7 +27,6 @@ export const Background: React.FC = () => {
         zIndex: 0,
       }}
     >
-      {/* Background Gradient */}
       <div
         style={{
           position: 'absolute',
@@ -31,8 +35,6 @@ export const Background: React.FC = () => {
           background: 'radial-gradient(circle at 50% 20%, #133A24 0%, #08170F 70%, #040C07 100%)',
         }}
       />
-
-      {/* Floating Ambient Glow 1 */}
       <div
         style={{
           position: 'absolute',
@@ -46,8 +48,6 @@ export const Background: React.FC = () => {
           pointerEvents: 'none',
         }}
       />
-
-      {/* Floating Ambient Glow 2 */}
       <div
         style={{
           position: 'absolute',
@@ -62,8 +62,6 @@ export const Background: React.FC = () => {
           pointerEvents: 'none',
         }}
       />
-
-      {/* Subtle Grid Overlay */}
       <div
         style={{
           position: 'absolute',
@@ -105,7 +103,6 @@ export const IntroScene: React.FC = () => {
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       }}
     >
-      {/* Top Badge */}
       <div
         style={{
           opacity: badgeSpring,
@@ -125,8 +122,6 @@ export const IntroScene: React.FC = () => {
       >
         🎮 Proyecto Educativo Oficial · COBAEM CEMSaD 22
       </div>
-
-      {/* Main Title */}
       <div
         style={{
           opacity: titleOpacity,
@@ -145,8 +140,6 @@ export const IntroScene: React.FC = () => {
       >
         CAMPEONES DE LOS VALORES
       </div>
-
-      {/* Subtitle */}
       <div
         style={{
           opacity: subtitleSpring,
@@ -166,8 +159,6 @@ export const IntroScene: React.FC = () => {
           Plantel CEMSaD 22 ENTHAVI · Escala Unificada 1m = 40px
         </span>
       </div>
-
-      {/* Feature Pills */}
       <div
         style={{
           opacity: pillsSpring,
@@ -231,7 +222,6 @@ export const ValuesScene: React.FC = () => {
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       }}
     >
-      {/* Scene Header */}
       <div
         style={{
           opacity: headerSpring,
@@ -251,7 +241,6 @@ export const ValuesScene: React.FC = () => {
         </div>
       </div>
 
-      {/* Value Comparison Cards */}
       <div style={{ display: 'flex', gap: 32, width: '100%', maxWidth: 1400, justifyContent: 'center' }}>
         {pairs.map((p, idx) => {
           const cardSpring = spring({ frame, fps, delay: 18 + idx * 12, config: { damping: 14 } });
@@ -276,7 +265,6 @@ export const ValuesScene: React.FC = () => {
                 position: 'relative',
               }}
             >
-              {/* Bad state */}
               <div
                 style={{
                   backgroundColor: 'rgba(239, 68, 68, 0.15)',
@@ -291,11 +279,7 @@ export const ValuesScene: React.FC = () => {
               >
                 Antivalor: {p.bad}
               </div>
-
-              {/* Transformation Arrow */}
               <div style={{ fontSize: 36, color: '#52B788', margin: '8px 0' }}>⬇️</div>
-
-              {/* Redeemed Virtue */}
               <div
                 style={{
                   width: '100%',
@@ -349,7 +333,6 @@ export const ScenariosScene: React.FC = () => {
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       }}
     >
-      {/* Header */}
       <div
         style={{
           opacity: headerSpring,
@@ -369,7 +352,6 @@ export const ScenariosScene: React.FC = () => {
         </div>
       </div>
 
-      {/* 2x3 Grid of Buildings */}
       <div
         style={{
           display: 'grid',
@@ -428,7 +410,6 @@ export const ScenariosScene: React.FC = () => {
         })}
       </div>
 
-      {/* CAD/3D Badge */}
       <div
         style={{
           marginTop: 36,
@@ -470,7 +451,6 @@ export const MobileScene: React.FC = () => {
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       }}
     >
-      {/* Header */}
       <div
         style={{
           opacity: headerSpring,
@@ -490,7 +470,6 @@ export const MobileScene: React.FC = () => {
         </div>
       </div>
 
-      {/* Simulated Phone Frame */}
       <div
         style={{
           opacity: phoneSpring,
@@ -509,7 +488,6 @@ export const MobileScene: React.FC = () => {
           padding: '40px 60px',
         }}
       >
-        {/* Mock Gameplay Center Elements */}
         <div
           style={{
             position: 'absolute',
@@ -528,7 +506,6 @@ export const MobileScene: React.FC = () => {
           ❤️ ❤️ ❤️  ·  Nivel 1: Acceso CEMSaD 22
         </div>
 
-        {/* Virtual Joystick Widget (Left) */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
           <div
             style={{
@@ -544,7 +521,6 @@ export const MobileScene: React.FC = () => {
               position: 'relative',
             }}
           >
-            {/* Knob */}
             <div
               style={{
                 width: 64,
@@ -562,7 +538,6 @@ export const MobileScene: React.FC = () => {
           </div>
         </div>
 
-        {/* Action Button Widget (Right) */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
           <div
             style={{
@@ -618,7 +593,6 @@ export const ReleaseScene: React.FC = () => {
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       }}
     >
-      {/* Top Tag */}
       <div
         style={{
           opacity: titleSpring,
@@ -634,8 +608,6 @@ export const ReleaseScene: React.FC = () => {
       >
         LANZAMIENTO OFICIAL v1.0 DISPONIBLE
       </div>
-
-      {/* Main Title */}
       <div
         style={{
           opacity: titleSpring,
@@ -649,7 +621,6 @@ export const ReleaseScene: React.FC = () => {
       >
         ¡Descarga y Juega Ahora Mismo!
       </div>
-
       <div
         style={{
           color: '#D8F3DC',
@@ -662,7 +633,6 @@ export const ReleaseScene: React.FC = () => {
         Compilado y verificado automáticamente mediante <span style={{ color: '#FBBF24', fontWeight: 700 }}>GitHub Actions CI/CD</span>.
       </div>
 
-      {/* 3 Download Cards */}
       <div style={{ display: 'flex', gap: 32, width: '100%', maxWidth: 1300, justifyContent: 'center' }}>
         {downloads.map((d, i) => {
           const itemSpring = spring({ frame, fps, delay: 15 + i * 10, config: { damping: 14 } });
@@ -694,7 +664,6 @@ export const ReleaseScene: React.FC = () => {
         })}
       </div>
 
-      {/* Footer Link */}
       <div
         style={{
           marginTop: 44,
@@ -728,52 +697,40 @@ import { ReleaseScene } from './scenes/ReleaseScene';
 export default function Video() {
   return (
     <AbsoluteFill style={{ backgroundColor: '#07160E' }}>
-      {/* Persistent Animated Background */}
       <Background />
-
-      {/* Multi-scene Sequence with Professional Transitions */}
       <TransitionSeries>
-        {/* Scene 1: Presentación Principal */}
         <TransitionSeries.Sequence durationInFrames={110}>
           <IntroScene />
         </TransitionSeries.Sequence>
-
         <TransitionSeries.Transition
           presentation={fade()}
           timing={linearTiming({ durationInFrames: 15 })}
         />
 
-        {/* Scene 2: Filosofía y Valores */}
         <TransitionSeries.Sequence durationInFrames={120}>
           <ValuesScene />
         </TransitionSeries.Sequence>
-
         <TransitionSeries.Transition
           presentation={slide({ direction: 'from-right' })}
           timing={linearTiming({ durationInFrames: 15 })}
         />
 
-        {/* Scene 3: Escenarios Arquitectónicos CEMSaD 22 */}
         <TransitionSeries.Sequence durationInFrames={120}>
           <ScenariosScene />
         </TransitionSeries.Sequence>
-
         <TransitionSeries.Transition
           presentation={slide({ direction: 'from-left' })}
           timing={linearTiming({ durationInFrames: 15 })}
         />
 
-        {/* Scene 4: Novedad Controles Táctiles y Android APK */}
         <TransitionSeries.Sequence durationInFrames={110}>
           <MobileScene />
         </TransitionSeries.Sequence>
-
         <TransitionSeries.Transition
           presentation={fade()}
           timing={linearTiming({ durationInFrames: 15 })}
         />
 
-        {/* Scene 5: Release v1.0 y Descargas */}
         <TransitionSeries.Sequence durationInFrames={100}>
           <ReleaseScene />
         </TransitionSeries.Sequence>
@@ -783,6 +740,7 @@ export default function Video() {
 }
 """
 
+print('Enviando código fuente del video al servidor Remotion MCP...')
 req = urllib.request.Request(
     'https://still-feather-l5mwy.run.mcp-use.com/mcp',
     data=json.dumps({
@@ -806,9 +764,208 @@ req = urllib.request.Request(
 
 with urllib.request.urlopen(req) as resp:
   res = json.loads(resp.read().decode())
-  print('HTTP Status:', resp.status)
+  print('Estado HTTP:', resp.status)
   if 'result' in res:
     for c in res['result'].get('content', []):
-      print(c.get('text', ''))
+      print('Mensaje del servidor:', c.get('text', ''))
+
+    video_proj_raw = res['result'].get('structuredContent', {}).get(
+        'videoProject'
+    )
+    if video_proj_raw:
+      # Generar HTML autocontenido
+      html_content = f"""<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video: Campeones de los Valores — Presentación del Repositorio</title>
+  <script>
+    window.openai = {{
+      toolOutput: {{
+        videoProject: {json.dumps(video_proj_raw)}
+      }}
+    }};
+    window.__getFile = (filename) => "https://still-feather-l5mwy.run.mcp-use.com/mcp-use/widgets/remotion-player/" + filename;
+    window.__mcpPublicUrl = "https://still-feather-l5mwy.run.mcp-use.com/mcp-use/public";
+  </script>
+  <base href="https://still-feather-l5mwy.run.mcp-use.com" />
+  <script type="module" crossorigin src="https://still-feather-l5mwy.run.mcp-use.com/mcp-use/widgets/remotion-player/assets/index-DW3vouaR.js"></script>
+  <link rel="stylesheet" crossorigin href="https://still-feather-l5mwy.run.mcp-use.com/mcp-use/widgets/remotion-player/assets/index-DPnU1Iba.css">
+  <style>
+    body {{
+      margin: 0;
+      padding: 30px 20px;
+      background: #06140B;
+      color: #FFFFFF;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }}
+    .header {{
+      text-align: center;
+      margin-bottom: 24px;
+      max-width: 1100px;
+    }}
+    .badge {{
+      display: inline-block;
+      background: rgba(46, 125, 50, 0.35);
+      border: 1px solid #52B788;
+      border-radius: 20px;
+      padding: 6px 18px;
+      color: #74C69D;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }}
+    .header h1 {{
+      margin: 0 0 10px 0;
+      font-size: 34px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #FFFFFF, #74C69D, #FBBF24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }}
+    .header p {{
+      margin: 0;
+      color: #D8F3DC;
+      font-size: 16px;
+      line-height: 1.5;
+    }}
+    .player-container {{
+      width: 100%;
+      max-width: 1100px;
+      aspect-ratio: 16 / 9;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.7), 0 0 40px rgba(46, 125, 50, 0.25);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid rgba(82, 183, 136, 0.4);
+      background: #000;
+      position: relative;
+    }}
+    #widget-root {{
+      width: 100%;
+      height: 100%;
+    }}
+    .guide {{
+      margin-top: 32px;
+      max-width: 1100px;
+      width: 100%;
+      background: rgba(16, 42, 28, 0.7);
+      border: 1px solid rgba(82, 183, 136, 0.35);
+      border-radius: 16px;
+      padding: 24px 32px;
+      box-sizing: border-box;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+    }}
+    .guide h2 {{
+      margin-top: 0;
+      font-size: 20px;
+      color: #FBBF24;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }}
+    .scene-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }}
+    .scene-card {{
+      background: rgba(6, 20, 12, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 14px 18px;
+    }}
+    .scene-num {{
+      font-size: 12px;
+      font-weight: 700;
+      color: #52B788;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }}
+    .scene-title {{
+      font-size: 16px;
+      font-weight: 700;
+      color: #FFF;
+      margin: 4px 0 6px 0;
+    }}
+    .scene-desc {{
+      font-size: 13px;
+      color: #B7E4C7;
+      line-height: 1.4;
+      margin: 0;
+    }}
+    .footer {{
+      margin-top: 30px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.6);
+      text-align: center;
+    }}
+    .footer a {{
+      color: #FBBF24;
+      text-decoration: none;
+      font-weight: 600;
+    }}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="badge">🎬 VIDEO OFICIAL · REMOTION MCP</div>
+    <h1>Campeones de los Valores</h1>
+    <p>Presentación audiovisual generada a partir del <strong>README.md</strong> y especificaciones de la versión v1.0 con joysticks móviles.</p>
+  </div>
+
+  <div class="player-container">
+    <div id="widget-root"></div>
+  </div>
+
+  <div class="guide">
+    <h2>📑 Contenido y Escenas del Video (16.7s · 500 frames · 30 FPS)</h2>
+    <div class="scene-grid">
+      <div class="scene-card">
+        <div class="scene-num">Escena 1 (0:00 - 0:03)</div>
+        <div class="scene-title">🎮 Identidad Institucional</div>
+        <p class="scene-desc">COBAEM CEMSaD 22 ENTHAVI, motor Godot 4.3, escala 1m = 40px y perspectiva 3/4.</p>
+      </div>
+      <div class="scene-card">
+        <div class="scene-num">Escena 2 (0:03 - 0:07)</div>
+        <div class="scene-title">💖 Cultura de Paz y Diálogo</div>
+        <p class="scene-desc">Filosofía de no violencia: los antivalores (Acoso, Bullying, Grosería) son redimidos pacíficamente.</p>
+      </div>
+      <div class="scene-card">
+        <div class="scene-num">Escena 3 (0:07 - 0:11)</div>
+        <div class="scene-title">📐 Los 6 Escenarios Reales</div>
+        <p class="scene-desc">Cafetería, Plaza Cívica (+4m), Biblioteca, Cómputo y Canchas con cotas métricas y visor CAD/3D.</p>
+      </div>
+      <div class="scene-card">
+        <div class="scene-num">Escena 4 (0:11 - 0:14)</div>
+        <div class="scene-title">📱 Joysticks para Móvil</div>
+        <p class="scene-desc">Controles táctiles virtuales optimizados para pantallas táctiles en Android APK.</p>
+      </div>
+      <div class="scene-card">
+        <div class="scene-num">Escena 5 (0:14 - 0:17)</div>
+        <div class="scene-title">🚀 Lanzamiento Oficial v1.0</div>
+        <p class="scene-desc">Descarga directa para Android APK, Linux x86_64 y Windows .exe en GitHub Releases.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Proyecto disponible en <a href="https://github.com/Kineyo/valores-cobaem22" target="_blank">github.com/Kineyo/valores-cobaem22</a> · Colegio de Bachilleres del Estado de México
+  </div>
+</body>
+</html>
+"""
+      output_html = 'video_presentacion.html'
+      with open(output_html, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+      print(f'¡Archivo HTML del video generado con éxito: {output_html}!')
+
   if 'error' in res:
     print('Error:', res['error'])

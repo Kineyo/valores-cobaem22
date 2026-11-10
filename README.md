@@ -25,7 +25,7 @@
 **Videojuego educativo de aventura y acción retro en perspectiva 3/4 desarrollado en Godot Engine 4.**  
 Una experiencia lúdica ambientada a **escala arquitectónica real** dentro de las instalaciones del plantel **CEMSaD 22 ENTHAVI (COBAEM)**, diseñada para promover virtudes humanas esenciales (*Amabilidad*, *Respeto*, *Empatía*) y superar conductas nocivas (*Grosería*, *Acoso*, *Bullying*).
 
-[⚡ Guía Rápida](#-guía-rápida-de-inicio) • [🎮 Controles](#-manual-del-jugador-y-controles) • [🗺️ Escenarios](#️-guía-de-los-6-escenarios-escolares-a-escala-real) • [📐 Planos 3D / CAD](#-sistema-cad-y-maqueta-3d-interactiva) • [💻 Comandos Shell](#-shells-y-comandos-de-terminal) • [🏗️ Arquitectura](#️-arquitectura-de-software-y-estructura-del-código)
+[⚡ Guía Rápida](#-guía-rápida-de-inicio) • [🎬 Video](#-video-de-presentación-del-proyecto) • [🎮 Controles](#-manual-del-jugador-y-controles) • [🗺️ Escenarios](#️-guía-de-los-6-escenarios-escolares-a-escala-real) • [📐 Planos 3D / CAD](#-sistema-cad-y-maqueta-3d-interactiva) • [💻 Comandos Shell](#-shells-y-comandos-de-terminal) • [🏗️ Arquitectura](#️-arquitectura-de-software-y-estructura-del-código)
 
 ---
 
@@ -34,6 +34,7 @@ Una experiencia lúdica ambientada a **escala arquitectónica real** dentro de l
 ## 📑 Tabla de Contenidos
 
 - [⚡ Guía Rápida de Inicio](#-guía-rápida-de-inicio)
+- [🎬 Video de Presentación del Proyecto](#-video-de-presentación-del-proyecto)
 - [🎯 Propósito y Visión Educativa](#-propósito-y-visión-educativa)
 - [🎮 Manual del Jugador y Controles](#-manual-del-jugador-y-controles)
 - [🌟 Mecánicas de Juego y Sistema de Valores](#-mecánicas-de-juego-y-sistema-de-valores)
@@ -93,6 +94,20 @@ flatpak run org.godotengine.Godot --path . scenes/menu.tscn
 
 > [!TIP]
 > Puedes cambiar el modo de dificultad antes de iniciar tu partida directamente en el menú de inicio presionando las teclas <kbd>1</kbd>, <kbd>2</kbd> o <kbd>3</kbd>.
+
+---
+
+## 🎬 Video de Presentación del Proyecto
+
+El repositorio incluye una presentación audiovisual oficial que resume la misión educativa, los 6 escenarios reales y los nuevos controles táctiles:
+
+* 🌐 **Reproductor Web Interactivo Remotion:** [`video_presentacion.html`](video_presentacion.html)  
+  *Abre este archivo en tu navegador web para ver la animación interactiva con el reproductor oficial de Remotion (play, pausa, barra de tiempo y pantalla completa).*
+* 📹 **Archivo de Video Físico MP4:** [`video_presentacion.mp4`](video_presentacion.mp4)  
+  *Video Full HD (1920×1080 @ 30 FPS, 1.4 MB) con banda sonora chiptune sincronizada (`music_game.wav`). Compatible con reproductores de video locales y dispositivos móviles.*
+* 🛠️ **Scripts de Generación:**
+  * [`tools/build_video.py`](tools/build_video.py): Generador de código Remotion y llamada al servidor MCP.
+  * [`tools/render_mp4.py`](tools/render_mp4.py): Renderizador de frames y ensamble de audio con FFmpeg.
 
 ---
 
