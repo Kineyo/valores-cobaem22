@@ -26,6 +26,7 @@ jobs:
         run: |
           mkdir -v -p ~/.local/share/godot/export_templates/
           cp -r /root/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable ~/.local/share/godot/export_templates/ || true
+          ls -la ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable/
 
       - name: Godot Headless Import
         run: |
@@ -68,6 +69,7 @@ jobs:
         run: |
           mkdir -v -p ~/.local/share/godot/export_templates/
           cp -r /root/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable ~/.local/share/godot/export_templates/ || true
+          ls -la ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable/
 
       - name: Configure Android SDK & Keystore
         run: |
