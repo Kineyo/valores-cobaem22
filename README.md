@@ -29,9 +29,7 @@ Una experiencia lúdica ambientada a **escala arquitectónica real** dentro de l
 
 <br/><br/>
 
-<a href="video_presentacion.mp4" title="Haz clic para ver el video interactivo de presentación">
-  <img src="assets/video_preview.png" alt="Video de Presentación del Proyecto" width="720" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.2);" />
-</a>
+https://github.com/user-attachments/assets/75b3ccd4-ab32-4d3e-8b7b-bba197a8a0dc
 
 <br/>
 
@@ -108,6 +106,8 @@ flatpak run org.godotengine.Godot --path . scenes/menu.tscn
 ---
 
 ## 🎬 Video de Presentación del Proyecto
+
+https://github.com/user-attachments/assets/75b3ccd4-ab32-4d3e-8b7b-bba197a8a0dc
 
 El repositorio incluye una presentación audiovisual oficial que resume la misión educativa, los 6 escenarios reales y los nuevos controles táctiles:
 
