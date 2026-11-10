@@ -27,7 +27,17 @@ Una experiencia lúdica ambientada a **escala arquitectónica real** dentro de l
 
 [⚡ Guía Rápida](#-guía-rápida-de-inicio) • [🎬 Video](#-video-de-presentación-del-proyecto) • [🎮 Controles](#-manual-del-jugador-y-controles) • [🗺️ Escenarios](#️-guía-de-los-6-escenarios-escolares-a-escala-real) • [📐 Planos 3D / CAD](#-sistema-cad-y-maqueta-3d-interactiva) • [💻 Comandos Shell](#-shells-y-comandos-de-terminal) • [🏗️ Arquitectura](#️-arquitectura-de-software-y-estructura-del-código)
 
----
+<br/><br/>
+
+<a href="video_presentacion.html" title="Haz clic para ver el video interactivo de presentación">
+  <img src="assets/video_preview.png" alt="Video de Presentación del Proyecto" width="720" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.2);" />
+</a>
+
+<br/>
+
+[![🎬 Reproductor Interactivo](https://img.shields.io/badge/🎬%20Ver%20Video-Reproductor%20Web%20(Remotion)-E63946?style=for-the-badge&logo=html5&logoColor=white)](video_presentacion.html)
+[![📹 Descargar MP4](https://img.shields.io/badge/📹%20Descargar%20Video-MP4%201080p-1D3557?style=for-the-badge&logo=quicktime&logoColor=white)](video_presentacion.mp4)
+[![🏛️ Maqueta 3D](https://img.shields.io/badge/🏛️%20Visor%203D-Maqueta%20BIM%20%2F%20CAD-457B9D?style=for-the-badge&logo=three.js&logoColor=white)](plano_3d.html)
 
 </div>
 

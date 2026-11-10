@@ -116,6 +116,7 @@ Si encuentras un error o necesitas implementar una función, consulta esta tabla
 | [`tools/render_mp4.py`](tools/render_mp4.py) | Script Python (FFmpeg) | Renderizador local de video MP4 a 1080p con audio chiptune sincronizado. | `render_frame()`, tubería rawvideo a FFmpeg |
 | [`video_presentacion.html`](video_presentacion.html) | Aplicación Web (Remotion Player) | Reproductor web interactivo del video generado a través del servidor MCP oficial. | Widget Remotion con controles de reproducción |
 | [`video_presentacion.mp4`](video_presentacion.mp4) | Video H.264 / AAC | Archivo de video Full HD (1920×1080 @ 30 FPS, 20s) listo para reproducir localmente. | Video institucional del proyecto |
+| [`assets/video_preview.png`](assets/video_preview.png) | Imagen PNG | Miniatura y banner interactivo del video de presentación con botón de reproducción. | Portada y enlace audiovisual en `README.md` |
 | [`plano_3d.html`](plano_3d.html) | Aplicación WebGL (Three.js) | Maqueta 3D arquitectónica interactiva con 3 cámaras (RPG 3/4, peatonal, aérea), aristas vectoriales y cotas. | Renderizado BIM del plantel completo |
 | [`planos_interactivos.html`](planos_interactivos.html) | Aplicación HTML5/Canvas/SVG | Sistema CAD 2D de alta precisión con cálculo de áreas en $\text{m}^2/\text{cm}^2$ y 52 fotos reales de campo. | Fichas de edificios del CEMSaD 22 |
 | [`requirements.txt`](requirements.txt) | Dependencias PIP | Declaración de librerías Python (`Pillow`) para ejecutar `generate_scenarios.py`. | `pip install -r requirements.txt` |
