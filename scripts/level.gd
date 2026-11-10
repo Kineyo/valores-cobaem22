@@ -1,10 +1,9 @@
 extends Node2D
 class_name Level
 
-## Controlador de un Escenario / Nivel individual en perspectiva 3/4.
-## Carga la imagen de fondo desde la carpeta de escenarios,
-## genera automáticamente las colisiones perimetrales (WorldBoundaries),
-## instancia al jugador, enemigos y la meta con ordenamiento Y-sort.
+## Controlador de escenario individual en perspectiva 3/4.
+## Carga la imagen de fondo, genera límites perimetrales y obstáculos,
+## e instancia al jugador, enemigos y la meta con ordenamiento Y-Sort.
 
 signal player_health_changed(current: int, max_hp: int)
 signal player_died
@@ -21,8 +20,8 @@ const GOAL_SCENE := preload("res://scenes/goal.tscn")
 @onready var entities: Node2D = $Entities
 @onready var enemies_container: Node2D = $Entities/Enemies
 
-var player: Player = null
-var goal: Goal = null
+var player: CharacterBody2D = null
+var goal: Area2D = null
 var map_size: Vector2 = Vector2(800, 450)
 var level_data: Dictionary = {}
 
@@ -38,6 +37,7 @@ func _ensure_nodes() -> void:
 	if enemies_container == null and entities != null:
 		enemies_container = entities.get_node_or_null("Enemies")
 
+## Configura el escenario a partir de un diccionario de definición de nivel
 func setup_level(data: Dictionary) -> void:
 	_ensure_nodes()
 	level_data = data
@@ -47,11 +47,15 @@ func setup_level(data: Dictionary) -> void:
 	if enemies_container:
 		enemies_container.y_sort_enabled = true
 
-	# 1. Cargar textura del escenario
+	# 1. Cargar imagen de fondo del escenario
 	var image_path: String = data.get("scenario_image", "")
 	var tex: Texture2D = null
 	if ResourceLoader.exists(image_path):
 		tex = load(image_path)
+	elif FileAccess.file_exists(image_path):
+		var img := Image.load_from_file(ProjectSettings.globalize_path(image_path))
+		if img:
+			tex = ImageTexture.create_from_image(img)
 	elif ResourceLoader.exists("res://assets/background/fondo.png"):
 		tex = load("res://assets/background/fondo.png")
 
@@ -62,13 +66,13 @@ func setup_level(data: Dictionary) -> void:
 	else:
 		map_size = Vector2(1200, 800)
 
-	# 2. Configurar límites perimetrales automáticos según el tamaño de la imagen
+	# 2. Configurar colisiones de frontera exterior
 	_build_boundary_walls(map_size)
 
-	# 3. Construir obstáculos específicos del escenario
+	# 3. Construir obstáculos sólidos del escenario
 	_build_obstacles(data.get("obstacles", []))
 
-	# 4. Instanciar Jugador
+	# 4. Instanciar al jugador
 	player = PLAYER_SCENE.instantiate()
 	player.position = data.get("player_spawn", Vector2(90.0, map_size.y * 0.5))
 	if entities:
@@ -77,7 +81,7 @@ func setup_level(data: Dictionary) -> void:
 	player.health_changed.connect(func(c, m): player_health_changed.emit(c, m))
 	player.died.connect(func(): player_died.emit())
 
-	# Configurar límites de la cámara para que no muestre zonas vacías fuera del mapa
+	# Ajustar límites de cámara a las dimensiones del mapa
 	if player.camera:
 		player.camera.limit_left = 0
 		player.camera.limit_top = 0
@@ -85,7 +89,7 @@ func setup_level(data: Dictionary) -> void:
 		player.camera.limit_bottom = int(map_size.y)
 		player.camera.reset_smoothing()
 
-	# 5. Instanciar Meta / Salida
+	# 5. Instanciar la meta de salida
 	goal = GOAL_SCENE.instantiate()
 	goal.position = data.get("goal_position", Vector2(map_size.x - 90.0, map_size.y * 0.5))
 	if entities:
@@ -93,7 +97,7 @@ func setup_level(data: Dictionary) -> void:
 	goal.set_goal_text(data.get("goal_label", "META"))
 	goal.player_reached_goal.connect(_on_goal_reached)
 
-	# 6. Instanciar Enemigos
+	# 6. Instanciar grupo de enemigos
 	var enemy_list: Array = data.get("enemies", [])
 	for e_info in enemy_list:
 		var enemy: Enemy = ENEMY_SCENE.instantiate()
@@ -110,13 +114,14 @@ func _on_goal_reached() -> void:
 	stop_enemies()
 	level_completed.emit()
 
+## Detiene el movimiento de todos los enemigos en el escenario
 func stop_enemies() -> void:
 	if enemies_container:
 		for enemy in enemies_container.get_children():
 			if enemy is Enemy:
 				enemy.stop()
 
-## Construye 4 muros de colisión perimetrales con grosor seguro de 50 px
+## Construye cuatro muros de colisión perimetrales para delimitar el mapa
 func _build_boundary_walls(size: Vector2) -> void:
 	if world_boundaries == null:
 		return
@@ -142,6 +147,7 @@ func _add_wall_box(center: Vector2, box_size: Vector2) -> void:
 	col.position = center
 	world_boundaries.add_child(col)
 
+## Instancia las cajas de colisión para los obstáculos declarados en el nivel
 func _build_obstacles(obs_list: Array) -> void:
 	if obstacles == null:
 		return

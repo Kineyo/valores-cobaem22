@@ -1,0 +1,158 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: "4.3"
+
+jobs:
+  export-pc:
+    name: Export PC (Linux & Windows)
+    runs-on: ubuntu-24.04
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Export Templates
+        run: |
+          mkdir -v -p ~/.local/share/godot/export_templates/
+          cp -r /root/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable ~/.local/share/godot/export_templates/ || true
+
+      - name: Godot Headless Import
+        run: |
+          godot --headless --editor --quit || true
+
+      - name: Build Linux Executable
+        run: |
+          mkdir -v -p build/linux
+          godot --headless --verbose --export-release "Linux/X11" build/linux/campeones_valores.x86_64
+
+      - name: Build Windows Executable
+        run: |
+          mkdir -v -p build/windows
+          godot --headless --verbose --export-release "Windows Desktop" build/windows/campeones_valores.exe
+
+      - name: Package Binaries into ZIP
+        run: |
+          mkdir -v -p dist
+          cd build/linux && zip -r ../../dist/campeones_valores_linux_x86_64.zip . && cd ../..
+          cd build/windows && zip -r ../../dist/campeones_valores_windows_x86_64.zip . && cd ../..
+          ls -lh dist/
+
+      - name: Upload PC Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pc-builds
+          path: dist/
+          retention-days: 1
+
+  export-android:
+    name: Export Android (APK)
+    runs-on: ubuntu-24.04
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Export Templates
+        run: |
+          mkdir -v -p ~/.local/share/godot/export_templates/
+          cp -r /root/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable ~/.local/share/godot/export_templates/ || true
+
+      - name: Configure Android SDK & Keystore
+        run: |
+          mkdir -v -p ~/.config/godot
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+          
+          ANDROID_SDK_PATH="${ANDROID_HOME:-/usr/lib/android-sdk}"
+          JAVA_PATH="$(dirname "$(dirname "$(readlink -f "$(which javac || which java)")")")"
+          
+          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\nexport/android/debug_keystore = "%s/debug.keystore"\nexport/android/debug_keystore_user = "androiddebugkey"\nexport/android/debug_keystore_pass = "android"\nexport/android/force_system_user = false\nexport/android/shutdown_adb_on_exit = true\n' "${ANDROID_SDK_PATH}" "${JAVA_PATH}" "$(pwd)" > ~/.config/godot/editor_settings-4.tres
+          cat ~/.config/godot/editor_settings-4.tres
+
+      - name: Godot Headless Import
+        run: |
+          godot --headless --editor --quit || true
+
+      - name: Build Android APK
+        run: |
+          mkdir -v -p build/android
+          godot --headless --verbose --export-release "Android" build/android/campeones_valores.apk || godot --headless --verbose --export-debug "Android" build/android/campeones_valores.apk
+          ls -lh build/android/
+
+      - name: Upload Android Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build
+          path: build/android/campeones_valores.apk
+          retention-days: 1
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [export-pc, export-android]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download PC Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: pc-builds
+          path: release_assets
+
+      - name: Download Android Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-build
+          path: release_assets
+
+      - name: Inspect Release Assets
+        run: |
+          ls -lh release_assets/
+
+      - name: Determine Tag Name
+        id: tag_info
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=v1.0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_info.outputs.tag }}
+          name: Campeones de los Valores ${{ steps.tag_info.outputs.tag }}
+          draft: false
+          prerelease: false
+          files: |
+            release_assets/campeones_valores_linux_x86_64.zip
+            release_assets/campeones_valores_windows_x86_64.zip
+            release_assets/campeones_valores.apk
+          body: |
+            # 🎮 Campeones de los Valores — ${{ steps.tag_info.outputs.tag }}
+            
+            Versión oficial compilada y empaquetada automáticamente por GitHub Actions.
+            
+            ### 📦 Paquetes Listos para Descargar:
+            - 🐧 **Linux (x86_64):** `campeones_valores_linux_x86_64.zip` (Ejecutable nativo para Ubuntu, Debian, Fedora, Arch y derivados)
+            - 🪟 **Windows (64-bit):** `campeones_valores_windows_x86_64.zip` (Ejecutable `.exe` independiente)
+            - 📱 **Android:** `campeones_valores.apk` (Instalador directo para celulares y tablets)
+            
+            ### 🏫 Características de esta Versión:
+            - **Plantel Oficial CEMSaD 22 ENTHAVI:** Los 6 escenarios a escala real 1:1 ($1\text{ metro} = 40\text{ px}$).
+            - **Visor CAD 2D y Maqueta 3D:** Herramientas interactivas integradas en HTML5 y Three.js.
+            - **Dinámica de Virtudes:** Sistema de combate no violento con redención pacífica de antivalores.
+            - **Audio Original:** Banda sonora chiptune y efectos sintetizados proceduralmente.

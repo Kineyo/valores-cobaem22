@@ -1,9 +1,8 @@
 extends Area2D
 class_name Projectile
 
-## Disparo de energía de valores.
-## Viaja en dirección 2D (perspectiva 3/4) y derrota al primer antivalor que toque.
-## Su hitbox es generosa para que sea fácil acertar.
+## Proyectil de valores disparado por el jugador en perspectiva 3/4.
+## Se desplaza en línea recta y neutraliza al primer antivalor con el que colisiona.
 
 @export var speed: float = 520.0
 @export var lifetime: float = 1.1
@@ -17,19 +16,19 @@ var _done: bool = false
 
 func _ready() -> void:
 	area_entered.connect(_on_area_entered)
-	
+
 	if direction is Vector2:
 		_dir_vec = direction.normalized()
 		if _dir_vec == Vector2.ZERO:
 			_dir_vec = Vector2.RIGHT
 	elif direction is int or direction is float:
 		_dir_vec = Vector2.RIGHT if float(direction) >= 0.0 else Vector2.LEFT
-	
-	# Rotación hacia la dirección de avance
+
+	# Orientar el ángulo del nodo hacia la trayectoria de disparo
 	rotation = _dir_vec.angle()
 	sprite.flip_h = false
 
-	# Aparece con un pequeño "pop"
+	# Animación pop de aparición
 	var target_scale := sprite.scale
 	sprite.scale = target_scale * 0.4
 	create_tween().tween_property(sprite, "scale", target_scale, 0.08)
@@ -39,7 +38,7 @@ func _physics_process(delta: float) -> void:
 	sprite.rotation += 12.0 * delta
 	_time += delta
 
-	# Desvanecer al final de su vida
+	# Desvanecimiento en el último cuarto de vida útil
 	if _time > lifetime * 0.75:
 		modulate.a = clampf(1.0 - (_time - lifetime * 0.75) / (lifetime * 0.25), 0.0, 1.0)
 	if _time >= lifetime:

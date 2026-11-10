@@ -1,8 +1,8 @@
 extends Area2D
 class_name Goal
 
-## Meta / Salida del nivel en perspectiva 3/4 (estilo Pokémon).
-## Al cruzarla o tocarla, se completa el escenario actual.
+## Meta / Salida del nivel en perspectiva 3/4.
+## Detecta la llegada del jugador y emite la señal player_reached_goal para avanzar.
 
 signal player_reached_goal
 
@@ -25,12 +25,14 @@ func set_goal_text(txt: String) -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
+	# Flotación rítmica sutil del icono de meta
 	sprite.position.y = _base_sprite_y + roundf(sin(_time * 2.2) * 3.0)
 
 func _on_body_entered(body: Node2D) -> void:
 	if body is Player:
 		trigger(body)
 
+## Activa la meta, emite efectos visuales/sonoros y notifica la victoria del nivel
 func trigger(body: Node2D) -> void:
 	if already_reached or not (body is Player) or not body.can_control:
 		return

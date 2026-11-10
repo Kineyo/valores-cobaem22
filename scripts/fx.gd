@@ -1,8 +1,8 @@
 extends Node
 
-## Autoload "Fx"
-## Pequeños efectos reutilizables de "game feel":
-## temblor de cámara, hit-stop, textos flotantes y explosiones de píxeles.
+## Autoload: Fx
+## Sistema de efectos de retroalimentación ("game feel"):
+## Sacudida de cámara (shake), hitstop, textos flotantes y partículas de impacto.
 
 const FONT_OUTLINE := Color(0.07, 0.06, 0.13, 1.0)
 
@@ -25,7 +25,7 @@ func _process(delta: float) -> void:
 		_camera = null
 		return
 	_shake_strength = maxf(0.0, _shake_strength - _shake_decay * delta)
-	# Se redondea a píxeles enteros para mantener el look pixel-art
+	# Redondeo a píxeles enteros para mantener la coherencia del estilo pixel art
 	_camera.offset = Vector2(
 		randf_range(-_shake_strength, _shake_strength),
 		randf_range(-_shake_strength, _shake_strength)
@@ -34,7 +34,7 @@ func _process(delta: float) -> void:
 		_camera.offset = Vector2.ZERO
 		_camera = null
 
-## Hace temblar la cámara activa.
+## Aplica sacudida sísmica a la cámara 2D activa
 func shake(strength: float = 4.0, duration: float = 0.25) -> void:
 	_camera = get_viewport().get_camera_2d()
 	if _camera == null:
@@ -43,13 +43,13 @@ func shake(strength: float = 4.0, duration: float = 0.25) -> void:
 		_shake_strength = strength
 		_shake_decay = strength / maxf(duration, 0.01)
 
-## Congela el juego un instante para dar peso a un golpe.
+## Pausa brevemente la escala de tiempo para acentuar el impacto de un golpe
 func hitstop(duration: float = 0.06, time_scale: float = 0.05) -> void:
 	Engine.time_scale = time_scale
 	await get_tree().create_timer(duration, true, false, true).timeout
 	Engine.time_scale = 1.0
 
-## Texto que sube y se desvanece (p. ej. "¡Respeto!").
+## Crea un texto flotante emergente con animación ascendente (ej. "¡Respeto!")
 func floating_text(parent: Node, pos: Vector2, text: String, color: Color = Color.WHITE, size: int = 14) -> void:
 	if parent == null:
 		return
@@ -62,7 +62,7 @@ func floating_text(parent: Node, pos: Vector2, text: String, color: Color = Colo
 	label.add_theme_constant_override("outline_size", 5)
 	label.z_index = 50
 	parent.add_child(label)
-	# Centrar el texto sobre el punto
+
 	label.reset_size()
 	label.pivot_offset = label.size * 0.5
 	label.position = pos - label.size * 0.5
@@ -75,7 +75,7 @@ func floating_text(parent: Node, pos: Vector2, text: String, color: Color = Colo
 	tw.tween_property(label, "modulate:a", 0.0, 0.35).set_delay(0.55)
 	tw.chain().tween_callback(label.queue_free)
 
-## Explosión de "píxeles" cuadrados (usa partículas de un solo disparo).
+## Genera un estallido de partículas pixel art de un solo disparo
 func burst(parent: Node, pos: Vector2, color: Color, amount: int = 14, speed: float = 140.0) -> void:
 	if parent == null or not is_instance_valid(parent):
 		return
@@ -99,7 +99,7 @@ func burst(parent: Node, pos: Vector2, color: Color, amount: int = 14, speed: fl
 	parent.add_child(p)
 	p.emitting = true
 	p.finished.connect(p.queue_free)
-	# Respaldo de seguridad para liberación
+	# Respaldo para garantizar liberación de memoria si el evento finished no se dispara
 	get_tree().create_timer(p.lifetime + 0.1, false).timeout.connect(func() -> void:
 		if is_instance_valid(p):
 			p.queue_free()

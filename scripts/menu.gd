@@ -1,8 +1,8 @@
 extends Control
 
-## Menú de inicio
-## Permite elegir la dificultad y comenzar el juego.
-## Teclado: ← / → cambian la dificultad, ENTER juega, ESC sale.
+## Controlador del Menú de Inicio.
+## Permite seleccionar la dificultad (Fácil, Normal, Difícil) e iniciar la partida.
+## Atajos de teclado: Flechas / A-D / 1-2-3 cambian dificultad, ENTER inicia partida, ESC sale.
 
 const GAME_SCENE := "res://scenes/main.tscn"
 
@@ -44,7 +44,7 @@ func _ready() -> void:
 	UiJuice.attach_button(btn_play, sfx_select)
 	UiJuice.attach_button(btn_quit, sfx_select)
 
-	# En web/móvil no tiene sentido "Salir"
+	# En navegadores web se oculta el botón salir ya que la pestaña controla el cierre
 	btn_quit.visible = not OS.has_feature("web")
 
 	_refresh_difficulty(false)
@@ -54,12 +54,12 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
-	# Animación del icono de valores (flotar + balanceo sutil)
+	# Animación de flotación y balanceo del icono de trofeo
 	game_icon.pivot_offset = game_icon.size * 0.5
 	game_icon.position.y = roundf(sin(_time * 2.2) * 4.0)
 	game_icon.rotation = sin(_time * 1.4) * 0.05
 
-	# Desplazamiento suave del fondo de la ciudad
+	# Desplazamiento panorámico continuo del fondo
 	_bg_scroll = fposmod(_bg_scroll + 22.0 * delta, 800.0)
 	bg_scroller.position.x = -roundf(_bg_scroll)
 

@@ -1,8 +1,8 @@
 extends CanvasLayer
 
-## Autoload "SceneTransition"
-## Cambia de escena con una transición pixel-art (rombos en diagonal)
-## en lugar de un corte seco. Úsalo así:
+## Autoload: SceneTransition
+## Transición de pantalla tipo pixel-art usando shaders/pixel_transition.gdshader.
+## Permite cambiar o recargar escenas sin cortes secos:
 ##   SceneTransition.change_scene("res://scenes/main.tscn")
 ##   SceneTransition.reload_scene()
 
@@ -35,17 +35,19 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_update_screen_size)
 	_update_screen_size()
 
-	# Al abrir el juego, la primera escena aparece "destapándose"
+	# Al iniciar el juego, descubre la primera escena con la animación de revelado
 	_set_progress(1.0)
 	_reveal()
 
+## Inicia la transición y cambia a la escena indicada por ruta
 func change_scene(path: String) -> void:
 	_run(func() -> void: get_tree().change_scene_to_file(path))
 
+## Inicia la transición y recarga la escena actual
 func reload_scene() -> void:
 	_run(func() -> void: get_tree().reload_current_scene())
 
-## Cubre la pantalla, ejecuta `action` y luego descubre la nueva escena.
+## Cubre la pantalla con el shader, ejecuta la acción (callback) y luego revela la escena
 func _run(action: Callable) -> void:
 	if is_busy:
 		return
@@ -61,11 +63,12 @@ func _run(action: Callable) -> void:
 	get_tree().paused = false
 	transition_midpoint.emit()
 	action.call()
-	# Esperar a que la nueva escena esté lista antes de destaparla
+	# Espera dos frames para garantizar que la nueva escena esté renderizada antes de revelar
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_reveal()
 
+## Anima la apertura/destapado del shader
 func _reveal() -> void:
 	is_busy = true
 	_rect.visible = true

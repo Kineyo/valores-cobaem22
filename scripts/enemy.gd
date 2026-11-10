@@ -1,10 +1,10 @@
 extends CharacterBody2D
 class_name Enemy
 
-## Enemigos que representan los malos valores en perspectiva 3/4 (estilo Pokémon):
-## - Groserías (G): Rápido e impulsivo, brinca agitado.
-## - Acoso (A): Sombra acechante, flota y persigue sigilosamente.
-## - Bullying (B): Pesado e imponente, patrulla y embiste.
+## Antivalores escolares en perspectiva 3/4:
+## - Grosería: Rápido e impulsivo, brinca agitado. Se redime proclamando ¡Amabilidad!
+## - Acoso: Sombra acechante con amplio rango de visión. Se redime proclamando ¡Respeto!
+## - Bullying: Pesado y territorial, embiste al entrar a su zona. Se redime proclamando ¡Empatía!
 
 enum Type { GROSERIA, ACOSO, BULLYING }
 
@@ -65,11 +65,20 @@ func _ready() -> void:
 	speed *= GameSettings.get_param("enemy_speed_mult")
 	_anim_time = randf() * TAU
 	_wander_timer = randf_range(0.5, 2.0)
+	queue_redraw()
 
+func _draw() -> void:
+	# Sombra elíptica pixel-art para anclar al enemigo al suelo en perspectiva 3/4
+	var shadow_col := Color(0.06, 0.08, 0.12, 0.32)
+	draw_rect(Rect2(-12, -4, 24, 6), shadow_col)
+	draw_rect(Rect2(-10, -6, 20, 10), shadow_col)
+
+## Desactiva el movimiento y colisiones del enemigo
 func stop() -> void:
 	is_active = false
 	velocity = Vector2.ZERO
 
+## Configura textura, velocidad, color y virtud proclamada según el tipo
 func setup_type() -> void:
 	var data: Dictionary = TYPE_DATA[enemy_type]
 	sprite.texture = data["texture"]
@@ -93,22 +102,21 @@ func _physics_process(delta: float) -> void:
 	_update_ai(delta)
 	move_and_slide()
 
-## Inteligencia artificial en perspectiva 3/4
+## Inteligencia artificial: persigue si el héroe está en rango; si no, patrulla
 func _update_ai(delta: float) -> void:
 	var move_dir := Vector2.ZERO
 
-	# Si el jugador está dentro del rango de detección, persigue (usando distancia al cuadrado)
+	# Persecución directa si el jugador entra al radio de detección (optimizado con dist_sq)
 	if player and is_instance_valid(player) and player.can_control:
 		var dist_sq := global_position.distance_squared_to(player.global_position)
 		if dist_sq <= _detection_range_sq:
 			move_dir = (player.global_position - global_position).normalized()
 			velocity = velocity.move_toward(move_dir * speed, 600.0 * delta)
-			# Girar el sprite según el movimiento horizontal
 			if move_dir.x != 0.0:
 				sprite.flip_h = move_dir.x < 0.0
 			return
 
-	# Si no detecta al jugador, patrulla / merodea alrededor de su punto de aparición
+	# Patrullaje errante alrededor de la posición de spawn
 	_wander_timer -= delta
 	if _wander_timer <= 0.0:
 		_wander_timer = randf_range(1.5, 3.5)
@@ -139,6 +147,7 @@ func _animate(delta: float) -> void:
 			sprite.scale = Vector2(1.0 + absf(step) * 0.06, 1.0 - absf(step) * 0.06)
 	label.position.y = -44.0 + sin(_anim_time * 2.5) * 1.5
 
+## Invocado al ser impactado por un ataque o proyectil de valores
 func hit_by_attack(attacker_pos: Variant = null) -> void:
 	if not is_active:
 		return
@@ -154,7 +163,7 @@ func hit_by_attack(attacker_pos: Variant = null) -> void:
 	Fx.shake(2.5, 0.12)
 	defeated.emit(self)
 
-	# Desaparece temporalmente y activa temporizador de reaparición
+	# Se oculta temporalmente y arranca el temporizador de reaparición
 	is_active = false
 	visible = false
 	velocity = Vector2.ZERO
@@ -162,9 +171,11 @@ func hit_by_attack(attacker_pos: Variant = null) -> void:
 	hitbox.set_deferred("monitorable", false)
 	_respawn_timer = respawn_delay
 
+## Reaparece en el punto de spawn con animación pop
 func respawn() -> void:
 	global_position = spawn_position
-	reset_physics_interpolation()
+	if has_method("reset_physics_interpolation"):
+		call("reset_physics_interpolation")
 	is_active = true
 	visible = true
 	hitbox.set_deferred("monitoring", true)

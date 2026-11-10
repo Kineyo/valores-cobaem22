@@ -1,8 +1,8 @@
 extends Node2D
 
-## Escena Principal del Juego
-## Gestiona la progresión multinivel en perspectiva 3/4 (estilo Pokémon),
-## cargando dinámicamente escenarios desde la carpeta 'escenarios/'.
+## Orquestador del ciclo de juego.
+## Maneja la carga secuencial de niveles, cálculo del progreso hacia la meta,
+## victorias, derrotas y transiciones con SceneTransition.
 
 const MENU_SCENE := "res://scenes/menu.tscn"
 const LEVEL_SCENE := preload("res://scenes/level.tscn")
@@ -18,7 +18,7 @@ var game_finished: bool = false
 var enemies_defeated: int = 0
 var elapsed_time: float = 0.0
 
-var _cached_start_x: float = 0.0
+var _cached_goal_pos: Vector2 = Vector2.ZERO
 var _cached_total_dist: float = 1.0
 
 func _ready() -> void:
@@ -33,33 +33,34 @@ func _ready() -> void:
 
 	load_level(0)
 
+## Instancia y configura el escenario correspondiente al índice indicado
 func load_level(index: int) -> void:
 	if index < 0 or index >= levels.size():
 		return
 
 	current_level_index = index
 
-	# Limpiar nivel anterior
+	# Liberar el nivel anterior para evitar fugas de memoria
 	for child in level_container.get_children():
 		child.queue_free()
 
-	# Instanciar el nuevo nivel/escenario
+	# Instanciar el nuevo escenario
 	active_level = LEVEL_SCENE.instantiate()
 	level_container.add_child(active_level)
 	active_level.setup_level(levels[current_level_index])
 
-	# Conectar señales del nivel
+	# Conectar señales del nivel activo
 	active_level.player_health_changed.connect(_on_player_health_changed)
 	active_level.player_died.connect(_on_player_died)
 	active_level.enemy_defeated.connect(_on_enemy_defeated)
 	active_level.level_completed.connect(_on_level_completed)
 
-	# Actualizar interfaz y variables cacheadas
+	# Cachear la distancia 2D entre el punto de spawn y la meta para la barra de progreso
 	var lvl_data: Dictionary = levels[current_level_index]
 	var p_spawn: Vector2 = lvl_data.get("player_spawn", Vector2(100, 400))
 	var g_pos: Vector2 = lvl_data.get("goal_position", Vector2(1000, 400))
-	_cached_start_x = p_spawn.x
-	_cached_total_dist = maxf(1.0, absf(g_pos.x - _cached_start_x))
+	_cached_goal_pos = g_pos
+	_cached_total_dist = maxf(1.0, p_spawn.distance_to(g_pos))
 
 	var title: String = lvl_data.get("title", "Nivel %d" % (current_level_index + 1))
 	hud.set_level_title(title)
@@ -72,9 +73,10 @@ func _process(delta: float) -> void:
 	if not game_finished:
 		elapsed_time += delta
 
-	# Actualizar progreso hacia la meta del nivel actual (optimizado sin consultas a diccionarios)
+	# Actualizar la barra de progreso 2D hacia la meta según la distancia euclidiana remanente
 	if active_level and active_level.player and is_instance_valid(active_level.player):
-		var current_dist := clampf(active_level.player.position.x - _cached_start_x, 0.0, _cached_total_dist)
+		var remaining_dist := active_level.player.position.distance_to(_cached_goal_pos)
+		var current_dist := clampf(_cached_total_dist - remaining_dist, 0.0, _cached_total_dist)
 		hud.update_progress(current_dist, _cached_total_dist)
 
 func _on_enemy_defeated(_enemy: Enemy) -> void:
@@ -87,15 +89,14 @@ func _on_level_completed() -> void:
 	if game_finished:
 		return
 
-	# Si aún quedan niveles por superar
+	# Si aún quedan escenarios pendientes en la campaña
 	if current_level_index < levels.size() - 1:
 		hud.show_level_complete(levels[current_level_index].get("title", ""))
 		await get_tree().create_timer(1.2).timeout
 		if is_inside_tree() and not game_finished:
-			# Transición suave entre niveles con la cortinilla
 			SceneTransition._run(func(): load_level(current_level_index + 1))
 	else:
-		# ¡Último nivel completado, victoria total!
+		# Campaña de los 6 escenarios completada
 		game_finished = true
 		GameSettings.stop_music()
 		await get_tree().create_timer(0.7).timeout
@@ -131,6 +132,7 @@ func _on_restart_game() -> void:
 func _on_go_to_menu() -> void:
 	SceneTransition.change_scene(MENU_SCENE)
 
+## Registra acciones de teclado en InputMap si aún no existen
 func setup_inputs() -> void:
 	var actions := {
 		"move_left": [KEY_A, KEY_LEFT],

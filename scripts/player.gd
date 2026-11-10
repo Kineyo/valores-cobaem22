@@ -1,9 +1,8 @@
 extends CharacterBody2D
 class_name Player
 
-## Personaje principal (Pixel) en perspectiva 3/4 estilo Pokémon.
-## Representa al promotor de los buenos valores.
-## Control en 4 y 8 direcciones (WASD / Flechas), disparo en la dirección a la que mira.
+## Personaje principal (Pixel) en perspectiva 3/4.
+## Control en 8 direcciones (WASD / Flechas) y disparo de proyectiles de virtudes.
 
 signal health_changed(current_health: int, max_health: int)
 signal died
@@ -11,32 +10,32 @@ signal reached_goal
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile.tscn")
 
-## Texturas precargadas
-const TEX_IDLE := preload("res://assets/sprites/player_idle.png")        # Vista frontal (Hacia abajo / Sur)
+## Sprites del personaje según la dirección cardinal y estado
+const TEX_IDLE := preload("res://assets/sprites/player_idle.png")        # Vista frontal (Sur)
 const TEX_WALK_RIGHT := preload("res://assets/sprites/player_walk_right.png") # Vista derecha (Este)
 const TEX_WALK_LEFT := preload("res://assets/sprites/player_walk_left.png")   # Vista izquierda (Oeste)
-const TEX_BACK := preload("res://assets/sprites/player_back.png")        # Vista de espaldas (Hacia arriba / Norte)
+const TEX_BACK := preload("res://assets/sprites/player_back.png")        # Vista de espaldas (Norte)
 const TEX_ATTACK := preload("res://assets/sprites/player_attack.png")
 const TEX_HURT := preload("res://assets/sprites/player_hurt.png")
 
 @export var speed: float = 230.0
 @export var max_health: int = 3
 @export var knockback_force: float = 340.0
-## Segundos entre disparos (se sobrescribe según la dificultad)
+## Cadencia entre disparos (ajustada dinámicamente por dificultad)
 @export var shot_cooldown: float = 0.35
-## Tiempo que se muestra la pose / golpe cuerpo a cuerpo
+## Duración de la pose de ataque cuerpo a cuerpo
 @export var attack_pose_time: float = 0.15
 
 @export_group("Sensación de control")
 @export var acceleration: float = 2200.0
 @export var friction: float = 2600.0
-## Desplazamiento de la cámara hacia donde mira el jugador
+## Desplazamiento anticipado de cámara hacia la dirección de avance
 @export var camera_look_ahead: float = 48.0
 
 var health: int = 3
 var is_invulnerable: bool = false
 var is_attacking: bool = false
-## Vector cardinal al que mira: (0, 1) Abajo, (0, -1) Arriba, (1, 0) Der, (-1, 0) Izq
+## Vector cardinal actual de orientación: (0, 1) Abajo, (0, -1) Arriba, (1, 0) Der, (-1, 0) Izq
 var facing_vector: Vector2 = Vector2.DOWN
 var can_control: bool = true
 
@@ -78,11 +77,18 @@ func _ready() -> void:
 	invulnerable_timer.timeout.connect(_on_invulnerable_timer_timeout)
 	attack_timer.timeout.connect(_on_attack_timer_timeout)
 
-	# Emitir vida inicial
+	# Emitir estado inicial de salud
 	health_changed.emit(health, max_health)
 	_update_texture(Vector2.ZERO)
+	queue_redraw()
 
-## Lee los parámetros de la dificultad elegida en el menú de inicio.
+func _draw() -> void:
+	# Sombra elíptica pixel-art para anclar al personaje al suelo en perspectiva 3/4
+	var shadow_col := Color(0.06, 0.08, 0.12, 0.34)
+	draw_rect(Rect2(-12, -4, 24, 6), shadow_col)
+	draw_rect(Rect2(-10, -6, 20, 10), shadow_col)
+
+## Aplica los parámetros de balance configurados en GameSettings
 func apply_difficulty() -> void:
 	max_health = GameSettings.get_param("max_health")
 	shot_cooldown = GameSettings.get_param("shot_cooldown")
@@ -99,14 +105,14 @@ func _physics_process(delta: float) -> void:
 	_shot_cooldown_left = maxf(0.0, _shot_cooldown_left - delta)
 	_knockback_left = maxf(0.0, _knockback_left - delta)
 
-	# Entrada en 4 u 8 direcciones (WASD o Flechas)
+	# Entrada direccional en 8 direcciones (WASD o Flechas)
 	var input_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 
-	# Disparo de valores (mantener Espacio para auto-disparo con cooldown)
+	# Disparo de valores continuo mientras se mantiene presionada la tecla de ataque
 	if Input.is_action_pressed("attack") and _shot_cooldown_left <= 0.0:
 		perform_attack()
 
-	# Movimiento en el plano 2D (perspectiva 3/4 sin gravedad)
+	# Movimiento en plano 2D con aceleración e inercia
 	if _knockback_left <= 0.0:
 		if input_vector != Vector2.ZERO:
 			velocity = velocity.move_toward(input_vector * speed, acceleration * delta)
@@ -118,11 +124,11 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_animate_procedural(delta, input_vector)
 
-	# Cámara con suave look-ahead hacia la dirección de visión
+	# Cámara con desplazamiento suave hacia la dirección de visión
 	var target_cam_offset := facing_vector * camera_look_ahead
 	camera.position = camera.position.lerp(target_cam_offset, 1.0 - exp(-4.0 * delta))
 
-	# Parpadeo de invulnerabilidad
+	# Parpadeo visual durante invulnerabilidad
 	if is_invulnerable:
 		sprite.modulate.a = 0.35 if (Time.get_ticks_msec() / 90) % 2 == 0 else 1.0
 	else:
@@ -153,7 +159,7 @@ func _update_texture(_input_vector: Vector2) -> void:
 	if is_invulnerable and health <= 0:
 		return
 
-	# Seleccionar sprite según dirección estilo Pokémon 3/4
+	# Seleccionar sprite según orientación cardinal
 	var target_tex: Texture2D = TEX_IDLE
 	if facing_vector == Vector2.UP:
 		target_tex = TEX_BACK
@@ -169,16 +175,16 @@ func _update_texture(_input_vector: Vector2) -> void:
 	if sprite.flip_h:
 		sprite.flip_h = false
 
-## Animación procedural de pasos (balanceo y rebote sutil estilo RPG)
+## Animación procedural de balanceo al caminar y partículas de polvo
 func _animate_procedural(delta: float, input_vector: Vector2) -> void:
 	if velocity.length_squared() > 100.0:
 		_walk_time += delta * 14.0
-		# Pequeño rebote vertical al dar pasos
+		# Rebote vertical sutil al dar pasos
 		sprite.position.y = _base_sprite_y - absf(sin(_walk_time)) * 2.5
-		# Sutil inclinación lateral
+		# Inclinación lateral
 		sprite.rotation = sin(_walk_time) * 0.04
 
-		# Partículas de polvo al caminar
+		# Emisión periódica de polvo
 		_dust_timer -= delta
 		if _dust_timer <= 0.0:
 			_dust_timer = 0.22
@@ -207,7 +213,7 @@ func perform_attack() -> void:
 	spawn_projectile()
 	_squash(Vector2(0.92, 1.06), 0.12)
 
-## Lanza un disparo en la dirección 2D hacia la que mira el héroe
+## Instancia un proyectil radiante hacia la dirección cardinal de mira
 func spawn_projectile() -> void:
 	var shot: Projectile = PROJECTILE_SCENE.instantiate()
 	shot.direction = facing_vector

@@ -1,8 +1,8 @@
 extends RefCounted
 class_name UiJuice
 
-## Utilidad para dar respuesta táctil ("juice") a los botones de interfaz:
-## escala elástica al pasar el ratón, tener foco o pulsar, y sonido opcional.
+## Utilidad de microinteracciones ("juice") para botones de interfaz.
+## Añade respuesta elástica al posar el ratón, cambiar el foco o pulsar.
 
 static func attach_button(btn: Button, sfx: AudioStreamPlayer = null) -> void:
 	if btn == null:

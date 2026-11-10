@@ -1,9 +1,9 @@
 extends CanvasLayer
 class_name HUD
 
-## Interfaz de usuario (HUD)
-## Muestra vidas, progreso de nivel, instrucciones y pantallas de
-## pausa / victoria / derrota, todas con animaciones de entrada y salida.
+## Capa de interfaz gráfica de usuario (HUD).
+## Gestiona la visualización de corazones, barra de progreso con icono corredor,
+## y los paneles modales de pausa, victoria y derrota.
 
 signal restart_game
 signal go_to_menu

@@ -1,38 +1,25 @@
-# Godot 4+ engine caches and generated files
+# Godot 4 engine caches and generated files
 .godot/
 /android/
 *.translation
-
-# Generated metadata sidecars (not source code)
 *.uid
-*.import
 
-# Auxiliary tools, scripts, and non-source directories
-/tools/
-tools/
-/assets/planos/
-assets/planos/
-escenarios/*.md
-*.py
-*.pyc
-*.pyo
-*.pyd
-__pycache__/
-.pytest_cache/
-
-# Export templates, builds and compiled binaries
+# Build exports and compiled binaries
+build/
+bin/
+dist/
 *.apk
 *.aab
 *.exe
 *.bin
 *.pck
 *.wasm
-*.html
-!planos_interactivos.html
-!plano_3d.html
 *.zip
 *.tar.gz
-export_presets.cfg
+
+# Heavy local reference photographs (200MB raw camera photos)
+/assets/planos/
+assets/planos/
 
 # Mono / C#
 .mono/
@@ -40,7 +27,8 @@ data_*/
 mono_crash.*.json
 
 # IDE / Editor artifacts
-.vscode/
+.vscode/*
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo
@@ -52,8 +40,11 @@ mono_crash.*.json
 Thumbs.db
 Desktop.ini
 
-# Python / Tools temporary files
+# Python temporary files and environments
 __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+.venv/
+env/
+venv/

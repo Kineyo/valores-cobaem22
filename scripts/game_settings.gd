@@ -1,20 +1,13 @@
 extends Node
 
-## Autoload "GameSettings"
-## Guarda la dificultad elegida en el menú y maneja la música de fondo
-## (persiste entre escenas, así la música no se corta al reiniciar).
+## Autoload: GameSettings
+## Gestiona la dificultad global (vidas, velocidades, cooldowns) y la música de fondo persistente.
 
 enum Difficulty { FACIL, NORMAL, DIFICIL }
 
 const DIFFICULTY_NAMES := ["Fácil", "Normal", "Difícil"]
 
-## Parámetros por dificultad.
-## - max_health: corazones del jugador
-## - enemy_speed_mult: multiplicador de velocidad de los antivalores
-## - shot_cooldown: segundos entre disparos
-## - shot_scale: tamaño del disparo (más grande = más fácil acertar)
-## - shot_speed: velocidad del disparo
-## - invulnerable_time: segundos de invulnerabilidad tras recibir daño
+## Parámetros de balance según el nivel de dificultad
 const PRESETS := {
 	Difficulty.FACIL: {
 		"max_health": 5,
@@ -42,11 +35,9 @@ const PRESETS := {
 	},
 }
 
-## Precargadas una sola vez (evita leer el disco en cada cambio de escena)
-const MUSIC_MENU: AudioStream = preload("res://assets/audio/music_menu.wav")
-const MUSIC_GAME: AudioStream = preload("res://assets/audio/music_game.wav")
+var MUSIC_MENU: AudioStream
+var MUSIC_GAME: AudioStream
 
-## Volumen "apagado" usado en los fundidos
 const SILENT_DB := -40.0
 const FADE_TIME := 0.6
 
@@ -59,11 +50,13 @@ var _ducked: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	MUSIC_MENU = load("res://assets/audio/music_menu.wav")
+	MUSIC_GAME = load("res://assets/audio/music_game.wav")
+
 	_music = AudioStreamPlayer.new()
 	_music.volume_db = music_volume_db
 	add_child(_music)
-	# Respaldo de loop: los WAV de música ya vienen con loop en su .import,
-	# pero si se reimportan sin él, la canción vuelve a empezar igual.
+	# Respaldo de loop si el stream WAV no tiene el flag loop activado
 	_music.finished.connect(_music.play)
 
 func _exit_tree() -> void:
@@ -73,9 +66,11 @@ func _exit_tree() -> void:
 		_music.stop()
 		_music.stream = null
 
+## Retorna un parámetro de configuración para la dificultad activa
 func get_param(key: String) -> Variant:
 	return PRESETS[difficulty][key]
 
+## Retorna el nombre legible de la dificultad activa
 func difficulty_name() -> String:
 	return DIFFICULTY_NAMES[difficulty]
 
@@ -85,27 +80,27 @@ func play_menu_music() -> void:
 func play_game_music() -> void:
 	_play(MUSIC_GAME)
 
-## Baja la música con un fundido (en vez de cortarla en seco).
+## Detiene la música aplicando un fundido suave
 func stop_music(fade: float = FADE_TIME) -> void:
 	if not _music.playing:
 		return
 	_ducked = false
 	_fade_to(SILENT_DB, fade).tween_callback(_music.stop)
 
-## Baja un poco el volumen (p. ej. en la pausa) sin detener la música.
+## Reduce temporalmente el volumen de la música (ej. al pausar el juego)
 func duck_music(enabled: bool) -> void:
 	if enabled == _ducked or not _music.playing:
 		return
 	_ducked = enabled
 	_fade_to(music_volume_db - (10.0 if enabled else 0.0), 0.25)
 
+## Reproduce un stream de audio con fundido cruzado si ya había música sonando
 func _play(stream: AudioStream) -> void:
 	_ducked = false
 	if _music.stream == stream and _music.playing:
 		_fade_to(music_volume_db, 0.3)
 		return
 	if _music.playing:
-		# Fundido cruzado: baja la canción actual, cambia y sube la nueva
 		var tw := _fade_to(SILENT_DB, FADE_TIME * 0.5)
 		tw.tween_callback(_start_stream.bind(stream))
 		tw.tween_property(_music, "volume_db", music_volume_db, FADE_TIME)
