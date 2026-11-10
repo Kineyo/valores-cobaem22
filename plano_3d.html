@@ -1,52 +1,57 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <title>CEMSaD 22 ENTHAVI — Plano 3D Arquitectónico Interactivo (3 Poses & RPG 3/4)</title>
-  <meta name="description" content="Visualizador 3D interactivo a escala real del plantel CEMSaD 22 ENTHAVI con 3 poses de cámara (3/4 tipo RPG, cámara baja peatonal y vista general aérea), medidas en cm y cm², y corte de techos.">
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- Three.js + OrbitControls + Tween.js desde CDN de alta velocidad -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CEMSaD 22 ENTHAVI — Maqueta Arquitectónica 3D Interactiva (BIM / CAD)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Motor WebGL Three.js + OrbitControls + Tween.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
 
   <style>
     /* ==========================================================================
-       SISTEMA DE ESTILOS ARQUITECTÓNICO CAD 3D
+       SISTEMA DE DISEÑO ARQUITECTÓNICO BIM / CAD 3D (FONDO BLANCO TÉCNICO)
        ========================================================================== */
     :root {
-      --bg-canvas: #f8fafc;
-      --bg-panel: rgba(255, 255, 255, 0.94);
-      --bg-subtle: #f1f5f9;
-      --border-color: #cbd5e1;
-      --border-dark: #0f172a;
+      --bg-canvas: #f1f5f9;
+      --bg-panel: rgba(255, 255, 255, 0.96);
+      --bg-subtle: #f8fafc;
+      --bg-code: #f1f5f9;
+
       --text-main: #0f172a;
+      --text-secondary: #334155;
       --text-muted: #64748b;
-      --accent-blue: #0284c7;
-      --accent-blue-dark: #0369a1;
-      --accent-blue-soft: #e0f2fe;
-      --accent-red: #dc2626;
-      --accent-red-soft: #fee2e2;
-      --accent-green: #16a34a;
-      --accent-amber: #d97706;
-      --accent-rpg: #7c3aed;
+
+      --accent-cad: #0284c7;
+      --accent-cad-dark: #0369a1;
+      --accent-cad-soft: #e0f2fe;
+
+      --accent-rpg: #6d28d9;
       --accent-rpg-soft: #ede9fe;
-      
+
+      --accent-emerald: #059669;
+      --accent-amber: #d97706;
+
+      --border-color: #cbd5e1;
+      --border-strong: #0f172a;
+
+      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+      --shadow-md: 0 6px 18px -3px rgba(15, 23, 42, 0.12);
+      --shadow-lg: 0 16px 36px -6px rgba(15, 23, 42, 0.18);
+
       --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
-      
-      --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.08);
-      --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.12);
-      --shadow-lg: 0 16px 36px rgba(15, 23, 42, 0.18);
-      
-      --header-h: 64px;
-      --inspector-w: 430px;
+      --font-display: 'Space Grotesk', sans-serif;
+
+      --header-h: 62px;
+      --subbar-h: 42px;
+      --inspector-w: 400px;
+      --explorer-w: 250px;
     }
 
     *, *::before, *::after {
@@ -66,6 +71,7 @@
       -webkit-font-smoothing: antialiased;
     }
 
+    /* CONTENEDOR WEBGL 3D */
     #canvas3d-container {
       width: 100%;
       height: 100%;
@@ -76,47 +82,145 @@
       display: block;
     }
 
+    /* CAPA DE ETIQUETAS 3D PROYECTADAS (PINS ARQUITECTÓNICOS) */
+    #labels-3d-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+      overflow: hidden;
+    }
+
+    .pin-3d {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      pointer-events: auto;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: opacity 0.15s ease;
+      will-change: left, top;
+    }
+
+    .pin-3d-card {
+      background: rgba(255, 255, 255, 0.94);
+      border: 1.5px solid #0f172a;
+      border-radius: 6px;
+      padding: 2px 7px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
+      white-space: nowrap;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1.15;
+      transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+    }
+
+    .pin-3d:hover .pin-3d-card,
+    .pin-3d.active .pin-3d-card {
+      background: #0f172a;
+      color: #ffffff;
+      border-color: #38bdf8;
+      transform: scale(1.08);
+      z-index: 30;
+    }
+
+    .pin-3d.bldg-header .pin-3d-card {
+      background: #0f172a;
+      color: #ffffff;
+      border: 1.5px solid #38bdf8;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-weight: 800;
+    }
+
+    .pin-3d-title {
+      font-family: var(--font-display);
+      font-size: 10.5px;
+      font-weight: 800;
+      color: inherit;
+      letter-spacing: -0.2px;
+    }
+
+    .pin-3d.bldg-header .pin-3d-title {
+      font-size: 11px;
+      color: #38bdf8;
+    }
+
+    .pin-3d-sub {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #0284c7;
+    }
+
+    .pin-3d:hover .pin-3d-sub,
+    .pin-3d.active .pin-3d-sub,
+    .pin-3d.bldg-header .pin-3d-sub {
+      color: #bae6fd;
+    }
+
+    .pin-3d-stem {
+      width: 1.5px;
+      height: 8px;
+      background: #0f172a;
+    }
+
+    .pin-3d-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #0284c7;
+      border: 1px solid #ffffff;
+    }
+
     /* ==========================================================================
        CABECERA SUPERIOR FLOTANTE
        ========================================================================== */
     .top-cad-header {
       position: absolute;
-      top: 14px;
-      left: 16px;
-      right: 16px;
+      top: 10px;
+      left: 12px;
+      right: 12px;
       height: var(--header-h);
       background: var(--bg-panel);
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
       border: 1.5px solid var(--border-color);
       border-radius: 12px;
       box-shadow: var(--shadow-md);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 16px;
-      z-index: 20;
+      padding: 0 14px;
+      z-index: 25;
+      gap: 10px;
     }
 
     .brand-wrap {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      min-width: 0;
     }
 
     .brand-badge {
-      width: 40px;
-      height: 40px;
+      width: 38px;
+      height: 38px;
       border-radius: 8px;
       background: #0f172a;
       color: #ffffff;
       font-family: var(--font-display);
       font-weight: 800;
-      font-size: 15px;
+      font-size: 14px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      box-shadow: var(--shadow-sm);
+      flex-shrink: 0;
     }
 
     .brand-badge small {
@@ -127,112 +231,63 @@
 
     .brand-info h1 {
       font-family: var(--font-display);
-      font-size: 15.5px;
+      font-size: 14.5px;
       font-weight: 800;
       color: var(--text-main);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
+      white-space: nowrap;
     }
 
     .brand-info h1 .pill-3d {
       font-family: var(--font-mono);
-      font-size: 10.5px;
+      font-size: 10px;
       font-weight: 700;
       background: var(--accent-rpg-soft);
       color: var(--accent-rpg);
-      padding: 2px 7px;
+      padding: 2px 6px;
       border-radius: 4px;
       border: 1px solid #c4b5fd;
     }
 
     .brand-info p {
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 10.5px;
       color: var(--text-muted);
+      white-space: nowrap;
     }
 
     /* BOTONERA CENTRAL DE LAS 3 POSES DE CÁMARA */
     .poses-control-bar {
       display: flex;
       align-items: center;
-      gap: 6px;
-      background: #ffffff;
-      padding: 5px;
+      gap: 4px;
+      background: #f8fafc;
+      padding: 4px;
       border: 1.5px solid var(--border-color);
       border-radius: 10px;
-      box-shadow: var(--shadow-sm);
     }
 
     .pose-btn {
-      height: 36px;
-      padding: 0 12px;
+      height: 34px;
+      padding: 0 11px;
       border-radius: 6px;
       border: 1px solid transparent;
       background: transparent;
       font-family: var(--font-display);
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
       color: var(--text-main);
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 7px;
-      transition: all 160ms ease;
+      gap: 6px;
+      transition: all 140ms ease;
+      white-space: nowrap;
     }
 
     .pose-btn svg {
-      width: 16px;
-      height: 16px;
-      stroke: currentColor;
-      fill: none;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .pose-btn:hover {
-      background: var(--bg-subtle);
-      border-color: var(--border-color);
-    }
-
-    .pose-btn.active {
-      background: #0f172a;
-      color: #ffffff;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
-    }
-
-    .pose-btn.active-rpg {
-      background: var(--accent-rpg) !important;
-      color: #ffffff !important;
-      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35) !important;
-    }
-
-    /* ACCIONES DE HERRAMIENTA DERECHA */
-    .top-actions-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .btn-action-top {
-      height: 36px;
-      padding: 0 12px;
-      border-radius: 8px;
-      border: 1.5px solid var(--border-color);
-      background: #ffffff;
-      font-family: var(--font-sans);
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-main);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      transition: all 160ms ease;
-    }
-
-    .btn-action-top svg {
       width: 15px;
       height: 15px;
       stroke: currentColor;
@@ -240,9 +295,60 @@
       stroke-width: 2;
     }
 
+    .pose-btn:hover {
+      background: #ffffff;
+      border-color: var(--border-color);
+    }
+
+    .pose-btn.active {
+      background: #0f172a;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.22);
+    }
+
+    .pose-btn.active-rpg {
+      background: var(--accent-rpg) !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(109, 40, 217, 0.32) !important;
+    }
+
+    /* ACCIONES DE HERRAMIENTA DERECHA */
+    .top-actions-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-action-top {
+      height: 34px;
+      padding: 0 10px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border-color);
+      background: #ffffff;
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      text-decoration: none;
+      transition: all 140ms ease;
+      white-space: nowrap;
+    }
+
+    .btn-action-top svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
     .btn-action-top:hover {
       background: var(--bg-subtle);
-      border-color: #0f172a;
+      border-color: #64748b;
     }
 
     .btn-action-top.active {
@@ -252,86 +358,218 @@
     }
 
     .btn-back-2d {
-      background: var(--accent-blue-soft);
-      border-color: var(--accent-blue);
-      color: var(--accent-blue-dark);
-      text-decoration: none;
+      background: var(--accent-cad-soft);
+      color: var(--accent-cad-dark);
+      border-color: #38bdf8;
       font-weight: 700;
     }
 
     .btn-back-2d:hover {
-      background: var(--accent-blue);
-      color: #ffffff;
+      background: #bae6fd;
     }
 
     /* ==========================================================================
-       PANEL INSPECTOR LATERAL FLOTANTE (MEDIDAS CM Y CM²)
+       PANEL LATERAL IZQUIERDO: EXPLORADOR POR EDIFICIOS Y SALONES
+       ========================================================================== */
+    .left-explorer {
+      position: absolute;
+      top: calc(var(--header-h) + 20px);
+      left: 12px;
+      bottom: 44px;
+      width: var(--explorer-w);
+      background: var(--bg-panel);
+      backdrop-filter: blur(10px);
+      border: 1.5px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: transform 220ms ease;
+    }
+
+    .left-explorer.collapsed {
+      transform: translateX(calc(-100% - 20px));
+    }
+
+    .exp-header {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .exp-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .exp-filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .exp-pill {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .exp-pill.active {
+      background: #0f172a;
+      color: #ffffff;
+      border-color: #0f172a;
+    }
+
+    .exp-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .exp-item {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-align: left;
+      transition: all 120ms ease;
+    }
+
+    .exp-item:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    .exp-item.active {
+      background: var(--accent-cad-soft);
+      border-color: #0284c7;
+    }
+
+    .exp-item-left {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .exp-item-name {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .exp-item-sub {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      color: var(--text-muted);
+    }
+
+    .exp-item-area {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--accent-cad-dark);
+      background: #ffffff;
+      padding: 2px 5px;
+      border-radius: 4px;
+      border: 1px solid #bae6fd;
+      flex-shrink: 0;
+    }
+
+    /* ==========================================================================
+       PANEL INSPECTOR DERECHO DE MEDIDAS (CM Y CM²)
        ========================================================================== */
     .cad-inspector-3d {
       position: absolute;
-      top: 90px;
-      right: 16px;
-      bottom: 46px;
+      top: calc(var(--header-h) + 20px);
+      right: 12px;
+      bottom: 44px;
       width: var(--inspector-w);
       background: var(--bg-panel);
       backdrop-filter: blur(10px);
       border: 1.5px solid var(--border-color);
-      border-radius: 14px;
+      border-radius: 12px;
       box-shadow: var(--shadow-lg);
+      z-index: 20;
       display: flex;
       flex-direction: column;
-      z-index: 20;
-      transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
       overflow: hidden;
+      transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .cad-inspector-3d.collapsed {
-      transform: translateX(calc(100% + 30px));
+      transform: translateX(calc(100% + 24px));
     }
 
-    .insp-head {
-      padding: 14px 18px;
-      background: #ffffff;
+    .insp-header {
+      padding: 12px 16px;
       border-bottom: 1.5px solid var(--border-color);
+      background: var(--bg-subtle);
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       gap: 10px;
     }
 
-    .insp-head-code {
+    .insp-badge {
+      display: inline-block;
       font-family: var(--font-mono);
       font-size: 10px;
       font-weight: 700;
-      color: var(--accent-blue-dark);
-      background: var(--accent-blue-soft);
+      text-transform: uppercase;
       padding: 2px 7px;
       border-radius: 4px;
-      display: inline-block;
+      background: var(--accent-cad-soft);
+      color: var(--accent-cad-dark);
       margin-bottom: 3px;
     }
 
-    .insp-head h2 {
+    .insp-title {
       font-family: var(--font-display);
-      font-size: 16.5px;
+      font-size: 16px;
       font-weight: 800;
       color: var(--text-main);
       line-height: 1.2;
     }
 
-    .insp-head p {
+    .insp-subtitle {
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 10.5px;
       color: var(--text-muted);
       margin-top: 2px;
     }
 
     .btn-close-insp {
-      width: 28px;
-      height: 28px;
+      width: 26px;
+      height: 26px;
       border-radius: 6px;
       border: 1px solid var(--border-color);
-      background: transparent;
+      background: #ffffff;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -339,34 +577,27 @@
       color: var(--text-muted);
     }
 
-    .btn-close-insp:hover {
-      background: var(--bg-subtle);
-      color: var(--text-main);
-    }
-
     .insp-body {
       flex: 1;
       overflow-y: auto;
-      padding: 16px 18px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
 
-    /* TARJETA HEROICA: ÁREA TOTAL EN CM² Y M² */
     .hero-area-card {
       background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
       border: 1.5px solid #7dd3fc;
       border-radius: 10px;
-      padding: 14px 16px;
+      padding: 12px 14px;
     }
 
     .hero-area-card .label {
       font-family: var(--font-mono);
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
       color: #0369a1;
       display: flex;
       justify-content: space-between;
@@ -374,7 +605,7 @@
 
     .hero-val-cm2 {
       font-family: var(--font-mono);
-      font-size: 26px;
+      font-size: 24px;
       font-weight: 800;
       color: #0f172a;
       letter-spacing: -0.5px;
@@ -384,55 +615,54 @@
 
     .hero-val-m2 {
       font-family: var(--font-mono);
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 700;
       color: #0369a1;
       border-top: 1px dashed #7dd3fc;
-      padding-top: 6px;
+      padding-top: 5px;
       display: flex;
       justify-content: space-between;
     }
 
-    /* REJILLA DE 4 DIMENSIONES LINEALES */
-    .dims-grid-3d {
+    .dims-grid-2x2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
 
-    .dim-box {
+    .dim-box-3d {
       background: #ffffff;
-      border: 1px solid var(--border-color);
+      border: 1.5px solid var(--border-color);
       border-radius: 8px;
-      padding: 9px 12px;
+      padding: 9px 11px;
     }
 
-    .dim-box-lbl {
-      font-size: 10px;
+    .dim-box-3d .d-head {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
       font-weight: 700;
-      text-transform: uppercase;
       color: var(--text-muted);
+      text-transform: uppercase;
       display: flex;
       justify-content: space-between;
-      margin-bottom: 2px;
+      margin-bottom: 3px;
     }
 
-    .dim-box-val {
+    .dim-box-3d .d-cm {
       font-family: var(--font-mono);
       font-size: 15px;
       font-weight: 800;
       color: var(--text-main);
     }
 
-    .dim-box-sub {
+    .dim-box-3d .d-m {
       font-family: var(--font-mono);
       font-size: 10.5px;
       font-weight: 600;
-      color: var(--accent-blue-dark);
-      margin-top: 1px;
+      color: var(--accent-cad);
+      margin-top: 2px;
     }
 
-    /* ESPECIFICACIONES CONSTRUCTIVAS Y VOLUMETRÍA */
     .table-spec-3d {
       width: 100%;
       border-collapse: collapse;
@@ -444,34 +674,29 @@
 
     .table-spec-3d th {
       text-align: left;
-      padding: 6px 10px;
+      padding: 5px 9px;
       background: var(--bg-subtle);
       color: var(--text-muted);
       font-weight: 600;
-      width: 45%;
+      width: 46%;
       border-bottom: 1px solid var(--border-color);
     }
 
     .table-spec-3d td {
       text-align: right;
-      padding: 6px 10px;
+      padding: 5px 9px;
       font-family: var(--font-mono);
       font-weight: 700;
       color: var(--text-main);
       border-bottom: 1px solid var(--border-color);
     }
 
-    .table-spec-3d tr:last-child th,
-    .table-spec-3d tr:last-child td {
-      border-bottom: none;
-    }
-
     .note-box-3d {
       background: #ffffff;
       border-left: 3px solid #0f172a;
       border-radius: 0 6px 6px 0;
-      padding: 9px 12px;
-      font-size: 11.5px;
+      padding: 8px 10px;
+      font-size: 11px;
       color: var(--text-main);
       line-height: 1.45;
       border-top: 1px solid var(--border-color);
@@ -481,125 +706,101 @@
 
     .btn-focus-room {
       width: 100%;
-      height: 38px;
+      height: 36px;
       background: #0f172a;
       color: #ffffff;
       border: none;
       border-radius: 8px;
       font-family: var(--font-display);
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      box-shadow: var(--shadow-sm);
-      transition: background 160ms ease;
+      gap: 7px;
+      transition: background 140ms ease;
     }
 
     .btn-focus-room:hover {
-      background: var(--accent-blue-dark);
+      background: #1e293b;
     }
 
-    /* ==========================================================================
-       BARRA INFERIOR DE ESTADO Y CONTROLES FLOTANTES
-       ========================================================================== */
-    .bottom-statusbar {
+    /* BARRA DE ESTADO INFERIOR */
+    .bottom-status-bar {
       position: absolute;
-      bottom: 12px;
-      left: 16px;
-      right: 16px;
-      height: 32px;
-      background: rgba(15, 23, 42, 0.92);
-      backdrop-filter: blur(6px);
-      border-radius: 8px;
-      color: #cbd5e1;
+      bottom: 8px;
+      left: 12px;
+      right: 12px;
+      height: 28px;
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: 7px;
+      padding: 0 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 16px;
       font-family: var(--font-mono);
-      font-size: 11px;
-      z-index: 20;
+      font-size: 10.5px;
+      z-index: 25;
     }
 
-    .sb-section {
+    .sb-left, .sb-right {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
 
-    .sb-status-dot {
+    .sb-dot {
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: #4ade80;
-      box-shadow: 0 0 6px #4ade80;
+      background: #22c55e;
+      display: inline-block;
+      margin-right: 5px;
     }
 
     /* TOOLTIP FLOTANTE 3D */
-    .tooltip-3d {
-      position: absolute;
-      z-index: 30;
+    #tooltip-3d {
+      position: fixed;
       pointer-events: none;
+      z-index: 100;
       background: rgba(15, 23, 42, 0.95);
       color: #ffffff;
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 11px;
+      border-radius: 8px;
+      border: 1px solid #38bdf8;
+      box-shadow: var(--shadow-md);
+      font-size: 11.5px;
+      display: none;
+      transform: translate(14px, 14px);
+    }
+
+    #tooltip-3d .tt-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      color: #38bdf8;
+      margin-bottom: 2px;
+    }
+
+    #tooltip-3d .tt-dims {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: #e2e8f0;
+    }
+
+    #tooltip-3d .tt-area {
       font-family: var(--font-mono);
       font-size: 11px;
-      display: none;
-      transform: translate(-50%, -120%);
-      box-shadow: var(--shadow-md);
-    }
-
-    .tooltip-3d strong {
-      font-family: var(--font-display);
-      font-size: 12.5px;
-      display: block;
-      color: #38bdf8;
-    }
-
-    /* BOTÓN FLOTANTE PARA REABRIR EL INSPECTOR */
-    .btn-reopen-insp {
-      position: absolute;
-      top: 90px;
-      right: 16px;
-      height: 38px;
-      padding: 0 14px;
-      background: #ffffff;
-      border: 1.5px solid var(--border-color);
-      border-radius: 8px;
-      font-family: var(--font-display);
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text-main);
-      box-shadow: var(--shadow-md);
-      cursor: pointer;
-      display: none;
-      align-items: center;
-      gap: 7px;
-      z-index: 15;
-    }
-
-    .btn-reopen-insp.visible {
-      display: flex;
+      font-weight: 800;
+      color: #fde047;
+      margin-top: 2px;
     }
   </style>
 </head>
 <body>
-  <!-- CONTENEDOR THREE.JS -->
-  <div id="canvas3d-container"></div>
 
-  <!-- TOOLTIP FLOTANTE -->
-  <div class="tooltip-3d" id="tooltip-3d">
-    <strong id="tt-title">Aula 1</strong>
-    <span id="tt-dims">800.0 cm × 700.0 cm</span> • <span id="tt-area" style="color: #4ade80;">560,000 cm²</span>
-  </div>
-
-  <!-- CABECERA PRINCIPAL SUPERIOR -->
+  <!-- 1. CABECERA SUPERIOR FLOTANTE -->
   <header class="top-cad-header">
     <div class="brand-wrap">
       <div class="brand-badge">
@@ -609,170 +810,188 @@
       <div class="brand-info">
         <h1>
           CEMSaD 22 ENTHAVI
-          <span class="pill-3d">MODELO 3D ARQUITECTÓNICO</span>
+          <span class="pill-3d">MAQUETA BIM / CAD 3D COHERENTE</span>
         </h1>
-        <p>SUPERFICIE TERRENO: 4,462 m² (44,620,000 cm²) | CONSTRUIDO: 1,460.81 m² (14,608,100 cm²)</p>
+        <p>TERRENO: 4,462 m² (44,620,000 cm²) • CONSTRUIDO: 1,460.81 m² (14,608,100 cm²) • BARDA ESTE: 52.00 m</p>
       </div>
     </div>
 
-    <!-- LAS 3 POSES DE CÁMARA (RPG 3/4, CÁMARA BAJA, VISTA AÉREA) -->
-    <div class="poses-control-bar" role="toolbar" aria-label="Poses de Cámara">
-      <button class="pose-btn active-rpg" id="btn-pose-rpg" title="Pose 1: Vista 3/4 isométrica axonométrica tipo RPG (Tecla 1)">
-        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    <!-- SELECTOR DE LAS 3 POSES DE CÁMARA -->
+    <div class="poses-control-bar" role="group" aria-label="Poses de Cámara 3D">
+      <button class="pose-btn active-rpg" id="btn-pose-rpg" title="Pose 1: Vista 3/4 Isométrica estilo RPG Táctico (Tecla 1)">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
         <span>1. 3/4 Tipo RPG</span>
       </button>
 
-      <button class="pose-btn" id="btn-pose-low" title="Pose 2: Cámara baja a nivel peatonal / ojo humano desplantada a 1.8m (Tecla 2)">
-        <svg viewBox="0 0 24 24"><path d="M4 19h16M7 15l5-5 5 5M12 10v9"/></svg>
+      <button class="pose-btn" id="btn-pose-low" title="Pose 2: Cámara Baja a Nivel Peatonal Humano 1.75m mirando el desnivel y edificios (Tecla 2)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><path d="M12 8v8m-4 4l4-4 4 4M8 12h8"/></svg>
         <span>2. Cámara Baja (Peatonal)</span>
       </button>
 
-      <button class="pose-btn" id="btn-pose-aerial" title="Pose 3: Vista general aérea de conjunto 3D en planta alta (Tecla 3)">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+      <button class="pose-btn" id="btn-pose-aerial" title="Pose 3: Vista General Aérea de Conjunto (Tecla 3)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
         <span>3. Vista General Aérea</span>
       </button>
     </div>
 
-    <!-- HERRAMIENTAS ADICIONALES Y RETORNO A PLANO 2D -->
+    <!-- HERRAMIENTAS DE VISUALIZACIÓN 3D -->
     <div class="top-actions-group">
-      <button class="btn-action-top" id="btn-toggle-roofs" title="Alternar visibilidad de losas y techumbres (Tecla T)">
+      <button class="btn-action-top active" id="btn-toggle-labels" title="Mostrar u ocultar etiquetas flotantes 3D sobre cada salón (Tecla L)">
+        <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        <span id="lbl-toggle-labels">Etiquetas 3D</span>
+      </button>
+
+      <button class="btn-action-top" id="btn-toggle-roofs" title="Retirar losas de azotea y techumbres para ver el mobiliario interior de cada aula (Tecla T)">
         <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
         <span id="lbl-toggle-roofs">Quitar Techos (Interiores)</span>
       </button>
 
-      <button class="btn-action-top" id="btn-cad-style" title="Alternar estilo blanco puro CAD vs estilo realista de materiales">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 000 18z"/></svg>
-        <span id="lbl-cad-style">Estilo CAD Blanco</span>
+      <button class="btn-action-top" id="btn-cad-style" title="Alternar modo Monocromático Blanco CAD Técnico">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/></svg>
+        <span id="lbl-cad-style">Modo CAD Blanco</span>
       </button>
 
-      <a href="planos_interactivos.html" class="btn-action-top btn-back-2d" title="Volver al plano 2D vectorial original">
+      <a href="planos_interactivos.html" class="btn-action-top btn-back-2d" title="Volver al Plano Vectorial 2D">
         <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        <span>← Plano 2D CAD</span>
+        <span>← Plano 2D</span>
       </a>
     </div>
   </header>
 
-  <!-- BOTÓN FLOTANTE PARA REABRIR PANEL -->
-  <button class="btn-reopen-insp" id="btn-reopen-insp">
-    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
-    <span>Ver Ficha Técnica 3D</span>
-  </button>
+  <!-- 2. LIENZO WEBGL 3D Y CAPA DE ETIQUETAS PROYECTADAS -->
+  <div id="canvas3d-container"></div>
+  <div id="labels-3d-layer"></div>
 
-  <!-- PANEL INSPECTOR LATERAL FLOTANTE -->
-  <aside class="cad-inspector-3d" id="cad-inspector-3d">
-    <div class="insp-head">
-      <div>
-        <span class="insp-head-code" id="insp-code">EDIF-A • AULA-01</span>
-        <h2 id="insp-title">Aula 1 (Grupo 101)</h2>
-        <p id="insp-subtitle">Edificio A • Planta Baja • U-1C H. AYTO. 2007</p>
+  <!-- 3. EXPLORADOR LATERAL IZQUIERDO (LISTA DE LOS 35 ESPACIOS) -->
+  <aside class="left-explorer" id="left-explorer">
+    <div class="exp-header">
+      <div class="exp-title-row">
+        <span>EXPLORADOR DE SALONES (35)</span>
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--accent-cad);">1:1</span>
       </div>
-      <button class="btn-close-insp" id="btn-close-insp" title="Ocultar panel">✕</button>
+      <div class="exp-filter-pills" id="exp-filters">
+        <button class="exp-pill active" data-filter="all">Todos</button>
+        <button class="exp-pill" data-filter="Edificio A">Edif. A</button>
+        <button class="exp-pill" data-filter="Edificio B">Edif. B</button>
+        <button class="exp-pill" data-filter="Edificio C">Edif. C</button>
+        <button class="exp-pill" data-filter="Edificio D">Edif. D</button>
+        <button class="exp-pill" data-filter="ext">Exteriores</button>
+      </div>
+    </div>
+    <div class="exp-list" id="exp-list"></div>
+  </aside>
+
+  <!-- 4. PANEL INSPECTOR DERECHO DE MEDIDAS EN CM Y CM² -->
+  <aside class="cad-inspector-3d" id="inspector-3d">
+    <div class="insp-header">
+      <div>
+        <span class="insp-badge" id="insp-code">EDIF-A-03 • AULA</span>
+        <h2 class="insp-title" id="insp-title">Aula 1 (Salón Didáctico)</h2>
+        <p class="insp-subtitle" id="insp-subtitle">Edificio A • Planta Baja • NPT +0.00M</p>
+      </div>
+      <button class="btn-close-insp" id="btn-close-insp" title="Ocultar inspector (Esc)">✕</button>
     </div>
 
     <div class="insp-body">
-      <!-- ÁREA HEROICA -->
       <div class="hero-area-card">
         <div class="label">
-          <span>SUPERFICIE / ÁREA TOTAL</span>
+          <span>SUPERFICIE / ÁREA EXACTA</span>
           <span id="insp-formula">800.0 cm × 700.0 cm</span>
         </div>
         <div class="hero-val-cm2" id="insp-area-cm2">560,000 cm²</div>
         <div class="hero-val-m2">
-          <span id="insp-area-m2">Equivalente a: 56.00 m²</span>
+          <span id="insp-area-m2">Equivalente: 56.00 m²</span>
           <span id="insp-area-dm2">5,600 dm²</span>
         </div>
       </div>
 
-      <!-- BOTÓN VOLAR AL SALÓN -->
       <button class="btn-focus-room" id="btn-focus-room">
-        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
-        <span>Volar Cámara a este Salón (Zoom 3D)</span>
+        🎯 Enfocar Cámara 3D en este Espacio (Tecla F)
       </button>
 
-      <!-- REJILLA DE 4 COTAS LINEALES -->
-      <div class="dims-grid-3d">
-        <div class="dim-box">
-          <div class="dim-box-lbl"><span>Largo (Frente)</span><small>EJE X</small></div>
-          <div class="dim-box-val" id="insp-len-cm">800.0 cm</div>
-          <div class="dim-box-sub" id="insp-len-m">8.00 m (8,000 mm)</div>
+      <div class="dims-grid-2x2">
+        <div class="dim-box-3d">
+          <div class="d-head"><span>LARGO (EJE X)</span><span>FRENTE</span></div>
+          <div class="d-cm" id="insp-len-cm">800.0 cm</div>
+          <div class="d-m" id="insp-len-m">8.00 m (8,000 mm)</div>
         </div>
-        <div class="dim-box">
-          <div class="dim-box-lbl"><span>Ancho (Fondo)</span><small>EJE Z</small></div>
-          <div class="dim-box-val" id="insp-wid-cm">700.0 cm</div>
-          <div class="dim-box-sub" id="insp-wid-m">7.00 m (7,000 mm)</div>
+        <div class="dim-box-3d">
+          <div class="d-head"><span>ANCHO (EJE Z)</span><span>FONDO</span></div>
+          <div class="d-cm" id="insp-wid-cm">700.0 cm</div>
+          <div class="d-m" id="insp-wid-m">7.00 m (7,000 mm)</div>
         </div>
-        <div class="dim-box">
-          <div class="dim-box-lbl"><span>Perímetro</span><small>2X + 2Z</small></div>
-          <div class="dim-box-val" id="insp-per-cm">3,000.0 cm</div>
-          <div class="dim-box-sub" id="insp-per-m">30.00 m lineales</div>
+        <div class="dim-box-3d">
+          <div class="d-head"><span>PERÍMETRO</span><span>2X + 2Z</span></div>
+          <div class="d-cm" id="insp-perim-cm">3,000.0 cm</div>
+          <div class="d-m" id="insp-perim-m">30.00 m lineales</div>
         </div>
-        <div class="dim-box">
-          <div class="dim-box-lbl"><span>Diagonal</span><small>HIPOTENUSA</small></div>
-          <div class="dim-box-val" id="insp-diag-cm">1,063.0 cm</div>
-          <div class="dim-box-sub" id="insp-diag-m">10.63 m diagonal</div>
+        <div class="dim-box-3d">
+          <div class="d-head"><span>DIAGONAL</span><span>HIPOTENUSA</span></div>
+          <div class="d-cm" id="insp-diag-cm">1,063.0 cm</div>
+          <div class="d-m" id="insp-diag-m">10.63 m diagonal</div>
         </div>
       </div>
 
-      <!-- ESPECIFICACIONES CONSTRUCTIVAS -->
       <table class="table-spec-3d">
         <tbody>
           <tr>
-            <th>Altura Libre (Interior)</th>
+            <th>Altura Libre Interior</th>
             <td id="insp-height">300.0 cm (3.00 m)</td>
           </tr>
           <tr>
-            <th>Volumen Cúbico de Aire</th>
-            <td id="insp-vol">168,000,000 cm³ (168.00 m³)</td>
+            <th>Volumen Cúbico</th>
+            <td id="insp-volume">168,000,000 cm³ (168.00 m³)</td>
           </tr>
           <tr>
-            <th>Nivel de Piso Terminado</th>
+            <th>Nivel de Piso (NPT)</th>
             <td id="insp-npt">NPT +0.00 M</td>
           </tr>
           <tr>
             <th>Capacidad de Aforo</th>
-            <td id="insp-capacity">40 alumnos + 1 docente</td>
+            <td id="insp-occ">40 alumnos + 1 docente</td>
           </tr>
           <tr>
-            <th>Densidad por Ocupante</th>
-            <td id="insp-density">14,000 cm²/persona (1.40 m²)</td>
-          </tr>
-          <tr>
-            <th>Normativa Oficial</th>
+            <th>Normativa / Clave</th>
             <td id="insp-norm">U-1C • H. AYTO. 2007</td>
           </tr>
         </tbody>
       </table>
 
-      <!-- NOTA ARQUITECTÓNICA -->
-      <div class="note-box-3d" id="insp-notes">
-        Aula didáctica estándar del sistema CAPFCE / U-1C estructurada en marcos rígidos de concreto y muros de tabique con iluminación y ventilación cruzada.
+      <div class="note-box-3d" id="insp-desc">
+        Seleccione cualquier aula, laboratorio o zona exterior en la maqueta 3D o en la lista izquierda para consultar su desglose dimensional en cm y cm².
       </div>
     </div>
   </aside>
 
-  <!-- BARRA DE ESTADO INFERIOR -->
-  <footer class="bottom-statusbar">
-    <div class="sb-section">
-      <span class="sb-status-dot"></span>
-      <span>CEMSaD 22 ENTHAVI • RENDER 3D VECTORIAL ACTIVO (60 FPS)</span>
+  <!-- TOOLTIP FLOTANTE -->
+  <div id="tooltip-3d">
+    <div class="tt-title" id="tt-title">Aula 1</div>
+    <div class="tt-dims" id="tt-dims">800.0 cm × 700.0 cm</div>
+    <div class="tt-area" id="tt-area">560,000 cm² (56.00 m²)</div>
+  </div>
+
+  <!-- 5. BARRA DE ESTADO INFERIOR -->
+  <footer class="bottom-status-bar">
+    <div class="sb-left">
+      <span><i class="sb-dot"></i>MAQUETA 3D VECTORIAL BIM/CAD</span>
+      <span>|</span>
+      <span>Pose Activa: <strong id="sb-cam-pose" style="color:#a78bfa;">1. 3/4 TIPO RPG (ISOMÉTRICA)</strong></span>
+      <span>|</span>
+      <span>Seleccionado: <strong id="sb-active-room" style="color:#38bdf8;">Aula 1 (560,000 cm²)</strong></span>
     </div>
-    <div class="sb-section">
-      <span>Cámara: <strong id="sb-cam-pose" style="color: #c4b5fd;">1. 3/4 TIPO RPG (ISOMÉTRICA)</strong></span>
-      <span>•</span>
-      <span>Salón: <strong id="sb-active-room" style="color: #38bdf8;">Aula 1 (560,000 cm²)</strong></span>
-      <span>•</span>
-      <span style="color: #94a3b8;">Atajos: [1] RPG 3/4 | [2] Cámara Baja | [3] Vista Aérea | [T] Techos | [F] Encuadrar</span>
+    <div class="sb-right">
+      <span>Atajos: [1] 3/4 RPG • [2] Cámara Baja • [3] Vista Aérea • [T] Techos • [L] Etiquetas • [F] Enfocar</span>
     </div>
   </footer>
 
   <!-- ========================================================================
-       MOTOR JAVASCRIPT THREE.JS Y BASE DE DATOS
+       MOTOR ARQUITECTÓNICO 3D (THREE.JS PROCEDURAL BIM COHERENTE)
        ======================================================================== -->
   <script>
   (function() {
     'use strict';
 
-    /* BASE DE DATOS DE LOS 35 ESPACIOS (IMPORTADA DIRECTAMENTE DEL PLANO) */
+    /* 1. BASE DE DATOS DE LOS 35 ESPACIOS DEL PLANTEL */
     const SPACES_DB = [
       /* -------------------- EDIFICIO A (PLANTA BAJA: 339.19 m²) -------------------- */
       {
@@ -1957,51 +2176,43 @@
       }
     ];
 
-    /* ==========================================================================
-       CONFIGURACIÓN DE LAS 3 POSES DE CÁMARA
-       ========================================================================== */
+    /* 2. DEFINICIÓN DE LAS 3 POSES DE CÁMARA REQUERIDAS */
     const CAMERA_POSES = {
       rpg: {
         name: '1. 3/4 TIPO RPG (ISOMÉTRICA)',
-        pos: new THREE.Vector3(52, 50, 52),
-        target: new THREE.Vector3(-8, 2, -6),
-        fov: 35
+        pos: new THREE.Vector3(-54, 62, 74),
+        target: new THREE.Vector3(5, 2.0, 0),
+        fov: 33
       },
       low: {
         name: '2. CÁMARA BAJA (NIVEL PEATONAL 1.75M)',
-        pos: new THREE.Vector3(-6, 1.75, 6),
-        target: new THREE.Vector3(-16, 4.0, -18),
-        fov: 65
+        pos: new THREE.Vector3(6, 1.75, 13.5),
+        target: new THREE.Vector3(-8, 4.2, -14),
+        fov: 58
       },
       aerial: {
         name: '3. VISTA GENERAL AÉREA DE CONJUNTO',
-        pos: new THREE.Vector3(8, 96, 40),
-        target: new THREE.Vector3(8, 2, -6),
-        fov: 46
+        pos: new THREE.Vector3(5, 108, 28),
+        target: new THREE.Vector3(5, 1.5, 1),
+        fov: 42
       }
     };
 
     let currentPoseKey = 'rpg';
     let isRoofCutaway = false;
     let isCadWhiteStyle = false;
+    let showLabels3D = true;
     let selectedSpaceId = 'a_aula1';
 
-    /* TRES.JS ELEMENTOS GLOBALES */
     let scene, camera, renderer, controls;
     const interactiveMeshes = [];
     const roofMeshes = [];
-    const cadMaterials = [];
-    const realisticMaterials = [];
+    const space3DAnchors = {}; // spaceId -> { pos: Vector3, meshList: [] }
+    const labelDOMElements = [];
 
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
-    const tooltipEl = document.getElementById('tooltip-3d');
-    const ttTitle = document.getElementById('tt-title');
-    const ttDims = document.getElementById('tt-dims');
-    const ttArea = document.getElementById('tt-area');
-
-    /* FORMATEADORES */
     const fmtInt = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
     const fmtDec1 = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     const fmtDec2 = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -2012,53 +2223,61 @@
     function fM2(v) { return `${fmtDec2.format(v)} m²`; }
 
     /* ==========================================================================
-       INICIALIZACIÓN DEL MOTOR THREE.JS
+       HELPER: LÍNEAS DE ARISTA CAD VECTORIALES (ELIMINA EL ASPECTO PLANO)
+       ========================================================================== */
+    const edgeLineMatDark = new THREE.LineBasicMaterial({ color: 0x1e293b, transparent: true, opacity: 0.55 });
+    const edgeLineMatSoft = new THREE.LineBasicMaterial({ color: 0x475569, transparent: true, opacity: 0.35 });
+
+    function addEdges(mesh, isStrong = true) {
+      if (!mesh || !mesh.geometry) return;
+      const edgesGeo = new THREE.EdgesGeometry(mesh.geometry, 25);
+      const line = new THREE.LineSegments(edgesGeo, isStrong ? edgeLineMatDark : edgeLineMatSoft);
+      mesh.add(line);
+    }
+
+    /* ==========================================================================
+       INICIALIZACIÓN DEL MOTOR 3D
        ========================================================================== */
     function init3D() {
       const container = document.getElementById('canvas3d-container');
 
-      // 1. Escena
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xf8fafc);
-      scene.fog = new THREE.Fog(0xf8fafc, 60, 220);
+      scene.background = new THREE.Color(0xf1f5f9);
+      scene.fog = new THREE.Fog(0xf1f5f9, 85, 240);
 
-      // 2. Cámara (iniciando en Pose 1: RPG 3/4)
       const aspect = window.innerWidth / window.innerHeight;
-      camera = new THREE.PerspectiveCamera(CAMERA_POSES.rpg.fov, aspect, 0.2, 500);
+      camera = new THREE.PerspectiveCamera(CAMERA_POSES.rpg.fov, aspect, 0.25, 450);
       camera.position.copy(CAMERA_POSES.rpg.pos);
 
-      // 3. Renderizador WebGL con sombras suaves y preservación de buffer
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true });
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: false,
+        powerPreference: 'high-performance',
+        preserveDrawingBuffer: true
+      });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.05;
+      renderer.toneMappingExposure = 1.04;
       container.appendChild(renderer.domElement);
 
-      // 4. OrbitControls con límites suaves
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.target.copy(CAMERA_POSES.rpg.target);
       controls.enableDamping = true;
       controls.dampingFactor = 0.08;
-      controls.maxPolarAngle = Math.PI / 2 - 0.02; // No descender por debajo del suelo
-      controls.minDistance = 3.0;
-      controls.maxDistance = 160.0;
+      controls.maxPolarAngle = Math.PI / 2 - 0.015;
+      controls.minDistance = 2.5;
+      controls.maxDistance = 175.0;
 
-      // 5. Iluminación Arquitectónica (Luz Solar + Cielo Hemisférico)
       setupLighting();
-
-      // 6. Construcción del Modelo 3D del Plantel (a escala 1:1 en metros)
-      buildCampus3D();
-
-      // 7. Eventos de ratón y ventana
+      buildCoherentCampus3D();
+      buildExplorerList('all');
+      create3DFloatingLabels();
       setupEvents();
-
-      // 8. Seleccionar Aula 1 de inicio
       selectSpace('a_aula1', false);
 
-      // Parámetros de URL para inicio directo o automatización (?pose=low|rpg|aerial)
       const urlParams = new URLSearchParams(window.location.search);
       const reqPose = urlParams.get('pose');
       if (reqPose && CAMERA_POSES[reqPose]) {
@@ -2070,15 +2289,16 @@
       if (urlParams.get('white') === '1') {
         document.getElementById('btn-cad-style').click();
       }
+      if (urlParams.get('nolabels') === '1') {
+        document.getElementById('btn-toggle-labels').click();
+      }
 
-      // Bucle de Render
       animate();
 
-      // Render sincrónico inicial garantizado
       controls.update();
       renderer.render(scene, camera);
+      update3DFloatingLabels();
 
-      // Si se solicita modo instantánea (?snapshot=1), reflejar canvas en <img> para compatibilidad headless
       if (urlParams.get('snapshot') === '1') {
         const mirrorImg = document.createElement('img');
         mirrorImg.id = 'snapshot-canvas-mirror';
@@ -2090,733 +2310,1207 @@
         mirrorImg.style.height = '100%';
         mirrorImg.style.pointerEvents = 'none';
         mirrorImg.style.zIndex = '2';
-        document.getElementById('canvas3d-container').appendChild(mirrorImg);
+        container.appendChild(mirrorImg);
       }
     }
 
     function setupLighting() {
-      // Luz ambiente suave
-      const hemiLight = new THREE.HemisphereLight(0xffffff, 0xe2e8f0, 0.75);
-      hemiLight.position.set(0, 80, 0);
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0xcbd5e1, 0.72);
+      hemiLight.position.set(0, 90, 0);
       scene.add(hemiLight);
 
-      // Sol principal proyectando sombras arquitectónicas nítidas
-      const sunLight = new THREE.DirectionalLight(0xffffff, 0.95);
-      sunLight.position.set(-45, 65, 55);
+      const sunLight = new THREE.DirectionalLight(0xfffbeb, 0.92);
+      sunLight.position.set(-48, 72, 58);
       sunLight.castShadow = true;
       sunLight.shadow.mapSize.width = 2048;
       sunLight.shadow.mapSize.height = 2048;
       sunLight.shadow.camera.near = 10;
-      sunLight.shadow.camera.far = 200;
-      sunLight.shadow.camera.left = -60;
-      sunLight.shadow.camera.right = 60;
-      sunLight.shadow.camera.top = 60;
-      sunLight.shadow.camera.bottom = -60;
+      sunLight.shadow.camera.far = 210;
+      sunLight.shadow.camera.left = -62;
+      sunLight.shadow.camera.right = 62;
+      sunLight.shadow.camera.top = 62;
+      sunLight.shadow.camera.bottom = -62;
       sunLight.shadow.bias = -0.0004;
       scene.add(sunLight);
 
-      // Luz de relleno lateral
       const fillLight = new THREE.DirectionalLight(0xe0f2fe, 0.35);
-      fillLight.position.set(45, 30, -35);
+      fillLight.position.set(55, 38, -45);
       scene.add(fillLight);
     }
 
     /* ==========================================================================
-       CONSTRUCCIÓN 3D PROCEDURAL DEL PLANTEL CEMSaD 22
+       PALETA DE MATERIALES ARQUITECTÓNICOS
        ========================================================================== */
-    function buildCampus3D() {
-      const materials = createMaterialsPalette();
-
-      // 1. TERRENO DE DOS PLATAFORMAS (NPT +0.00M y NPT +4.00M)
-      buildTopography(materials);
-
-      // 2. EDIFICIO A (Planta Baja - Cafetería, Almacén, Aulas 1 y 2, Baños)
-      buildEdificioA(materials);
-
-      // 3. EDIFICIO B (Terraza Superior +4.00M - Aulas 3 y 4, Biblioteca, Maestros)
-      buildEdificioB(materials);
-
-      // 4. EDIFICIO C (2 Niveles: PB Administrativa en +4.00M y PA Cómputo en +7.10M)
-      buildEdificioC(materials);
-
-      // 5. EDIFICIO D (Laboratorio de Usos Múltiples)
-      buildEdificioD(materials);
-
-      // 6. PLAZA CÍVICA CON TECHUMBRE METÁLICA ARQUEADA (Techumbre Aytto. 2021)
-      buildPlazaCivica(materials);
-
-      // 7. CANCHA DE USOS MÚLTIPLES REGLAMENTARIA (30 × 18m)
-      buildCanchaDeportiva(materials);
-
-      // 8. ESCALINATA MONUMENTAL "S" (Enlace entre terrazas de 4m)
-      buildEscalinataS(materials);
-
-      // 9. BANCAS, ESTACIONAMIENTO CON VEHÍCULOS Y CAPTADOR PLUVIAL
-      buildExteriores(materials);
-
-      // 10. PLAZA DE ACCESO, PORTÓN TRIPLE Y CASETA C.V.
-      buildAccesoPrincipal(materials);
-
-      // 11. BARDA PERIMETRAL Y COTA ESTE 52.00M
-      buildBardaPerimetral(materials);
-
-      // 12. VEGETACIÓN Y ÁRBOLES 3D SEGÚN EL PLANO ORIGINAL
-      buildVegetacion(materials);
-    }
-
-    function createMaterialsPalette() {
+    function createPalette() {
       return {
-        // Suelo y pavimentos
-        groundLower: new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.85, metalness: 0.05 }),
-        groundUpper: new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.85, metalness: 0.05 }),
-        retainingWall: new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.7, metalness: 0.15 }),
-        plazaTile: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, metalness: 0.1 }),
-        courtBlue: new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.45, metalness: 0.1 }),
-        courtWhiteLines: new THREE.MeshBasicMaterial({ color: 0xffffff }),
+        terraceLower: new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.9 }),
+        terraceUpper: new THREE.MeshStandardMaterial({ color: 0xdbeafe, roughness: 0.88 }),
+        asphalt: new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.85 }),
+        retainingWall: new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.75 }),
+        retainingCoping: new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4 }),
+        plazaFloor: new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.65 }),
+        walkwaySlab: new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.7 }),
 
-        // Muros de edificios
-        wallExterior: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, metalness: 0.05 }),
-        wallInterior: new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.7, metalness: 0.05 }),
-        columns: new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5, metalness: 0.3 }),
-        roofConcrete: new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.65, metalness: 0.15, transparent: true, opacity: 0.96 }),
-        roofArchedSheet: new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.35, metalness: 0.45, side: THREE.DoubleSide, transparent: true, opacity: 0.95 }),
+        wallExt: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55 }),
+        wallInt: new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.65 }),
+         wallBaseboard: new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.5 }),
+        colDark: new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4, metalness: 0.3 }),
+        roofSlab: new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.65 }),
+        roofTrim: new THREE.MeshStandardMaterial({ color: 0x0369a1, roughness: 0.4 }),
 
-        // Ventanales y Puertas
-        glassWindows: new THREE.MeshPhysicalMaterial({ color: 0xe0f2fe, roughness: 0.1, transmission: 0.75, thickness: 0.5, transparent: true, opacity: 0.65 }),
-        doorFrame: new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.6 }),
+        arcRoofSheet: new THREE.MeshStandardMaterial({
+          color: 0x38bdf8,
+          roughness: 0.3,
+          metalness: 0.2,
+          transparent: true,
+          opacity: 0.38,
+          side: THREE.DoubleSide,
+          depthWrite: false
+        }),
+        steelTruss: new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.35, metalness: 0.6 }),
 
-        // Mobiliario
-        furnitureWood: new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.7 }),
-        furnitureMetal: new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.4, metalness: 0.6 }),
-        labBench: new THREE.MeshStandardMaterial({ color: 0x0369a1, roughness: 0.3, metalness: 0.2 }),
-        chalkboard: new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.8 }),
+        windowGlass: new THREE.MeshStandardMaterial({ color: 0x7dd3fc, roughness: 0.15, metalness: 0.2, transparent: true, opacity: 0.65 }),
+        windowFrame: new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 }),
+        doorWood: new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.65 }),
+        doorMetal: new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.4, metalness: 0.5 }),
 
-        // Autos y vegetación
-        carPaint: [
-          new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.3, metalness: 0.6 }),
-          new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3, metalness: 0.6 }),
-          new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.3, metalness: 0.6 }),
-          new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0.3 }),
-          new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.3, metalness: 0.6 }),
-          new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3, metalness: 0.7 })
-        ],
+        deskWood: new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.65 }),
+        chairBlue: new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.5 }),
+        chalkboard: new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.7 }),
+        pcMetal: new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.4, metalness: 0.5 }),
+        pcScreen: new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2, emissive: 0x0284c7, emissiveIntensity: 0.25 }),
+        labBench: new THREE.MeshStandardMaterial({ color: 0x0369a1, roughness: 0.35 }),
+        ceramicWhite: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 }),
+
+        courtSurface: new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.5 }),
+        courtBorder: new THREE.MeshStandardMaterial({ color: 0x0369a1, roughness: 0.6 }),
+        lineWhite: new THREE.MeshBasicMaterial({ color: 0xffffff }),
+        lineYellow: new THREE.MeshBasicMaterial({ color: 0xfacc15 }),
+
         treeTrunk: new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 }),
-        treeLeaves: new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.65 }),
-        shrubLeaves: new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.7 }),
-
-        // Selección interactiva y cotas
-        highlight: new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.35, transparent: true, opacity: 0.85 }),
-        dimensionLine: new THREE.MeshBasicMaterial({ color: 0xdc2626 })
+        treeFoliage: new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.65 }),
+        treeFoliageLight: new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.7 })
       };
     }
 
-    /* 1. TOPOGRAFÍA DE DOS TERRAZAS */
-    function buildTopography(mat) {
-      // Terraza Baja (NPT +0.00M)
-      const lowerGeo = new THREE.BoxGeometry(90, 1.0, 36);
-      const lowerMesh = new THREE.Mesh(lowerGeo, mat.groundLower);
-      lowerMesh.position.set(0, -0.5, 14);
-      lowerMesh.receiveShadow = true;
-      scene.add(lowerMesh);
-
-      // Terraza Alta (NPT +4.00M)
-      const upperGeo = new THREE.BoxGeometry(90, 5.0, 36);
-      const upperMesh = new THREE.Mesh(upperGeo, mat.groundUpper);
-      upperMesh.position.set(0, 1.5, -22);
-      upperMesh.receiveShadow = true;
-      scene.add(upperMesh);
-
-      // Muro de contención masivo con albardilla azul
-      const wallGeo = new THREE.BoxGeometry(90, 4.2, 0.8);
-      const wallMesh = new THREE.Mesh(wallGeo, mat.retainingWall);
-      wallMesh.position.set(0, 2.1, -4.0);
-      wallMesh.castShadow = true;
-      wallMesh.receiveShadow = true;
-      scene.add(wallMesh);
-
-      // Barandal de protección superior sobre muro de contención
-      const railingGeo = new THREE.BoxGeometry(90, 0.9, 0.1);
-      const railingMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.7, roughness: 0.3 });
-      const railingMesh = new THREE.Mesh(railingGeo, railingMat);
-      railingMesh.position.set(0, 4.65, -3.95);
-      scene.add(railingMesh);
-    }
-
-    /* REGISTRADOR DE SALÓN INTERACTIVO */
-    function registerInteractiveRoom(mesh, spaceId, name, w, h, l) {
-      mesh.userData = {
-        spaceId: spaceId,
-        name: name,
-        width: w,
-        height: h,
-        length: l
-      };
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
+    /* ==========================================================================
+       REGISTRO DE ESPACIOS INTERACTIVOS Y ANCLAS 3D PARA ETIQUETAS
+       ========================================================================== */
+    function registerMeshForSpace(mesh, spaceId, anchorPos = null) {
+      mesh.userData.spaceId = spaceId;
       interactiveMeshes.push(mesh);
+      if (!space3DAnchors[spaceId]) {
+        space3DAnchors[spaceId] = { pos: anchorPos || new THREE.Vector3(), meshes: [] };
+      }
+      if (anchorPos) {
+        space3DAnchors[spaceId].pos.copy(anchorPos);
+      }
+      space3DAnchors[spaceId].meshes.push(mesh);
     }
 
-    /* GENERADOR DE SALONES ARQUITECTÓNICOS CON INTERIOR DETALLADO */
-    function createModularRoom(bldgGroup, r, mat, baseY, baseZ, isClassroom, isComputo, isLab) {
-      const rw = r.w - 0.2;
-      const rd = r.d - 0.2;
-      const wallH = 2.6;
-      const wt = 0.20;
-      const cz = (r.z !== undefined) ? r.z : baseZ;
+    /* ==========================================================================
+       CONSTRUCTOR DE HABITACIÓN DETALLADA (MUROS, VENTANAS, PUERTAS, MOBILIARIO)
+       ========================================================================== */
+    function buildDetailedRoom(parentGroup, cfg, mat) {
+      const {
+        id, x, y, z, w, d, h = 2.9, floorColor = 0xe0f2fe,
+        doorSide = 'south', windowSides = ['north', 'south'],
+        roomType = 'classroom', labelYOffset = 3.5
+      } = cfg;
 
-      // 1. Piso del salón coloreado
-      const floorMat = new THREE.MeshStandardMaterial({ color: r.color, roughness: 0.5 });
-      const floorMesh = new THREE.Mesh(new THREE.BoxGeometry(rw, 0.12, rd), floorMat);
-      floorMesh.position.set(r.x, baseY + 0.06, cz);
+      const roomGroup = new THREE.Group();
+      roomGroup.position.set(x, y, z);
+      parentGroup.add(roomGroup);
+
+      // Posición mundial para la etiqueta 3D y enfoque de cámara
+      const worldPos = new THREE.Vector3();
+      parentGroup.updateMatrixWorld();
+      worldPos.set(x + parentGroup.position.x, y + parentGroup.position.y + labelYOffset, z + parentGroup.position.z);
+
+      // 1. Piso interior coloreado con borde CAD
+      const floorMat = new THREE.MeshStandardMaterial({ color: floorColor, roughness: 0.55 });
+      const floorMesh = new THREE.Mesh(new THREE.BoxGeometry(w - 0.16, 0.12, d - 0.16), floorMat);
+      floorMesh.position.set(0, 0.06, 0);
       floorMesh.receiveShadow = true;
-      registerInteractiveRoom(floorMesh, r.id, r.name, r.w, wallH, r.d);
-      bldgGroup.add(floorMesh);
+      addEdges(floorMesh, false);
+      registerMeshForSpace(floorMesh, id, worldPos);
+      roomGroup.add(floorMesh);
 
-      // 2. Muros perimetrales
-      const wy = baseY + wallH / 2;
-      
-      const wN = new THREE.Mesh(new THREE.BoxGeometry(rw, wallH, wt), mat.wallExterior);
-      wN.position.set(r.x, wy, cz - rd / 2 + wt / 2);
-      wN.castShadow = true;
-      wN.receiveShadow = true;
-      wN.userData = { spaceId: r.id, name: r.name };
-      interactiveMeshes.push(wN);
-      bldgGroup.add(wN);
+      // 2. Muros perimetrales con zócalo azul institucional
+      const wt = 0.18;
+      const walls = [
+        { side: 'north', gx: w, gz: wt, px: 0, pz: -d / 2 + wt / 2 },
+        { side: 'south', gx: w, gz: wt, px: 0, pz: d / 2 - wt / 2 },
+        { side: 'west',  gx: wt, gz: d - 2 * wt, px: -w / 2 + wt / 2, pz: 0 },
+        { side: 'east',  gx: wt, gz: d - 2 * wt, px: w / 2 - wt / 2, pz: 0 }
+      ];
 
-      const wS = new THREE.Mesh(new THREE.BoxGeometry(rw, wallH, wt), mat.wallExterior);
-      wS.position.set(r.x, wy, cz + rd / 2 - wt / 2);
-      wS.castShadow = true;
-      wS.receiveShadow = true;
-      wS.userData = { spaceId: r.id, name: r.name };
-      interactiveMeshes.push(wS);
-      bldgGroup.add(wS);
+      walls.forEach(wl => {
+        const wallMesh = new THREE.Mesh(new THREE.BoxGeometry(wl.gx, h, wl.gz), mat.wallExt);
+        wallMesh.position.set(wl.px, h / 2, wl.pz);
+        wallMesh.castShadow = true;
+        wallMesh.receiveShadow = true;
+        addEdges(wallMesh, true);
+        registerMeshForSpace(wallMesh, id);
+        roomGroup.add(wallMesh);
 
-      const wW = new THREE.Mesh(new THREE.BoxGeometry(wt, wallH, rd - 2 * wt), mat.wallInterior);
-      wW.position.set(r.x - rw / 2 + wt / 2, wy, cz);
-      wW.castShadow = true;
-      wW.receiveShadow = true;
-      wW.userData = { spaceId: r.id, name: r.name };
-      interactiveMeshes.push(wW);
-      bldgGroup.add(wW);
+        // Zócalo exterior azul
+        const baseMesh = new THREE.Mesh(new THREE.BoxGeometry(wl.gx + 0.02, 0.35, wl.gz + 0.02), mat.wallBaseboard);
+        baseMesh.position.set(wl.px, 0.175, wl.pz);
+        roomGroup.add(baseMesh);
 
-      const wE = new THREE.Mesh(new THREE.BoxGeometry(wt, wallH, rd - 2 * wt), mat.wallInterior);
-      wE.position.set(r.x + rw / 2 - wt / 2, wy, cz);
-      wE.castShadow = true;
-      wE.receiveShadow = true;
-      wE.userData = { spaceId: r.id, name: r.name };
-      interactiveMeshes.push(wE);
-      bldgGroup.add(wE);
-
-      // 3. Mobiliario Interior
-      if (isClassroom) {
-        for (let px = -rw / 2 + 1.2; px <= rw / 2 - 1.2; px += 1.8) {
-          for (let pz = -rd / 2 + 1.6; pz <= rd / 2 - 1.2; pz += 1.5) {
-            const desk = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.7, 0.45), mat.furnitureWood);
-            desk.position.set(r.x + px, baseY + 0.35, cz + pz);
-            desk.castShadow = true;
-            bldgGroup.add(desk);
+        // Ventanas con cancelería si corresponde a este lado
+        if (windowSides.includes(wl.side) && (wl.gx > 2.8 || wl.gz > 2.8)) {
+          const isHoriz = (wl.side === 'north' || wl.side === 'south');
+          const span = isHoriz ? wl.gx : wl.gz;
+          const winW = Math.min(span * 0.55, span - 1.6);
+          if (winW > 1.0) {
+            const winH = 1.15;
+            const winGeo = isHoriz
+              ? new THREE.BoxGeometry(winW, winH, wt + 0.06)
+              : new THREE.BoxGeometry(wt + 0.06, winH, winW);
+            const winMesh = new THREE.Mesh(winGeo, mat.windowGlass);
+            const offsetX = (wl.side === doorSide && isHoriz) ? 0.6 : 0;
+            winMesh.position.set(wl.px + (isHoriz ? offsetX : 0), 1.65, wl.pz);
+            addEdges(winMesh, true);
+            roomGroup.add(winMesh);
           }
         }
-        const pizarron = new THREE.Mesh(new THREE.BoxGeometry(Math.min(3.2, rw * 0.6), 1.2, 0.05), mat.chalkboard);
-        pizarron.position.set(r.x, baseY + 1.5, cz - rd / 2 + wt + 0.03);
-        bldgGroup.add(pizarron);
-      } else if (isComputo) {
-        for (let px = -rw / 2 + 1.8; px <= rw / 2 - 1.8; px += 2.0) {
-          for (let pz = -1.5; pz <= 1.5; pz += 3.0) {
-            const pcDesk = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.75, 0.7), mat.furnitureMetal);
-            pcDesk.position.set(r.x + px, baseY + 0.375, cz + pz);
-            bldgGroup.add(pcDesk);
-            const monitor = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.32, 0.06), mat.columns);
-            monitor.position.set(r.x + px, baseY + 0.92, cz + pz);
-            bldgGroup.add(monitor);
+
+        // Puerta arquitectónica
+        if (wl.side === doorSide) {
+          const isHoriz = (wl.side === 'north' || wl.side === 'south');
+          const doorW = 0.95;
+          const doorH = 2.15;
+          const doorGeo = isHoriz
+            ? new THREE.BoxGeometry(doorW, doorH, wt + 0.06)
+            : new THREE.BoxGeometry(wt + 0.06, doorH, doorW);
+          const doorMesh = new THREE.Mesh(doorGeo, mat.doorWood);
+          const doorOffset = isHoriz ? (-w / 2 + 1.1) : (-d / 2 + 1.1);
+          doorMesh.position.set(
+            isHoriz ? doorOffset : wl.px,
+            doorH / 2,
+            isHoriz ? wl.pz : doorOffset
+          );
+          addEdges(doorMesh, true);
+          roomGroup.add(doorMesh);
+        }
+      });
+
+      // 3. MOBILIARIO INTERIOR ESPECÍFICO SEGÚN FUNCIÓN DEL SALÓN
+      if (roomType === 'classroom') {
+        // Pizarrón didáctico verde con marco
+        const boardW = Math.min(3.4, w * 0.55);
+        const board = new THREE.Mesh(new THREE.BoxGeometry(boardW, 1.2, 0.06), mat.chalkboard);
+        board.position.set(-w / 2 + wt + 0.05, 1.55, 0);
+        board.rotation.y = Math.PI / 2;
+        addEdges(board, true);
+        roomGroup.add(board);
+
+        // Escritorio del docente
+        const tDesk = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.74, 1.3), mat.deskWood);
+        tDesk.position.set(-w / 2 + 1.25, 0.37, -d / 2 + 1.3);
+        addEdges(tDesk, false);
+        roomGroup.add(tDesk);
+
+        // Filas de pupitres escolares (mesa + silla azul)
+        const cols = Math.max(2, Math.floor((w - 2.4) / 1.35));
+        const rows = Math.max(2, Math.floor((d - 1.6) / 1.25));
+        for (let c = 0; c < cols; c++) {
+          for (let r = 0; r < rows; r++) {
+            const px = -w / 2 + 2.3 + c * 1.28;
+            const pz = -d / 2 + 1.1 + r * 1.18;
+            if (px < w / 2 - 0.7 && pz < d / 2 - 0.7) {
+              const desk = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.68, 0.70), mat.deskWood);
+              desk.position.set(px, 0.34, pz);
+              addEdges(desk, false);
+              roomGroup.add(desk);
+
+              const chair = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.44, 0.42), mat.chairBlue);
+              chair.position.set(px + 0.32, 0.22, pz);
+              roomGroup.add(chair);
+            }
           }
         }
-      } else if (isLab) {
-        for (let px = -rw / 2 + 2.0; px <= rw / 2 - 2.0; px += 2.8) {
-          const bench = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.85, 1.0), mat.labBench);
-          bench.position.set(r.x + px, baseY + 0.425, cz);
-          bldgGroup.add(bench);
+      } else if (roomType === 'computo') {
+        // Taller de Cómputo con 24 estaciones de PC y monitores
+        for (let px = -w / 2 + 1.6; px <= w / 2 - 1.6; px += 1.9) {
+          for (let pz = -d / 2 + 1.3; pz <= d / 2 - 1.3; pz += 1.8) {
+            const table = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.72, 0.65), mat.pcMetal);
+            table.position.set(px, 0.36, pz);
+            addEdges(table, false);
+            roomGroup.add(table);
+
+            [-0.35, 0.35].forEach(mx => {
+              const mon = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.32, 0.06), mat.pcScreen);
+              mon.position.set(px + mx, 0.90, pz);
+              addEdges(mon, false);
+              roomGroup.add(mon);
+            });
+          }
         }
+      } else if (roomType === 'lab') {
+        // Mesas centrales de laboratorio con tarjas y bancos
+        for (let pz = -d / 2 + 2.0; pz <= d / 2 - 2.0; pz += 2.3) {
+          for (let px = -w / 2 + 2.2; px <= w / 2 - 2.2; px += 3.6) {
+            const bench = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.86, 1.05), mat.labBench);
+            bench.position.set(px, 0.43, pz);
+            addEdges(bench, true);
+            roomGroup.add(bench);
+
+            const sink = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.1, 0.45), mat.ceramicWhite);
+            sink.position.set(px + 0.7, 0.87, pz);
+            roomGroup.add(sink);
+          }
+        }
+      } else if (roomType === 'sanitarios') {
+        // Mamparas de sanitarios H / M y lavabos
+        const divWall = new THREE.Mesh(new THREE.BoxGeometry(0.14, h * 0.85, d - 0.4), mat.wallInt);
+        divWall.position.set(0, (h * 0.85) / 2, 0);
+        addEdges(divWall, true);
+        roomGroup.add(divWall);
+
+        for (let sz = -d / 2 + 1.1; sz <= d / 2 - 1.5; sz += 1.15) {
+          [-w / 4 - 0.3, w / 4 + 0.3].forEach(sx => {
+            const stall = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.8, 0.95), mat.wallInt);
+            stall.position.set(sx, 0.9, sz);
+            addEdges(stall, false);
+            roomGroup.add(stall);
+
+            const wc = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.45, 0.55), mat.ceramicWhite);
+            wc.position.set(sx, 0.25, sz);
+            roomGroup.add(wc);
+          });
+        }
+      } else if (roomType === 'cafeteria') {
+        // Barra de servicio y mesas de comedor
+        const counter = new THREE.Mesh(new THREE.BoxGeometry(w - 1.2, 1.05, 0.8), mat.labBench);
+        counter.position.set(0, 0.525, -d / 2 + 1.2);
+        addEdges(counter, true);
+        roomGroup.add(counter);
+
+        [-1.4, 1.4].forEach(tx => {
+          const tbl = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.74, 1.0), mat.deskWood);
+          tbl.position.set(tx, 0.37, 0.9);
+          addEdges(tbl, false);
+          roomGroup.add(tbl);
+        });
+      } else if (roomType === 'biblioteca') {
+        // Estanterías perimetrales y mesas de lectura
+        const shelf = new THREE.Mesh(new THREE.BoxGeometry(w - 0.8, 2.1, 0.45), mat.deskWood);
+        shelf.position.set(0, 1.05, -d / 2 + 0.45);
+        addEdges(shelf, true);
+        roomGroup.add(shelf);
+
+        [-1.0, 1.0].forEach(tx => {
+          const tbl = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.74, 1.2), mat.deskWood);
+          tbl.position.set(tx, 0.37, 0.6);
+          addEdges(tbl, false);
+          roomGroup.add(tbl);
+        });
+      } else if (roomType === 'maestros') {
+        // Mesa de juntas oval/rectangular y sillas
+        const confTable = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.76, 1.6), mat.deskWood);
+        confTable.position.set(0, 0.38, 0);
+        addEdges(confTable, true);
+        roomGroup.add(confTable);
+      } else if (roomType === 'admin') {
+        // Escritorio administrativo y archivero
+        const desk = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.74, 0.75), mat.deskWood);
+        desk.position.set(0, 0.37, 0);
+        addEdges(desk, false);
+        roomGroup.add(desk);
       }
+
+      return roomGroup;
     }
 
-    /* 2. EDIFICIO A */
+    /* ==========================================================================
+       CONSTRUCCIÓN INTEGRAL Y COHERENTE DEL PLANTEL CEMSaD 22 EN 3D
+       ========================================================================== */
+    function buildCoherentCampus3D() {
+      const mat = createPalette();
+
+      // 1. TOPOGRAFÍA DE DOS TERRAZAS CON MURO DE CONTENCIÓN ESCALONADO (COHERENTE CON PLANO 2D)
+      buildTopographyAndWalls(mat);
+
+      // 2. EDIFICIO "A" (Abajo Izquierda - NPT +0.00m): Cafetería, Almacén, Aula 1, Aula 2, Sanitarios
+      buildEdificioA(mat);
+
+      // 3. PLAZA CÍVICA TECHADA (Centro-Izquierda - NPT +0.00m): Techumbre transparente + Armaduras
+      buildPlazaCivica(mat);
+
+      // 4. ESCALINATA MONUMENTAL "S" (Oeste) Y RAMPA + ESCALERA CENTRAL (Frente a Edif. C)
+      buildCirculacionesVerticales(mat);
+
+      // 5. EDIFICIO "B" (Arriba Izquierda - NPT +4.00m): Aula 3, Aula 4, Biblioteca, Sala de Maestros
+      buildEdificioB(mat);
+
+      // 6. EDIFICIO "C" DE 2 NIVELES (Arriba Centro - PB en +4.00m y PA en +7.10m)
+      buildEdificioC(mat);
+
+      // 7. CANCHA DE USOS MÚLTIPLES (Arriba Derecha - NPT +4.00m) + ZONA DE BANCAS
+      buildCanchaYBancas(mat);
+
+      // 8. EDIFICIO "D" LABORATORIO (Abajo Derecha - NPT +0.00m, Orientación Norte-Sur fiel al plano)
+      buildEdificioD(mat);
+
+      // 9. ESTACIONAMIENTO (6 Autos), CAPTADOR PLUVIAL, CASETA C.V. Y PORTÓN DE ACCESO
+      buildAccesoYExteriores(mat);
+
+      // 10. ARBOLEDA Y VEGETACIÓN SEGÚN EL PLANO OFICIAL
+      buildVegetacion(mat);
+    }
+
+    /* 1. TOPOGRAFÍA Y BARDA PERIMETRAL CON COTA 52.00M */
+    function buildTopographyAndWalls(mat) {
+      // Plataforma General Terreno (Predio 4,462 m²)
+      const baseGround = new THREE.Mesh(new THREE.BoxGeometry(92, 1.2, 56), mat.terraceLower);
+      baseGround.position.set(0, -0.6, 2);
+      baseGround.receiveShadow = true;
+      addEdges(baseGround, true);
+      registerMeshForSpace(baseGround, 'predio_general', new THREE.Vector3(0, 1.0, 26));
+      scene.add(baseGround);
+
+      // Terraza Superior Poniente-Centro (Edificios B y C, desde Z = -25 hasta Z = -4)
+      const upperWest = new THREE.Mesh(new THREE.BoxGeometry(58, 4.0, 22), mat.terraceUpper);
+      upperWest.position.set(-14, 2.0, -14);
+      upperWest.receiveShadow = true;
+      upperWest.castShadow = true;
+      addEdges(upperWest, true);
+      scene.add(upperWest);
+
+      // Terraza Superior Oriente (Cancha Deportiva y Zona de Bancas, desde Z = -25 hasta Z = +5)
+      const upperEast = new THREE.Mesh(new THREE.BoxGeometry(30, 4.0, 30), mat.terraceUpper);
+      upperEast.position.set(30, 2.0, -10);
+      upperEast.receiveShadow = true;
+      upperEast.castShadow = true;
+      addEdges(upperEast, true);
+      scene.add(upperEast);
+
+      // Muro de Contención Poniente (Z = -3.0, frente a Plaza Cívica)
+      const retWallWest = new THREE.Mesh(new THREE.BoxGeometry(58, 4.15, 0.55), mat.retainingWall);
+      retWallWest.position.set(-14, 2.075, -3.0);
+      retWallWest.castShadow = true;
+      addEdges(retWallWest, true);
+      scene.add(retWallWest);
+
+      const copingWest = new THREE.Mesh(new THREE.BoxGeometry(58.2, 0.25, 0.7), mat.retainingCoping);
+      copingWest.position.set(-14, 4.12, -3.0);
+      scene.add(copingWest);
+
+      // Muro de Contención Oriente (Z = +5.0, entre Zona de Bancas y Estacionamiento/Edif D, igual al plano)
+      const retWallEast = new THREE.Mesh(new THREE.BoxGeometry(30, 4.15, 0.55), mat.retainingWall);
+      retWallEast.position.set(30, 2.075, 5.0);
+      retWallEast.castShadow = true;
+      addEdges(retWallEast, true);
+      scene.add(retWallEast);
+
+      const copingEast = new THREE.Mesh(new THREE.BoxGeometry(30.2, 0.25, 0.7), mat.retainingCoping);
+      copingEast.position.set(30, 4.12, 5.0);
+      scene.add(copingEast);
+
+      // Muro de enlace transversal del desnivel (en X = +15, de Z = -3 a Z = +5)
+      const retWallLink = new THREE.Mesh(new THREE.BoxGeometry(0.55, 4.15, 8.5), mat.retainingWall);
+      retWallLink.position.set(15, 2.075, 1.0);
+      addEdges(retWallLink, true);
+      scene.add(retWallLink);
+
+      // Barda Perimetral Norte, Poniente y Sur
+      const wallN = new THREE.Mesh(new THREE.BoxGeometry(90, 2.6, 0.35), mat.wallExt);
+      wallN.position.set(0, 4.0 + 1.3, -25.0);
+      addEdges(wallN, true);
+      scene.add(wallN);
+
+      const wallW = new THREE.Mesh(new THREE.BoxGeometry(0.35, 3.5, 54), mat.wallExt);
+      wallW.position.set(-44.8, 1.75, 2.0);
+      addEdges(wallW, true);
+      scene.add(wallW);
+
+      // Barda Oriente Oficial (Cota 52.00 m = 5,200 cm)
+      const wallE = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3.6, 52.0), mat.retainingCoping);
+      wallE.position.set(45.0, 2.2, 1.0);
+      addEdges(wallE, true);
+      registerMeshForSpace(wallE, 'barda_perimetral', new THREE.Vector3(45.0, 5.2, 1.0));
+      scene.add(wallE);
+
+      // Línea de Cota 3D Roja paralela a la Barda Oriente (52.00 m)
+      const cotaMat = new THREE.MeshBasicMaterial({ color: 0xdc2626 });
+      const cotaLine = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 52.0), cotaMat);
+      cotaLine.position.set(47.2, 0.3, 1.0);
+      scene.add(cotaLine);
+      [-25.0, 27.0].forEach(cz => {
+        const tick = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.18, 0.18), cotaMat);
+        tick.position.set(46.5, 0.3, cz);
+        scene.add(tick);
+      });
+    }
+
+    /* 2. EDIFICIO "A" (Planta Baja Sur-Poniente: Cafetería, Almacén, Aulas 1 y 2, Sanitarios) */
     function buildEdificioA(mat) {
-      const bldgGroup = new THREE.Group();
-      bldgGroup.position.set(0, 0, 17.5);
+      const groupA = new THREE.Group();
+      groupA.position.set(-22.5, 0, 19.5);
+      scene.add(groupA);
 
-      // Losa de piso
-      const slab = new THREE.Mesh(new THREE.BoxGeometry(35.0, 0.25, 9.69), mat.wallInterior);
-      slab.position.set(-20.5, 0.125, 0);
-      slab.receiveShadow = true;
-      bldgGroup.add(slab);
+      // Firme y andador techado de Edificio A (35.00 m × 9.69 m = 339.19 m²)
+      const baseA = new THREE.Mesh(new THREE.BoxGeometry(35.2, 0.24, 9.7), mat.walkwaySlab);
+      baseA.position.set(0, 0.12, 0);
+      baseA.receiveShadow = true;
+      addEdges(baseA, true);
+      registerMeshForSpace(baseA, 'edif_a', new THREE.Vector3(-22.5, 4.8, 19.5));
+      groupA.add(baseA);
 
-      // Salones de Edificio A
-      const rooms = [
-        { id: 'a_cafeteria', name: 'Desayunador / Cafetería', w: 6.2, d: 7.0, x: -34.9, color: 0xfef3c7 },
-        { id: 'a_almacen', name: 'Almacén General', w: 3.8, d: 7.0, x: -29.9, color: 0xf1f5f9 },
-        { id: 'a_aula1', name: 'Aula 1 (Grupo 101)', w: 8.0, d: 7.0, x: -24.0, color: 0xe0f2fe },
-        { id: 'a_aula2', name: 'Aula 2 (Grupo 201)', w: 8.0, d: 7.0, x: -16.0, color: 0xe0f2fe },
-        { id: 'a_sanitarios', name: 'Sanitarios H/M', w: 6.0, d: 7.0, x: -9.0, color: 0xdcfce7 }
+      const roomsA = [
+        { id: 'a_cafeteria',  x: -14.4, z: 0.9, w: 6.2, d: 6.6, floorColor: 0xfef3c7, roomType: 'cafeteria',  doorSide: 'north' },
+        { id: 'a_almacen',    x: -9.4,  z: 0.8, w: 3.8, d: 7.0, floorColor: 0xf1f5f9, roomType: 'admin',      doorSide: 'north' },
+        { id: 'a_aula1',      x: -3.5,  z: 0.8, w: 8.0, d: 7.0, floorColor: 0xe0f2fe, roomType: 'classroom',  doorSide: 'north' },
+        { id: 'a_aula2',      x:  4.5,  z: 0.8, w: 8.0, d: 7.0, floorColor: 0xe0f2fe, roomType: 'classroom',  doorSide: 'north' },
+        { id: 'a_sanitarios', x: 11.5,  z: 0.8, w: 6.0, d: 7.0, floorColor: 0xdcfce7, roomType: 'sanitarios', doorSide: 'north' }
       ];
 
-      rooms.forEach(r => {
-        createModularRoom(bldgGroup, r, mat, 0.25, 1.345, r.id.includes('aula'), false, false);
-      });
+      roomsA.forEach(r => buildDetailedRoom(groupA, { ...r, y: 0.24, h: 2.9 }, mat));
 
-      // Columnas del andador exterior
-      for (let cx = -37.5; cx <= -3.5; cx += 4.0) {
-        const col = new THREE.Mesh(new THREE.BoxGeometry(0.35, 3.2, 0.35), mat.columns);
-        col.position.set(cx, 1.725, -3.3);
-        col.castShadow = true;
-        bldgGroup.add(col);
+      // Columnas estructurales del pórtico norte y sur
+      for (let cx = -17.0; cx <= 17.0; cx += 4.25) {
+        const colN = new THREE.Mesh(new THREE.BoxGeometry(0.32, 3.0, 0.32), mat.colDark);
+        colN.position.set(cx, 1.62, -3.8);
+        colN.castShadow = true;
+        addEdges(colN, true);
+        groupA.add(colN);
       }
 
-      // Losa de Techo (Desmontable con botón de Techos)
-      const roof = new THREE.Mesh(new THREE.BoxGeometry(35.4, 0.25, 10.0), mat.roofConcrete);
-      roof.position.set(-20.5, 2.98, 0);
-      roof.castShadow = true;
-      roofMeshes.push(roof);
-      bldgGroup.add(roof);
-
-      scene.add(bldgGroup);
+      // Losa de azotea con pretil azul (desmontable al activar Quitar Techos)
+      const roofA = new THREE.Mesh(new THREE.BoxGeometry(35.6, 0.28, 10.0), mat.roofSlab);
+      roofA.position.set(0, 3.28, 0);
+      roofA.castShadow = true;
+      addEdges(roofA, true);
+      const fasciaA = new THREE.Mesh(new THREE.BoxGeometry(35.7, 0.34, 10.1), mat.roofTrim);
+      fasciaA.position.set(0, 0.05, 0);
+      roofA.add(fasciaA);
+      roofMeshes.push(roofA);
+      groupA.add(roofA);
     }
 
-    /* 3. EDIFICIO B */
-    function buildEdificioB(mat) {
-      const bldgGroup = new THREE.Group();
-      bldgGroup.position.set(0, 4.0, -17.4);
-
-      // Losa de piso desplantada en +4.00M
-      const slab = new THREE.Mesh(new THREE.BoxGeometry(32.0, 0.25, 9.78), mat.wallInterior);
-      slab.position.set(-22.0, 0.125, 0);
-      slab.receiveShadow = true;
-      bldgGroup.add(slab);
-
-      const rooms = [
-        { id: 'b_aula3', name: 'Aula 3 (Grupo 301)', w: 8.0, d: 7.2, x: -34.0, color: 0xe0f2fe },
-        { id: 'b_aula4', name: 'Aula 4 (Grupo 401)', w: 8.0, d: 7.2, x: -26.0, color: 0xe0f2fe },
-        { id: 'b_biblioteca', name: 'Biblioteca Escolar', w: 5.2, d: 7.2, x: -19.4, color: 0xfef3c7 },
-        { id: 'b_sala_maestros', name: 'Sala de Maestros', w: 7.8, d: 7.2, x: -12.9, color: 0xede9fe }
-      ];
-
-      rooms.forEach(r => {
-        createModularRoom(bldgGroup, r, mat, 0.25, -1.29, r.id.includes('aula'), false, false);
-      });
-
-      // Columnas del andador sur
-      for (let cx = -37.5; cx <= -6.5; cx += 4.0) {
-        const col = new THREE.Mesh(new THREE.BoxGeometry(0.35, 3.2, 0.35), mat.columns);
-        col.position.set(cx, 1.725, 3.4);
-        col.castShadow = true;
-        bldgGroup.add(col);
-      }
-
-      // Techo Edificio B
-      const roof = new THREE.Mesh(new THREE.BoxGeometry(32.4, 0.25, 10.1), mat.roofConcrete);
-      roof.position.set(-22.0, 2.98, 0);
-      roof.castShadow = true;
-      roofMeshes.push(roof);
-      bldgGroup.add(roof);
-
-      scene.add(bldgGroup);
-    }
-
-    /* 4. EDIFICIO C (2 NIVELES) */
-    function buildEdificioC(mat) {
-      const bldgGroup = new THREE.Group();
-      bldgGroup.position.set(0, 4.0, -17.4);
-
-      // PLANTA BAJA (Y = 4.0M a 7.1M)
-      const roomsPB = [
-        { id: 'c_enfermeria', name: 'Enfermería', w: 3.8, d: 3.5, x: 2.1, z: -3.1, color: 0xdcfce7 },
-        { id: 'c_tutorias', name: 'Tutorías', w: 3.8, d: 3.5, x: 2.1, z: 0.5, color: 0xfef3c7 },
-        { id: 'c_archivo', name: 'Archivo Escolar', w: 3.4, d: 3.5, x: 5.7, z: -3.1, color: 0xf1f5f9 },
-        { id: 'c_ss_admin', name: 'Sanitario Admin (S.S.)', w: 2.2, d: 3.5, x: 8.5, z: -3.1, color: 0xdcfce7 },
-        { id: 'c_direccion', name: 'Dirección CEMSaD', w: 4.8, d: 3.5, x: 6.4, z: 0.5, color: 0xede9fe },
-        { id: 'c_apoyo_acad', name: 'Apoyo Académico', w: 4.8, d: 3.5, x: 11.2, z: -1.3, color: 0xe0f2fe },
-        { id: 'c_escalera_pb', name: 'Escaleras Principales', w: 3.8, d: 7.2, x: 15.5, z: -1.3, color: 0xcbd5e1 },
-        { id: 'c_aula5', name: 'Aula 5 (Grupo 501)', w: 8.0, d: 7.2, x: 21.4, z: -1.3, color: 0xe0f2fe }
-      ];
-
-      roomsPB.forEach(r => {
-        createModularRoom(bldgGroup, r, mat, 0.25, -1.3, r.id === 'c_aula5', false, false);
-      });
-
-      // Losa de entrepiso (Nivel +7.10M)
-      const midSlab = new THREE.Mesh(new THREE.BoxGeometry(32.4, 0.3, 10.1), mat.roofConcrete);
-      midSlab.position.set(12.0, 3.0, 0);
-      midSlab.castShadow = true;
-      bldgGroup.add(midSlab);
-
-      // PLANTA ALTA (Y = 7.1M a 10.1M)
-      const roomsPA = [
-        { id: 'c_computo', name: 'Taller de Cómputo (115.2 m²)', w: 16.0, d: 7.2, x: 4.0, z: -1.3, color: 0x38bdf8 },
-        { id: 'c_escalera_pa', name: 'Desembarque Escalera PA', w: 3.8, d: 7.2, x: 15.5, z: -1.3, color: 0x94a3b8 },
-        { id: 'c_aula6', name: 'Aula 6 (Grupo 601)', w: 8.0, d: 7.2, x: 21.4, z: -1.3, color: 0xe0f2fe }
-      ];
-
-      roomsPA.forEach(r => {
-        createModularRoom(bldgGroup, r, mat, 3.3, -1.3, r.id === 'c_aula6', r.id === 'c_computo', false);
-      });
-
-      // Losa de Azotea de Planta Alta (desmontable)
-      const topRoof = new THREE.Mesh(new THREE.BoxGeometry(32.4, 0.25, 10.1), mat.roofConcrete);
-      topRoof.position.set(12.0, 6.1, 0);
-      topRoof.castShadow = true;
-      roofMeshes.push(topRoof);
-      bldgGroup.add(topRoof);
-
-      scene.add(bldgGroup);
-    }
-
-    /* 5. EDIFICIO D (LABORATORIO) */
-    function buildEdificioD(mat) {
-      const bldgGroup = new THREE.Group();
-      bldgGroup.position.set(26.5, 0, 17.8);
-
-      const slab = new THREE.Mesh(new THREE.BoxGeometry(19.0, 0.25, 9.64), mat.wallInterior);
-      slab.position.set(0, 0.125, 0);
-      bldgGroup.add(slab);
-
-      const rooms = [
-        { id: 'd_laboratorio', name: 'Laboratorio de Usos Múltiples', w: 12.8, d: 7.2, x: -3.1, z: -1.22, color: 0xbae6fd },
-        { id: 'd_reactivos', name: 'Cubículo de Reactivos', w: 3.8, d: 3.6, x: 5.2, z: -3.02, color: 0xfef08a },
-        { id: 'd_almacen_lab', name: 'Almacén de Laboratorio', w: 3.8, d: 3.4, x: 5.2, z: 0.58, color: 0xf1f5f9 }
-      ];
-
-      rooms.forEach(r => {
-        createModularRoom(bldgGroup, r, mat, 0.25, -1.22, false, false, r.id === 'd_laboratorio');
-      });
-
-      // Techo Edificio D
-      const roof = new THREE.Mesh(new THREE.BoxGeometry(19.4, 0.25, 10.0), mat.roofConcrete);
-      roof.position.set(0, 2.98, 0);
-      roof.castShadow = true;
-      roofMeshes.push(roof);
-      bldgGroup.add(roof);
-
-      scene.add(bldgGroup);
-    }
-
-    /* 6. PLAZA CÍVICA TECHADA */
+    /* 3. PLAZA CÍVICA CON TECHUMBRE METÁLICA TRANSLÚCIDA Y ARMADURAS (748 m²) */
     function buildPlazaCivica(mat) {
       const plazaGroup = new THREE.Group();
-      plazaGroup.position.set(-8.0, 0, 0);
+      plazaGroup.position.set(-14.5, 0, 5.5);
+      scene.add(plazaGroup);
 
-      // Firme de concreto con despiece modular (34 × 22m)
-      const floor = new THREE.Mesh(new THREE.BoxGeometry(34.0, 0.2, 22.0), mat.plazaTile);
-      floor.position.set(0, 0.1, 0);
+      // Explanada de concreto de 34.00 m × 22.00 m
+      const floor = new THREE.Mesh(new THREE.BoxGeometry(34.0, 0.18, 16.5), mat.plazaFloor);
+      floor.position.set(0, 0.09, 0);
       floor.receiveShadow = true;
-      registerInteractiveRoom(floor, 'plaza_civica', 'Plaza Cívica Techada (748 m²)', 34.0, 6.5, 22.0);
+      addEdges(floor, true);
+      registerMeshForSpace(floor, 'plaza_civica', new THREE.Vector3(-14.5, 2.2, 5.5));
       plazaGroup.add(floor);
 
-      // 12 Columnas de acero estructural
-      const colMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3, metalness: 0.8 });
-      const colPositions = [-15.5, -9.3, -3.1, 3.1, 9.3, 15.5];
-      colPositions.forEach(cx => {
-        // Fila Norte
-        const cN = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 5.2, 16), colMat);
-        cN.position.set(cx, 2.7, -10.5);
-        cN.castShadow = true;
-        plazaGroup.add(cN);
-        // Fila Sur
-        const cS = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 5.2, 16), colMat);
-        cS.position.set(cx, 2.7, 10.5);
-        cS.castShadow = true;
-        plazaGroup.add(cS);
+      // Retícula modular grabada en el piso de la plaza
+      const gridHelper = new THREE.GridHelper(34, 17, 0x94a3b8, 0xcbd5e1);
+      gridHelper.position.set(0, 0.19, 0);
+      gridHelper.scale.z = 16.5 / 34.0;
+      plazaGroup.add(gridHelper);
+
+      // Asta Bandera Monumental en la Plaza Cívica
+      const pedestal = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.7, 1.4), mat.retainingWall);
+      pedestal.position.set(-13.5, 0.45, 0);
+      addEdges(pedestal, true);
+      plazaGroup.add(pedestal);
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 7.5, 12), mat.colDark);
+      pole.position.set(-13.5, 4.2, 0);
+      plazaGroup.add(pole);
+
+      // 12 Columnas de acero que soportan la techumbre (altura libre 5.4m para no tapar edificios)
+      const colH = 5.4;
+      const colXList = [-16.0, -9.6, -3.2, 3.2, 9.6, 16.0];
+      colXList.forEach(cx => {
+        [-7.8, 7.8].forEach(cz => {
+          const col = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.20, colH, 12), mat.steelTruss);
+          col.position.set(cx, colH / 2, cz);
+          col.castShadow = true;
+          plazaGroup.add(col);
+        });
       });
 
-      // Techumbre metálica arqueada (Bóveda autosoportante tipo domo)
-      const arcGeo = new THREE.CylinderGeometry(11.2, 11.2, 34.4, 32, 1, true, -Math.PI / 2 + 0.3, Math.PI - 0.6);
-      const arcMesh = new THREE.Mesh(arcGeo, mat.roofArchedSheet);
-      arcMesh.rotation.z = Math.PI / 2;
-      arcMesh.position.set(0, 1.2, 0);
-      arcMesh.castShadow = true;
-      roofMeshes.push(arcMesh);
-      plazaGroup.add(arcMesh);
+      // Contenedor de la Techumbre Abovedada (Arcotecho Aytto. 2021)
+      const canopyGroup = new THREE.Group();
+      plazaGroup.add(canopyGroup);
+      roofMeshes.push(canopyGroup);
 
-      scene.add(plazaGroup);
-    }
-
-    /* 7. CANCHA DE USOS MÚLTIPLES (30 × 18M) */
-    function buildCanchaDeportiva(mat) {
-      const canchaGroup = new THREE.Group();
-      canchaGroup.position.set(27.0, 4.0, -17.0);
-
-      // Superficie azul de juego
-      const court = new THREE.Mesh(new THREE.BoxGeometry(30.0, 0.2, 18.0), mat.courtBlue);
-      court.position.set(0, 0.1, 0);
-      court.receiveShadow = true;
-      registerInteractiveRoom(court, 'cancha_deportiva', 'Cancha de Usos Múltiples (540 m²)', 30.0, 7.0, 18.0);
-      canchaGroup.add(court);
-
-      // Líneas de cancha blancas
-      const lineMat = mat.courtWhiteLines;
-      const centerCircle = new THREE.Mesh(new THREE.RingGeometry(2.8, 2.95, 32), lineMat);
-      centerCircle.rotation.x = -Math.PI / 2;
-      centerCircle.position.set(0, 0.21, 0);
-      canchaGroup.add(centerCircle);
-
-      const centerLine = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 18.0), lineMat);
-      centerLine.rotation.x = -Math.PI / 2;
-      centerLine.position.set(0, 0.21, 0);
-      canchaGroup.add(centerLine);
-
-      // Porterías y Tableros de Básquetbol (Oriente y Poniente)
-      [-14.5, 14.5].forEach(bx => {
-        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 3.8, 12), mat.columns);
-        post.position.set(bx, 1.9, 0);
-        canchaGroup.add(post);
-
-        const board = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.2, 1.8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-        board.position.set(bx - Math.sign(bx) * 0.5, 3.4, 0);
-        canchaGroup.add(board);
-
-        const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.03, 8, 24), new THREE.MeshBasicMaterial({ color: 0xdc2626 }));
-        hoop.rotation.x = Math.PI / 2;
-        hoop.position.set(bx - Math.sign(bx) * 0.85, 3.05, 0);
-        canchaGroup.add(hoop);
+      // Vigas largueros laterales
+      [-7.8, 7.8].forEach(cz => {
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(33.0, 0.25, 0.25), mat.steelTruss);
+        beam.position.set(0, colH, cz);
+        canopyGroup.add(beam);
       });
 
-      scene.add(canchaGroup);
+      // Arcos estructurales metálicos (cabrillas curvas)
+      const arcRadius = 9.2;
+      colXList.forEach(cx => {
+        const archGeo = new THREE.CylinderGeometry(arcRadius, arcRadius, 0.18, 24, 1, true, -Math.PI / 3.2, (2 * Math.PI) / 3.2);
+        const arch = new THREE.Mesh(archGeo, mat.steelTruss);
+        arch.rotation.z = Math.PI / 2;
+        arch.position.set(cx, colH - 4.0, 0);
+        canopyGroup.add(arch);
+      });
+
+      // Lámina abovedada translúcida (permite ver a través sin ocultar el plantel)
+      const sheetGeo = new THREE.CylinderGeometry(arcRadius + 0.05, arcRadius + 0.05, 33.4, 32, 1, true, -Math.PI / 3.2, (2 * Math.PI) / 3.2);
+      const sheetMesh = new THREE.Mesh(sheetGeo, mat.arcRoofSheet);
+      sheetMesh.rotation.z = Math.PI / 2;
+      sheetMesh.position.set(0, colH - 4.0, 0);
+      addEdges(sheetMesh, false);
+      canopyGroup.add(sheetMesh);
     }
 
-    /* 8. ESCALINATA MONUMENTAL "S" */
-    function buildEscalinataS(mat) {
-      const stairGroup = new THREE.Group();
-      stairGroup.position.set(-29.0, 0, -4.0);
+    /* 4. ESCALINATA MONUMENTAL "S" Y RAMPA + ESCALERA CENTRAL */
+    function buildCirculacionesVerticales(mat) {
+      // A) ESCALINATA MONUMENTAL "S" (Al poniente de la Plaza Cívica: X = -36.5)
+      const stairSGroup = new THREE.Group();
+      stairSGroup.position.set(-36.5, 0, 5.5);
+      scene.add(stairSGroup);
 
       const numSteps = 18;
-      const totalH = 4.0;
-      const totalD = 7.5;
-      const stepH = totalH / numSteps;
-      const stepD = totalD / numSteps;
-      const stepW = 4.5;
+      const totalLen = 15.0;
+      const stepD = totalLen / numSteps;
+      const stepH = 4.0 / numSteps;
 
       for (let i = 0; i < numSteps; i++) {
-        const sGeo = new THREE.BoxGeometry(stepW, (i + 1) * stepH, stepD);
-        const sMesh = new THREE.Mesh(sGeo, mat.retainingWall);
-        sMesh.position.set(0, ((i + 1) * stepH) / 2, -(i * stepD));
-        sMesh.receiveShadow = true;
-        sMesh.castShadow = true;
-        stairGroup.add(sMesh);
+        const h = (i + 1) * stepH;
+        const step = new THREE.Mesh(new THREE.BoxGeometry(4.2, h, stepD), mat.walkwaySlab);
+        step.position.set(0, h / 2, 7.0 - i * stepD);
+        step.castShadow = true;
+        step.receiveShadow = true;
+        addEdges(step, true);
+        registerMeshForSpace(step, 'escalinata_s', new THREE.Vector3(-36.5, 3.2, 2.0));
+        stairSGroup.add(step);
       }
 
-      // Rampa lateral de alfarda
-      const rampGeo = new THREE.BoxGeometry(0.5, 4.4, 8.0);
-      const ramp1 = new THREE.Mesh(rampGeo, mat.columns);
-      ramp1.position.set(-2.5, 2.2, -3.5);
-      stairGroup.add(ramp1);
-      const ramp2 = new THREE.Mesh(rampGeo, mat.columns);
-      ramp2.position.set(2.5, 2.2, -3.5);
-      stairGroup.add(ramp2);
-
-      const hitbox = new THREE.Mesh(new THREE.BoxGeometry(stepW, 4.0, totalD), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 }));
-      hitbox.position.set(0, 2.0, -3.75);
-      registerInteractiveRoom(hitbox, 'escalinata_s', 'Escalinata Monumental "S" (81 m²)', 4.5, 4.0, totalD);
-      stairGroup.add(hitbox);
-
-      scene.add(stairGroup);
-    }
-
-    /* 9. EXTERIORES (BANCAS, AUTOS, CAPTADOR) */
-    function buildExteriores(mat) {
-      // Bancas de convivencia
-      const bancasGroup = new THREE.Group();
-      bancasGroup.position.set(26.0, 4.0, -3.0);
-      for (let bx = -10; bx <= 10; bx += 6.5) {
-        const table = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.75, 1.2), mat.furnitureWood);
-        table.position.set(bx, 0.45, 0);
-        bancasGroup.add(table);
-        const bench1 = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.45, 0.4), mat.furnitureWood);
-        bench1.position.set(bx, 0.25, -1.0);
-        bancasGroup.add(bench1);
-        const bench2 = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.45, 0.4), mat.furnitureWood);
-        bench2.position.set(bx, 0.25, 1.0);
-        bancasGroup.add(bench2);
-      }
-      scene.add(bancasGroup);
-
-      // Estacionamiento con 6 autos 3D
-      const carGroup = new THREE.Group();
-      carGroup.position.set(16.0, 0, 5.0);
-      const carX = [-6.0, -2.5, 2.5, 6.0];
-      carX.forEach((cx, idx) => {
-        buildCar3D(carGroup, cx, 0, mat.carPaint[idx % mat.carPaint.length]);
-      });
-      buildCar3D(carGroup, -1.0, 6.5, mat.carPaint[4]);
-      buildCar3D(carGroup, 3.5, 6.5, mat.carPaint[5]);
-      scene.add(carGroup);
-
-      // Captador de Agua Pluvial
-      const captador = new THREE.Mesh(new THREE.BoxGeometry(5.0, 2.4, 5.0), new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3, metalness: 0.6 }));
-      captador.position.set(14.0, 1.2, 17.5);
-      captador.castShadow = true;
-      registerInteractiveRoom(captador, 'captador_pluvial', 'Captador de Agua Pluvial (25 m²)', 5.0, 2.4, 5.0);
-      scene.add(captador);
-    }
-
-    function buildCar3D(parent, x, z, bodyMat) {
-      const car = new THREE.Group();
-      car.position.set(x, 0, z);
-
-      // Carrocería
-      const body = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.8, 4.4), bodyMat);
-      body.position.set(0, 0.6, 0);
-      body.castShadow = true;
-      car.add(body);
-
-      // Cabina y parabrisas
-      const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.65, 2.4), new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.1 }));
-      cabin.position.set(0, 1.25, -0.2);
-      car.add(cabin);
-
-      // Ruedas
-      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
-      [[-0.95, 1.3], [0.95, 1.3], [-0.95, -1.3], [0.95, -1.3]].forEach(wp => {
-        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16), wheelMat);
-        wheel.rotation.z = Math.PI / 2;
-        wheel.position.set(wp[0], 0.35, wp[1]);
-        car.add(wheel);
+      // Alfardas / Barandales laterales de la Escalinata "S"
+      [-2.2, 2.2].forEach(rx => {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.22, 4.3, totalLen + 0.5), mat.retainingCoping);
+        rail.position.set(rx, 2.15, -0.2);
+        addEdges(rail, true);
+        stairSGroup.add(rail);
       });
 
-      parent.add(car);
+      // B) RAMPA Y ESCALERA CENTRAL FRENTE A EDIFICIO "C" (X = 4.0, Z = -5.5)
+      const rampaGroup = new THREE.Group();
+      rampaGroup.position.set(4.0, 2.0, -5.2);
+      scene.add(rampaGroup);
+
+      const rampBox = new THREE.Mesh(new THREE.BoxGeometry(10.5, 2.2, 3.4), mat.walkwaySlab);
+      rampBox.position.set(0, 1.0, 0);
+      addEdges(rampBox, true);
+      registerMeshForSpace(rampBox, 'rampa_edif_c', new THREE.Vector3(4.0, 4.8, -5.2));
+      rampaGroup.add(rampBox);
     }
 
-    /* 10. ACCESO PRINCIPAL Y CASETA C.V. */
-    function buildAccesoPrincipal(mat) {
-      const accesoGroup = new THREE.Group();
-      accesoGroup.position.set(8.0, 0, 28.0);
+    /* 5. EDIFICIO "B" (Terraza Superior Poniente +4.00m: Aulas 3 y 4, Biblioteca, Maestros) */
+    function buildEdificioB(mat) {
+      const groupB = new THREE.Group();
+      groupB.position.set(-25.5, 4.0, -15.5);
+      scene.add(groupB);
 
-      // Plaza de acceso
-      const plaza = new THREE.Mesh(new THREE.BoxGeometry(14.0, 0.2, 8.0), mat.plazaTile);
-      plaza.position.set(0, 0.1, 0);
-      registerInteractiveRoom(plaza, 'plaza_acceso', 'Plaza de Acceso Principal (112 m²)', 14.0, 0.2, 8.0);
-      accesoGroup.add(plaza);
+      const baseB = new THREE.Mesh(new THREE.BoxGeometry(31.0, 0.24, 9.6), mat.walkwaySlab);
+      baseB.position.set(0, 0.12, 0);
+      baseB.receiveShadow = true;
+      addEdges(baseB, true);
+      registerMeshForSpace(baseB, 'edif_b', new THREE.Vector3(-25.5, 8.8, -15.5));
+      groupB.add(baseB);
 
-      // Caseta C.V.
-      const caseta = new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.8, 2.5), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 }));
-      caseta.position.set(-6.5, 1.4, 0);
-      caseta.castShadow = true;
-      registerInteractiveRoom(caseta, 'caseta_vigilancia', 'Caseta de Vigilancia C.V. (7.5 m²)', 3.0, 2.8, 2.5);
-      accesoGroup.add(caseta);
-
-      // Portón triple abatible de herrería
-      const gateMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.2 });
-      const gate = new THREE.Mesh(new THREE.BoxGeometry(9.0, 2.4, 0.15), gateMat);
-      gate.position.set(0.5, 1.2, 3.8);
-      accesoGroup.add(gate);
-
-      scene.add(accesoGroup);
-    }
-
-    /* 11. BARDA PERIMETRAL Y COTA DE 52.00M */
-    function buildBardaPerimetral(mat) {
-      const bardaMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.8 });
-
-      // Muro perimetral oriente (52.00m)
-      const eastWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 2.8, 52.0), bardaMat);
-      eastWall.position.set(43.5, 1.4, -2.0);
-      eastWall.castShadow = true;
-      registerInteractiveRoom(eastWall, 'barda_perimetral', 'Barda Perimetral Oriente (52.00 m / 5,200 cm)', 0.3, 2.8, 52.0);
-      scene.add(eastWall);
-
-      // COTA ARQUITECTÓNICA 3D FLOTANTE (52.00 m)
-      const dimGroup = new THREE.Group();
-      dimGroup.position.set(45.5, 2.0, -2.0);
-      const dimLine = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 52.0, 8), mat.dimensionLine);
-      dimLine.rotation.x = Math.PI / 2;
-      dimGroup.add(dimLine);
-      scene.add(dimGroup);
-    }
-
-    /* 12. VEGETACIÓN 3D SEGÚN EL PLANO */
-    function buildVegetacion(mat) {
-      const treePositions = [
-        // Hilera bajo Edificio B
-        [-34, 4, -9], [-30, 4, -9], [-26, 4, -9], [-16, 4, -9], [-12, 4, -9],
-        // Hilera a lo largo del muro de contención NPT+4.00
-        [-34, 4, -3], [-30, 4, -3], [-25, 4, -3], [-20, 4, -3], [-15, 4, -3],
-        [-10, 4, -3], [-5, 4, -3], [0, 4, -3], [5, 4, -3], [10, 4, -3],
-        [15, 4, -3], [20, 4, -3], [25, 4, -3], [30, 4, -3], [35, 4, -3],
-        // Árboles al sur de Edificio A
-        [-34, 0, 24], [-27, 0, 24], [-19, 0, 24], [-11, 0, 24], [-4, 0, 24]
+      const roomsB = [
+        { id: 'b_aula3',         x: -11.0, z: -0.8, w: 8.0, d: 7.2, floorColor: 0xe0f2fe, roomType: 'classroom',  doorSide: 'south' },
+        { id: 'b_aula4',         x:  -3.0, z: -0.8, w: 8.0, d: 7.2, floorColor: 0xe0f2fe, roomType: 'classroom',  doorSide: 'south' },
+        { id: 'b_biblioteca',    x:   3.6, z: -0.8, w: 5.2, d: 7.2, floorColor: 0xfef3c7, roomType: 'biblioteca', doorSide: 'south' },
+        { id: 'b_sala_maestros', x:  10.1, z: -0.8, w: 7.8, d: 7.2, floorColor: 0xede9fe, roomType: 'maestros',   doorSide: 'south' }
       ];
 
-      treePositions.forEach(tp => {
-        const tree = new THREE.Group();
-        tree.position.set(tp[0], tp[1], tp[2]);
+      roomsB.forEach(r => buildDetailedRoom(groupB, { ...r, y: 0.24, h: 2.9 }, mat));
 
-        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.25, 1.8, 8), mat.treeTrunk);
-        trunk.position.y = 0.9;
+      // Columnas del pórtico sur
+      for (let cx = -14.8; cx <= 14.8; cx += 4.2) {
+        const col = new THREE.Mesh(new THREE.BoxGeometry(0.32, 3.0, 0.32), mat.colDark);
+        col.position.set(cx, 1.62, 3.9);
+        addEdges(col, true);
+        groupB.add(col);
+      }
+
+      // Losa de techo Edificio B (desmontable)
+      const roofB = new THREE.Mesh(new THREE.BoxGeometry(31.4, 0.28, 9.9), mat.roofSlab);
+      roofB.position.set(0, 3.28, 0);
+      roofB.castShadow = true;
+      addEdges(roofB, true);
+      const fasciaB = new THREE.Mesh(new THREE.BoxGeometry(31.5, 0.34, 10.0), mat.roofTrim);
+      fasciaB.position.set(0, 0.05, 0);
+      roofB.add(fasciaB);
+      roofMeshes.push(roofB);
+      groupB.add(roofB);
+    }
+
+    /* 6. EDIFICIO "C" DE 2 NIVELES (PB Administrativa + Aula 5 en +4.00m | PA Cómputo + Aula 6 en +7.20m) */
+    function buildEdificioC(mat) {
+      const groupC = new THREE.Group();
+      groupC.position.set(3.5, 4.0, -15.5);
+      scene.add(groupC);
+
+      // Losa Planta Baja
+      const baseC = new THREE.Mesh(new THREE.BoxGeometry(24.5, 0.24, 9.6), mat.walkwaySlab);
+      baseC.position.set(0, 0.12, 0);
+      addEdges(baseC, true);
+      registerMeshForSpace(baseC, 'edif_c_pb', new THREE.Vector3(3.5, 7.5, -10.0));
+      groupC.add(baseC);
+
+      // Cubículos de Planta Baja según distribución exacta del plano (2 filas con pasillo central)
+      const roomsPB = [
+        { id: 'c_enfermeria',  x: -9.8, z: -2.4, w: 3.8, d: 3.3, floorColor: 0xdcfce7, roomType: 'admin',     doorSide: 'south', labelYOffset: 2.6 },
+        { id: 'c_tutorias',    x: -9.8, z:  1.4, w: 3.8, d: 3.3, floorColor: 0xfef3c7, roomType: 'admin',     doorSide: 'north', labelYOffset: 2.6 },
+        { id: 'c_archivo',     x: -6.1, z: -2.4, w: 3.4, d: 3.3, floorColor: 0xf1f5f9, roomType: 'admin',     doorSide: 'south', labelYOffset: 2.6 },
+        { id: 'c_ss_admin',    x: -3.2, z: -2.4, w: 2.2, d: 3.3, floorColor: 0xdcfce7, roomType: 'sanitarios',doorSide: 'south', labelYOffset: 2.6 },
+        { id: 'c_direccion',   x: -5.3, z:  1.4, w: 4.8, d: 3.3, floorColor: 0xede9fe, roomType: 'admin',     doorSide: 'north', labelYOffset: 2.6 },
+        { id: 'c_apoyo_acad',  x: -0.2, z: -0.5, w: 4.4, d: 7.1, floorColor: 0xe0f2fe, roomType: 'admin',     doorSide: 'south', labelYOffset: 2.6 },
+        { id: 'c_escalera_pb', x:  3.9, z: -0.5, w: 3.6, d: 7.1, floorColor: 0xcbd5e1, roomType: 'stairs',    doorSide: 'south', labelYOffset: 2.6 },
+        { id: 'c_aula5',       x:  8.8, z: -0.5, w: 6.2, d: 7.1, floorColor: 0xe0f2fe, roomType: 'classroom', doorSide: 'south', labelYOffset: 2.6 }
+      ];
+
+      roomsPB.forEach(r => buildDetailedRoom(groupC, { ...r, y: 0.24, h: 2.85 }, mat));
+
+      // Escalones reales en el cubo de escalera PB -> PA
+      for (let s = 0; s < 10; s++) {
+        const st = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.25, 0.5), mat.retainingWall);
+        st.position.set(3.9, 0.4 + s * 0.28, -2.5 + s * 0.45);
+        addEdges(st, true);
+        groupC.add(st);
+      }
+
+      // Losa de Entrepiso (Nivel +7.15m = Y local 3.15m)
+      const midSlab = new THREE.Mesh(new THREE.BoxGeometry(24.8, 0.26, 9.8), mat.roofSlab);
+      midSlab.position.set(0, 3.22, 0);
+      addEdges(midSlab, true);
+      registerMeshForSpace(midSlab, 'edif_c_pa', new THREE.Vector3(3.5, 11.6, -15.5));
+      groupC.add(midSlab);
+
+      // Barandal de protección del pasillo de Planta Alta
+      const railPA = new THREE.Mesh(new THREE.BoxGeometry(24.6, 0.95, 0.12), mat.retainingCoping);
+      railPA.position.set(0, 3.82, 4.6);
+      addEdges(railPA, true);
+      groupC.add(railPA);
+
+      // Salones de Planta Alta (Taller de Cómputo, Escalera PA y Aula 6)
+      const roomsPA = [
+        { id: 'c_computo',     x: -5.0, z: -0.5, w: 14.0, d: 7.1, floorColor: 0xbae6fd, roomType: 'computo',   doorSide: 'south', labelYOffset: 3.4 },
+        { id: 'c_escalera_pa', x:  3.9, z: -0.5, w:  3.6, d: 7.1, floorColor: 0xcbd5e1, roomType: 'stairs',    doorSide: 'south', labelYOffset: 3.4 },
+        { id: 'c_aula6',       x:  8.8, z: -0.5, w:  6.2, d: 7.1, floorColor: 0xe0f2fe, roomType: 'classroom', doorSide: 'south', labelYOffset: 3.4 }
+      ];
+
+      roomsPA.forEach(r => buildDetailedRoom(groupC, { ...r, y: 3.35, h: 2.85 }, mat));
+
+      // Losa de Azotea Superior de Edificio C (desmontable)
+      const topRoofC = new THREE.Mesh(new THREE.BoxGeometry(25.0, 0.28, 10.0), mat.roofSlab);
+      topRoofC.position.set(0, 6.35, 0);
+      topRoofC.castShadow = true;
+      addEdges(topRoofC, true);
+      const fasciaC = new THREE.Mesh(new THREE.BoxGeometry(25.1, 0.34, 10.1), mat.roofTrim);
+      fasciaC.position.set(0, 0.05, 0);
+      topRoofC.add(fasciaC);
+      roofMeshes.push(topRoofC);
+      groupC.add(topRoofC);
+    }
+
+    /* 7. CANCHA DE USOS MÚLTIPLES (30 × 18m = 540 m²) Y ZONA DE BANCAS (CAP. 6000-2014) */
+    function buildCanchaYBancas(mat) {
+      // A) CANCHA DEPORTIVA (Arriba Derecha en NPT +4.00m)
+      const canchaGroup = new THREE.Group();
+      canchaGroup.position.set(30.0, 4.0, -14.5);
+      scene.add(canchaGroup);
+
+      const borderSlab = new THREE.Mesh(new THREE.BoxGeometry(27.0, 0.16, 17.5), mat.courtBorder);
+      borderSlab.position.set(0, 0.08, 0);
+      addEdges(borderSlab, true);
+      canchaGroup.add(borderSlab);
+
+      const courtFloor = new THREE.Mesh(new THREE.BoxGeometry(25.0, 0.20, 15.5), mat.courtSurface);
+      courtFloor.position.set(0, 0.10, 0);
+      courtFloor.receiveShadow = true;
+      addEdges(courtFloor, true);
+      registerMeshForSpace(courtFloor, 'cancha_deportiva', new THREE.Vector3(30.0, 6.5, -14.5));
+      canchaGroup.add(courtFloor);
+
+      // Líneas reglamentarias blancas (Círculo central, media cancha, áreas de tiro libre)
+      const midLine = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.02, 15.2), mat.lineWhite);
+      midLine.position.set(0, 0.21, 0);
+      canchaGroup.add(midLine);
+
+      const centerRing = new THREE.Mesh(new THREE.RingGeometry(2.2, 2.35, 32), mat.lineWhite);
+      centerRing.rotation.x = -Math.PI / 2;
+      centerRing.position.set(0, 0.22, 0);
+      canchaGroup.add(centerRing);
+
+      // Tableros de básquetbol y porterías en ambos extremos
+      [-12.2, 12.2].forEach(bx => {
+        const dir = Math.sign(bx);
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 3.6, 12), mat.colDark);
+        post.position.set(bx, 1.8, 0);
+        canchaGroup.add(post);
+
+        const board = new THREE.Mesh(new THREE.BoxGeometry(0.10, 1.15, 1.75), mat.wallExt);
+        board.position.set(bx - dir * 0.45, 3.2, 0);
+        addEdges(board, true);
+        canchaGroup.add(board);
+
+        const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.03, 8, 16), new THREE.MeshBasicMaterial({ color: 0xea580c }));
+        hoop.rotation.x = Math.PI / 2;
+        hoop.position.set(bx - dir * 0.72, 2.95, 0);
+        canchaGroup.add(hoop);
+
+        // Área pintada (llave de básquetbol)
+        const keyLine = new THREE.Mesh(new THREE.RingGeometry(4.2, 4.35, 24, 1, -Math.PI / 2, Math.PI), mat.lineWhite);
+        keyLine.rotation.x = -Math.PI / 2;
+        keyLine.rotation.z = dir > 0 ? Math.PI : 0;
+        keyLine.position.set(bx - dir * 2.5, 0.22, 0);
+        canchaGroup.add(keyLine);
+      });
+
+      // B) ZONA DE BANCAS Y CONVIVENCIA (Entre la Cancha y el muro de contención oriente: Z = 0.0, Y = 4.0)
+      const bancasGroup = new THREE.Group();
+      bancasGroup.position.set(29.0, 4.0, 0.2);
+      scene.add(bancasGroup);
+
+      const bancasSlab = new THREE.Mesh(new THREE.BoxGeometry(25.0, 0.14, 7.2), mat.walkwaySlab);
+      bancasSlab.position.set(0, 0.07, 0);
+      addEdges(bancasSlab, false);
+      registerMeshForSpace(bancasSlab, 'zona_bancas', new THREE.Vector3(29.0, 5.8, 0.2));
+      bancasGroup.add(bancasSlab);
+
+      // 4 Conjuntos de mesas (2 rectangulares en los extremos y 2 circulares al centro, idéntico al plano)
+      [-8.5, 8.5].forEach(tx => {
+        const tbl = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.75, 1.0), mat.deskWood);
+        tbl.position.set(tx, 0.42, 0);
+        addEdges(tbl, true);
+        bancasGroup.add(tbl);
+        [-0.85, 0.85].forEach(bz => {
+          const bch = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.45, 0.35), mat.chairBlue);
+          bch.position.set(tx, 0.26, bz);
+          addEdges(bch, false);
+          bancasGroup.add(bch);
+        });
+      });
+
+      [-2.8, 2.8].forEach(tx => {
+        const roundTbl = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.75, 16), mat.deskWood);
+        roundTbl.position.set(tx, 0.42, 0);
+        addEdges(roundTbl, true);
+        bancasGroup.add(roundTbl);
+        for (let a = 0; a < 4; a++) {
+          const ang = (a * Math.PI) / 2;
+          const seat = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.45, 12), mat.chairBlue);
+          seat.position.set(tx + Math.cos(ang) * 1.35, 0.26, Math.sin(ang) * 1.35);
+          bancasGroup.add(seat);
+        }
+      });
+    }
+
+    /* 8. EDIFICIO "D" LABORATORIO DE USOS MÚLTIPLES (Orientación Norte-Sur fiel al plano original) */
+    function buildEdificioD(mat) {
+      const groupD = new THREE.Group();
+      groupD.position.set(31.5, 0, 17.5);
+      scene.add(groupD);
+
+      // Losa de desplante (9.8 m frente × 16.5 m fondo = 183.07 m² con andadores)
+      const baseD = new THREE.Mesh(new THREE.BoxGeometry(10.8, 0.24, 16.6), mat.walkwaySlab);
+      baseD.position.set(0, 0.12, 0);
+      addEdges(baseD, true);
+      registerMeshForSpace(baseD, 'edif_d', new THREE.Vector3(31.5, 4.8, 17.5));
+      groupD.add(baseD);
+
+      // Nave Principal Norte: Laboratorio de Usos Múltiples (92.16 m²)
+      buildDetailedRoom(groupD, {
+        id: 'd_laboratorio',
+        x: 0, y: 0.24, z: -2.4,
+        w: 9.2, d: 10.2, h: 3.1,
+        floorColor: 0xbae6fd,
+        roomType: 'lab',
+        doorSide: 'south',
+        windowSides: ['west', 'east', 'north'],
+        labelYOffset: 3.6
+      }, mat);
+
+      // Anexo Sur Izquierdo: Cubículo de Reactivos (13.68 m²)
+      buildDetailedRoom(groupD, {
+        id: 'd_reactivos',
+        x: -2.3, y: 0.24, z: 4.9,
+        w: 4.5, d: 4.2, h: 3.1,
+        floorColor: 0xfef08a,
+        roomType: 'admin',
+        doorSide: 'north',
+        windowSides: ['south', 'west'],
+        labelYOffset: 3.6
+      }, mat);
+
+      // Anexo Sur Derecho: Almacén de Laboratorio (12.92 m²)
+      buildDetailedRoom(groupD, {
+        id: 'd_almacen_lab',
+        x: 2.3, y: 0.24, z: 4.9,
+        w: 4.5, d: 4.2, h: 3.1,
+        floorColor: 0xf1f5f9,
+        roomType: 'admin',
+        doorSide: 'north',
+        windowSides: ['south', 'east'],
+        labelYOffset: 3.6
+      }, mat);
+
+      // 6 Columnas estructurales exteriores marcadas en el plano original
+      [-4.8, 4.8].forEach(cx => {
+        [-7.2, -2.4, 2.4, 7.0].forEach(cz => {
+          const col = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 3.2, 12), mat.colDark);
+          col.position.set(cx, 1.72, cz);
+          addEdges(col, false);
+          groupD.add(col);
+        });
+      });
+
+      // Techo de Edificio D (desmontable)
+      const roofD = new THREE.Mesh(new THREE.BoxGeometry(11.0, 0.28, 16.8), mat.roofSlab);
+      roofD.position.set(0, 3.48, 0);
+      roofD.castShadow = true;
+      addEdges(roofD, true);
+      const fasciaD = new THREE.Mesh(new THREE.BoxGeometry(11.1, 0.34, 16.9), mat.roofTrim);
+      fasciaD.position.set(0, 0.05, 0);
+      roofD.add(fasciaD);
+      roofMeshes.push(roofD);
+      groupD.add(roofD);
+    }
+
+    /* 9. ESTACIONAMIENTO (6 AUTOS DETALLADOS), CAPTADOR PLUVIAL, CASETA C.V. Y PLAZA DE ACCESO */
+    function buildAccesoYExteriores(mat) {
+      // A) CAPTADOR DE AGUA PLUVIAL (500 × 500 cm = 25 m², entre Edif A y Estacionamiento)
+      const capGroup = new THREE.Group();
+      capGroup.position.set(-0.5, 0, 14.5);
+      scene.add(capGroup);
+
+      const cistern = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.85, 4.8), mat.wallExt);
+      cistern.position.set(0, 0.425, 0);
+      addEdges(cistern, true);
+      registerMeshForSpace(cistern, 'captador_pluvial', new THREE.Vector3(-0.5, 2.5, 14.5));
+      capGroup.add(cistern);
+
+      const waterPool = new THREE.Mesh(new THREE.BoxGeometry(4.1, 0.1, 4.1), new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.2 }));
+      waterPool.position.set(0, 0.86, 0);
+      capGroup.add(waterPool);
+
+      // Tubería bajante pluvial desde la techumbre de la Plaza Cívica
+      const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 2.2, 8), mat.retainingCoping);
+      pipe.position.set(0, 1.1, -2.0);
+      capGroup.add(pipe);
+
+      // B) ESTACIONAMIENTO DOCENTE Y ADMINISTRATIVO (4 autos fila norte + 2 autos fila sur, fiel al plano)
+      const parkGroup = new THREE.Group();
+      parkGroup.position.set(14.5, 0, 15.5);
+      scene.add(parkGroup);
+
+      const parkPad = new THREE.Mesh(new THREE.BoxGeometry(18.5, 0.14, 17.5), mat.asphalt);
+      parkPad.position.set(0, 0.07, 0);
+      parkPad.receiveShadow = true;
+      addEdges(parkPad, true);
+      registerMeshForSpace(parkPad, 'estacionamiento', new THREE.Vector3(14.5, 2.2, 15.5));
+      parkGroup.add(parkPad);
+
+      const carColors = [0xdc2626, 0x0284c7, 0x475569, 0x16a34a, 0xd97706, 0x4f46e5];
+      const carPositions = [
+        { x: -6.0, z: -5.2 },
+        { x: -2.5, z: -5.2 },
+        { x:  1.0, z: -5.2 },
+        { x:  4.5, z: -5.2 },
+        { x: -1.5, z:  4.2 },
+        { x:  2.2, z:  4.2 }
+      ];
+
+      carPositions.forEach((cp, idx) => {
+        // Líneas de cajón de estacionamiento
+        const bayLine = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.02, 4.8), mat.lineYellow);
+        bayLine.position.set(cp.x, 0.15, cp.z);
+        addEdges(bayLine, true);
+        parkGroup.add(bayLine);
+
+        // Automóvil 3D detallado (chasis, cabina, parabrisas, 4 llantas)
+        const car = new THREE.Group();
+        car.position.set(cp.x, 0.16, cp.z);
+        parkGroup.add(car);
+
+        const bodyMat = new THREE.MeshStandardMaterial({ color: carColors[idx], roughness: 0.35, metalness: 0.4 });
+        const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.58, 4.1), bodyMat);
+        chassis.position.set(0, 0.42, 0);
+        chassis.castShadow = true;
+        addEdges(chassis, true);
+        car.add(chassis);
+
+        const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.58, 0.52, 2.1), bodyMat);
+        cabin.position.set(0, 0.92, -0.15);
+        addEdges(cabin, true);
+        car.add(cabin);
+
+        const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.42, 1.85), mat.windowGlass);
+        windshield.position.set(0, 0.92, -0.15);
+        car.add(windshield);
+
+        [[-0.92, -1.25], [0.92, -1.25], [-0.92, 1.25], [0.92, 1.25]].forEach(([wx, wz]) => {
+          const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.22, 12), mat.colDark);
+          wheel.rotation.z = Math.PI / 2;
+          wheel.position.set(wx, 0.32, wz);
+          car.add(wheel);
+        });
+      });
+
+      // C) CASETA DE VIGILANCIA (C.V.) Y PLAZA DE ACCESO CON PORTÓN TRIPLE
+      const accesoGroup = new THREE.Group();
+      accesoGroup.position.set(3.5, 0, 25.5);
+      scene.add(accesoGroup);
+
+      // Caseta C.V. (300 × 250 cm = 7.50 m²)
+      buildDetailedRoom(accesoGroup, {
+        id: 'caseta_vigilancia',
+        x: -7.2, y: 0.2, z: -0.5,
+        w: 3.2, d: 2.8, h: 2.6,
+        floorColor: 0xfef3c7,
+        roomType: 'admin',
+        doorSide: 'east',
+        windowSides: ['north', 'east', 'south'],
+        labelYOffset: 3.2
+      }, mat);
+
+      const casetaRoof = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.22, 3.1), mat.roofSlab);
+      casetaRoof.position.set(-7.2, 2.9, -0.5);
+      addEdges(casetaRoof, true);
+      roofMeshes.push(casetaRoof);
+      accesoGroup.add(casetaRoof);
+
+      // Plaza de Acceso (1,400 × 800 cm = 112.00 m²) y 3 Portones Abatibles
+      const plazaAccesoFloor = new THREE.Mesh(new THREE.BoxGeometry(12.0, 0.18, 6.5), mat.plazaFloor);
+      plazaAccesoFloor.position.set(0, 0.09, 0);
+      addEdges(plazaAccesoFloor, true);
+      registerMeshForSpace(plazaAccesoFloor, 'plaza_acceso', new THREE.Vector3(3.5, 2.4, 25.5));
+      accesoGroup.add(plazaAccesoFloor);
+
+      // 4 Pilares de Pórtico y 3 Rejas de Acceso con arcos de abatimiento en el piso
+      [-5.4, -1.8, 1.8, 5.4].forEach(px => {
+        const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.45, 3.2, 0.45), mat.colDark);
+        pillar.position.set(px, 1.6, -2.8);
+        addEdges(pillar, true);
+        accesoGroup.add(pillar);
+      });
+
+      [-3.6, 0.0, 3.6].forEach(gx => {
+        const gate = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.4, 0.12), mat.doorMetal);
+        gate.position.set(gx, 1.3, -2.8);
+        addEdges(gate, true);
+        accesoGroup.add(gate);
+
+        // Arco de abatimiento dibujado en el suelo (como en el plano CAD)
+        const swingArc = new THREE.Mesh(new THREE.RingGeometry(1.5, 1.62, 16, 1, 0, Math.PI), mat.retainingCoping);
+        swingArc.rotation.x = -Math.PI / 2;
+        swingArc.position.set(gx, 0.20, -2.8);
+        accesoGroup.add(swingArc);
+      });
+    }
+
+    /* 10. ARBOLEDA Y JARDINERÍA SEGÚN EL PLANO OFICIAL */
+    function buildVegetacion(mat) {
+      function addTree(x, y, z, scale = 1.0) {
+        const tg = new THREE.Group();
+        tg.position.set(x, y, z);
+
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18 * scale, 0.25 * scale, 1.4 * scale, 8), mat.treeTrunk);
+        trunk.position.set(0, 0.7 * scale, 0);
         trunk.castShadow = true;
-        tree.add(trunk);
+        tg.add(trunk);
 
-        const leaves = new THREE.Mesh(new THREE.SphereGeometry(1.4, 8, 8), mat.treeLeaves);
-        leaves.position.y = 2.4;
-        leaves.scale.set(1.1, 1.3, 1.1);
-        leaves.castShadow = true;
-        tree.add(leaves);
+        const crown = new THREE.Mesh(new THREE.DodecahedronGeometry(1.25 * scale, 1), mat.treeFoliage);
+        crown.position.set(0, 2.1 * scale, 0);
+        crown.castShadow = true;
+        addEdges(crown, false);
+        tg.add(crown);
 
-        scene.add(tree);
+        scene.add(tg);
+      }
+
+      // Hilera de árboles sobre el coronamiento del muro de contención (NPT +4.00m)
+      for (let tx = -33; tx <= 11; tx += 5.5) {
+        addTree(tx, 4.0, -4.2, 0.85);
+      }
+      // Hilera frente a Edificio A (NPT +0.00m)
+      for (let tx = -35; tx <= -9; tx += 6.5) {
+        addTree(tx, 0.0, 14.5, 0.8);
+        addTree(tx, 0.0, 25.5, 0.85);
+      }
+      // Arbustos en la Zona de Bancas
+      for (let tx = 18; tx <= 40; tx += 5.5) {
+        addTree(tx, 4.0, -4.2, 0.75);
+      }
+    }
+
+    /* ==========================================================================
+       SISTEMA DE ETIQUETAS 3D PROYECTADAS (HACE EL PLANO 100% ENTENDIBLE)
+       ========================================================================== */
+    const INTERIOR_CUBICLES = new Set([
+      'c_enfermeria', 'c_tutorias', 'c_archivo', 'c_ss_admin',
+      'c_apoyo_acad', 'c_escalera_pb', 'c_escalera_pa', 'd_almacen_lab', 'predio_general'
+    ]);
+
+    function create3DFloatingLabels() {
+      const layer = document.getElementById('labels-3d-layer');
+      layer.innerHTML = '';
+      labelDOMElements.length = 0;
+
+      SPACES_DB.forEach(sp => {
+        const anchor = space3DAnchors[sp.id];
+        if (!anchor) return;
+
+        const isHeader = ['edif_a', 'edif_b', 'edif_c_pb', 'edif_c_pa', 'edif_d'].includes(sp.id);
+        const isInteriorCubicle = INTERIOR_CUBICLES.has(sp.id);
+        const pin = document.createElement('div');
+        pin.className = `pin-3d ${isHeader ? 'bldg-header' : ''}`;
+        pin.dataset.spaceId = sp.id;
+
+        const dimText = isHeader
+          ? `${fM2(sp.area_m2)} (${fCm2(sp.area_cm2)})`
+          : `${fmtInt.format(sp.length_cm)}×${fmtInt.format(sp.width_cm)} cm • ${fM2(sp.area_m2)}`;
+
+        pin.innerHTML = `
+          <div class="pin-3d-card">
+            <span class="pin-3d-title">${sp.short_name}</span>
+            <span class="pin-3d-sub">${dimText}</span>
+          </div>
+          <div class="pin-3d-stem"></div>
+          <div class="pin-3d-dot"></div>
+        `;
+
+        pin.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectSpace(sp.id, false);
+        });
+
+        layer.appendChild(pin);
+        labelDOMElements.push({ el: pin, spaceId: sp.id, pos: anchor.pos, isHeader, isInteriorCubicle });
+      });
+    }
+
+    function update3DFloatingLabels() {
+      const layer = document.getElementById('labels-3d-layer');
+      if (!showLabels3D) {
+        layer.style.display = 'none';
+        return;
+      }
+      layer.style.display = 'block';
+
+      const halfW = window.innerWidth / 2;
+      const halfH = window.innerHeight / 2;
+      const tempV = new THREE.Vector3();
+
+      labelDOMElements.forEach(item => {
+        // Ocultar cubículos interiores pequeños salvo cuando se quitan techos o está seleccionado
+        if (item.isInteriorCubicle && !isRoofCutaway && item.spaceId !== selectedSpaceId) {
+          item.el.style.display = 'none';
+          return;
+        }
+
+        tempV.copy(item.pos);
+        tempV.project(camera);
+
+        if (tempV.z > 1.0 || tempV.z < -1.0) {
+          item.el.style.display = 'none';
+          return;
+        }
+
+        const sx = (tempV.x * halfW) + halfW;
+        const sy = -(tempV.y * halfH) + halfH;
+
+        item.el.style.display = 'flex';
+        item.el.style.left = `${sx.toFixed(1)}px`;
+        item.el.style.top = `${sy.toFixed(1)}px`;
+        item.el.classList.toggle('active', item.spaceId === selectedSpaceId);
+      });
+    }
+
+    /* ==========================================================================
+       EXPLORADOR LATERAL IZQUIERDO DE SALONES
+       ========================================================================== */
+    function buildExplorerList(filterKey) {
+      const listEl = document.getElementById('exp-list');
+      listEl.innerHTML = '';
+
+      const filtered = SPACES_DB.filter(sp => {
+        if (filterKey === 'all') return true;
+        if (filterKey === 'ext') return !sp.building.startsWith('Edificio');
+        return sp.building === filterKey;
+      });
+
+      filtered.forEach(sp => {
+        const btn = document.createElement('button');
+        btn.className = `exp-item ${sp.id === selectedSpaceId ? 'active' : ''}`;
+        btn.dataset.spaceId = sp.id;
+        btn.innerHTML = `
+          <div class="exp-item-left">
+            <span class="exp-item-name">${sp.short_name}</span>
+            <span class="exp-item-sub">${fCm(sp.length_cm)} × ${fCm(sp.width_cm)}</span>
+          </div>
+          <span class="exp-item-area">${fCm2(sp.area_cm2)}</span>
+        `;
+        btn.addEventListener('click', () => selectSpace(sp.id, true));
+        listEl.appendChild(btn);
       });
     }
 
     /* ==========================================================================
        TRANSICIONES CINEMÁTICAS ENTRE LAS 3 POSES DE CÁMARA
        ========================================================================== */
-    function switchCameraPose(poseKey, animate = true) {
+    function switchCameraPose(poseKey, animateTransition = true) {
       const pose = CAMERA_POSES[poseKey];
       if (!pose) return;
 
       currentPoseKey = poseKey;
 
-      // Actualizar botones en cabecera
       document.querySelectorAll('.pose-btn').forEach(btn => {
         btn.classList.remove('active', 'active-rpg');
       });
-
       const activeBtn = document.getElementById(`btn-pose-${poseKey}`);
       if (activeBtn) {
         if (poseKey === 'rpg') activeBtn.classList.add('active-rpg');
         else activeBtn.classList.add('active');
       }
 
-      // Actualizar texto en barra de estado
       const sbEl = document.getElementById('sb-cam-pose');
       if (sbEl) sbEl.textContent = pose.name;
 
-      if (!animate) {
+      if (!animateTransition) {
         camera.position.copy(pose.pos);
         controls.target.copy(pose.target);
         camera.fov = pose.fov;
         camera.updateProjectionMatrix();
         controls.update();
         renderer.render(scene, camera);
+        update3DFloatingLabels();
         return;
       }
 
-      // Animación suave con TWEEN
       new TWEEN.Tween(camera.position)
-        .to({ x: pose.pos.x, y: pose.pos.y, z: pose.pos.z }, 1200)
+        .to({ x: pose.pos.x, y: pose.pos.y, z: pose.pos.z }, 950)
         .easing(TWEEN.Easing.Cubic.Out)
         .start();
 
       new TWEEN.Tween(controls.target)
-        .to({ x: pose.target.x, y: pose.target.y, z: pose.target.z }, 1200)
+        .to({ x: pose.target.x, y: pose.target.y, z: pose.target.z }, 950)
         .easing(TWEEN.Easing.Cubic.Out)
         .start();
 
       new TWEEN.Tween(camera)
-        .to({ fov: pose.fov }, 1200)
+        .to({ fov: pose.fov }, 950)
         .easing(TWEEN.Easing.Cubic.Out)
         .onUpdate(() => camera.updateProjectionMatrix())
         .start();
     }
 
     /* ==========================================================================
-       INSPECCIÓN Y SELECCIÓN DE SALONES EN 3D
+       SELECCIÓN E INSPECCIÓN DE SALONES EN CM Y CM²
        ========================================================================== */
     function selectSpace(spaceId, flyCamera = false) {
       const space = SPACES_DB.find(s => s.id === spaceId);
@@ -2824,79 +3518,86 @@
 
       selectedSpaceId = spaceId;
 
-      // Actualizar Ficha Técnica en el Inspector
       document.getElementById('insp-code').textContent = `${space.code} • ${space.building.toUpperCase()}`;
       document.getElementById('insp-title').textContent = space.name;
       document.getElementById('insp-subtitle').textContent = `${space.building} • ${space.level} • ${space.norm}`;
 
       document.getElementById('insp-formula').textContent = `${fCm(space.length_cm)} × ${fCm(space.width_cm)}`;
       document.getElementById('insp-area-cm2').textContent = fCm2(space.area_cm2);
-      document.getElementById('insp-area-m2').textContent = `Equivalente a: ${fM2(space.area_m2)}`;
+      document.getElementById('insp-area-m2').textContent = `Equivalente: ${fM2(space.area_m2)}`;
       document.getElementById('insp-area-dm2').textContent = `${fmtInt.format(space.area_m2 * 100)} dm²`;
 
       document.getElementById('insp-len-cm').textContent = fCm(space.length_cm);
       document.getElementById('insp-len-m').textContent = `${fM(space.length_m)} (${fmtInt.format(space.length_cm * 10)} mm)`;
-
       document.getElementById('insp-wid-cm').textContent = fCm(space.width_cm);
       document.getElementById('insp-wid-m').textContent = `${fM(space.width_m)} (${fmtInt.format(space.width_cm * 10)} mm)`;
 
-      document.getElementById('insp-per-cm').textContent = fCm(space.perimeter_cm);
-      document.getElementById('insp-per-m').textContent = `${fM(space.perimeter_m)} lineales`;
-
+      const perimCm = 2 * (space.length_cm + space.width_cm);
       const diagCm = Math.hypot(space.length_cm, space.width_cm);
+      document.getElementById('insp-perim-cm').textContent = fCm(perimCm);
+      document.getElementById('insp-perim-m').textContent = `${fM(perimCm / 100)} lineales`;
       document.getElementById('insp-diag-cm').textContent = fCm(diagCm);
       document.getElementById('insp-diag-m').textContent = `${fM(diagCm / 100)} diagonal`;
 
-      document.getElementById('insp-height').textContent =
-        space.height_cm > 0 ? `${fCm(space.height_cm)} (${fM(space.height_cm / 100)})` : 'Cielo abierto';
-      
-      const volCm3 = space.height_cm > 0 ? space.area_cm2 * space.height_cm : 0;
-      document.getElementById('insp-vol').textContent =
-        volCm3 > 0 ? `${fmtInt.format(volCm3)} cm³ (${fmtDec2.format(volCm3 / 1000000)} m³)` : 'N/A';
-
+      const volM3 = space.area_m2 * (space.height_cm / 100);
+      const volCm3 = space.area_cm2 * space.height_cm;
+      document.getElementById('insp-height').textContent = `${fCm(space.height_cm)} (${fM(space.height_cm / 100)})`;
+      document.getElementById('insp-volume').textContent = `${fmtInt.format(volCm3)} cm³ (${fmtDec2.format(volM3)} m³)`;
       document.getElementById('insp-npt').textContent = space.npt;
-      document.getElementById('insp-capacity').textContent = space.capacity;
-
-      const density = space.students_count > 0 ? space.area_cm2 / space.students_count : 0;
-      document.getElementById('insp-density').textContent =
-        `${fmtInt.format(density)} cm²/persona (${fmtDec2.format(density / 10000)} m²)`;
-
+      document.getElementById('insp-occ').textContent = space.capacity || space.occupancy || 'Uso educativo';
       document.getElementById('insp-norm').textContent = space.norm;
-      document.getElementById('insp-notes').textContent = space.notes;
+      document.getElementById('insp-desc').textContent = space.notes || space.description || '';
 
-      document.getElementById('sb-active-room').textContent =
-        `${space.short_name}: ${fCm(space.length_cm)} × ${fCm(space.width_cm)} = ${fCm2(space.area_cm2)}`;
+      document.getElementById('sb-active-room').textContent = `${space.short_name}: ${fCm(space.length_cm)} × ${fCm(space.width_cm)} = ${fCm2(space.area_cm2)}`;
+      document.getElementById('inspector-3d').classList.remove('collapsed');
 
-      // Mostrar inspector si estaba cerrado
-      document.getElementById('cad-inspector-3d').classList.remove('collapsed');
-      document.getElementById('btn-reopen-insp').classList.remove('visible');
+      // Actualizar estado activo en explorador izquierdo
+      document.querySelectorAll('.exp-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.spaceId === spaceId);
+      });
 
-      // Volar cámara al objeto si fue requerido
-      if (flyCamera) {
-        const mesh = interactiveMeshes.find(m => m.userData.spaceId === spaceId);
-        if (mesh) {
-          const targetPos = new THREE.Vector3();
-          mesh.getWorldPosition(targetPos);
-
-          new TWEEN.Tween(controls.target)
-            .to({ x: targetPos.x, y: targetPos.y + 1.2, z: targetPos.z }, 1000)
-            .easing(TWEEN.Easing.Cubic.Out)
-            .start();
-
-          new TWEEN.Tween(camera.position)
-            .to({ x: targetPos.x - 14, y: targetPos.y + 12, z: targetPos.z + 16 }, 1000)
-            .easing(TWEEN.Easing.Cubic.Out)
-            .start();
+      // Resaltar mallas 3D del salón seleccionado
+      interactiveMeshes.forEach(m => {
+        if (!m.material || !m.material.emissive) return;
+        if (m.userData.spaceId === spaceId) {
+          m.material.emissive.setHex(0x0284c7);
+          m.material.emissiveIntensity = 0.28;
+        } else {
+          m.material.emissive.setHex(0x000000);
+          m.material.emissiveIntensity = 0;
         }
+      });
+
+      // Volar cámara hacia el salón si se solicita
+      if (flyCamera && space3DAnchors[spaceId]) {
+        const targetPos = space3DAnchors[spaceId].pos;
+        new TWEEN.Tween(controls.target)
+          .to({ x: targetPos.x, y: Math.max(1.5, targetPos.y - 2.0), z: targetPos.z }, 750)
+          .easing(TWEEN.Easing.Cubic.Out)
+          .start();
+
+        new TWEEN.Tween(camera.position)
+          .to({ x: targetPos.x - 16, y: targetPos.y + 15, z: targetPos.z + 20 }, 750)
+          .easing(TWEEN.Easing.Cubic.Out)
+          .start();
       }
     }
 
     /* ==========================================================================
-       EVENTOS DE INTERACCIÓN, CORTE DE TECHOS Y ATAJOS
+       EVENTOS INTERACTIVOS
        ========================================================================== */
     function setupEvents() {
-      // Hover y Clic 3D con Raycasting
+      const tooltipEl = document.getElementById('tooltip-3d');
+      const ttTitle = document.getElementById('tt-title');
+      const ttDims = document.getElementById('tt-dims');
+      const ttArea = document.getElementById('tt-area');
+
       window.addEventListener('mousemove', (e) => {
+        if (e.target.closest('.top-cad-header, .cad-inspector-3d, .left-explorer, .pin-3d')) {
+          tooltipEl.style.display = 'none';
+          return;
+        }
+
         mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
@@ -2905,14 +3606,14 @@
 
         if (intersects.length > 0) {
           const hit = intersects[0].object;
-          const space = SPACES_DB.find(s => s.id === hit.userData.spaceId);
-          if (space) {
+          const sp = SPACES_DB.find(s => s.id === hit.userData.spaceId);
+          if (sp) {
             tooltipEl.style.display = 'block';
             tooltipEl.style.left = `${e.clientX}px`;
             tooltipEl.style.top = `${e.clientY}px`;
-            ttTitle.textContent = space.short_name;
-            ttDims.textContent = `${fCm(space.length_cm)} × ${fCm(space.width_cm)}`;
-            ttArea.textContent = fCm2(space.area_cm2);
+            ttTitle.textContent = sp.name;
+            ttDims.textContent = `${fCm(sp.length_cm)} × ${fCm(sp.width_cm)} (${fM(sp.length_m)} × ${fM(sp.width_m)})`;
+            ttArea.textContent = `${fCm2(sp.area_cm2)} (${fM2(sp.area_m2)})`;
             document.body.style.cursor = 'pointer';
             return;
           }
@@ -2923,14 +3624,12 @@
       });
 
       window.addEventListener('click', (e) => {
-        if (e.target.closest('.top-cad-header, .cad-inspector-3d, .btn-reopen-insp')) return;
+        if (e.target.closest('.top-cad-header, .cad-inspector-3d, .left-explorer, .pin-3d')) return;
 
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(interactiveMeshes);
-
         if (intersects.length > 0) {
-          const hit = intersects[0].object;
-          selectSpace(hit.userData.spaceId, false);
+          selectSpace(intersects[0].object.userData.spaceId, false);
         }
       });
 
@@ -2939,42 +3638,41 @@
       document.getElementById('btn-pose-low').addEventListener('click', () => switchCameraPose('low'));
       document.getElementById('btn-pose-aerial').addEventListener('click', () => switchCameraPose('aerial'));
 
-      // Alternar corte de techos (Cutaway)
-      document.getElementById('btn-toggle-roofs').addEventListener('click', () => {
+      // Alternar Etiquetas 3D
+      document.getElementById('btn-toggle-labels').addEventListener('click', function() {
+        showLabels3D = !showLabels3D;
+        this.classList.toggle('active', showLabels3D);
+        update3DFloatingLabels();
+      });
+
+      // Alternar Corte de Techos (Cutaway)
+      document.getElementById('btn-toggle-roofs').addEventListener('click', function() {
         isRoofCutaway = !isRoofCutaway;
-        roofMeshes.forEach(m => {
-          m.visible = !isRoofCutaway;
-        });
-        document.getElementById('lbl-toggle-roofs').textContent =
-          isRoofCutaway ? 'Ver Techos Completos' : 'Quitar Techos (Interiores)';
-        document.getElementById('btn-toggle-roofs').classList.toggle('active', isRoofCutaway);
+        roofMeshes.forEach(m => { m.visible = !isRoofCutaway; });
+        this.classList.toggle('active', isRoofCutaway);
+        document.getElementById('lbl-toggle-roofs').textContent = isRoofCutaway ? 'Mostrar Techos' : 'Quitar Techos (Interiores)';
       });
 
-      // Alternar estilo blanco CAD vs Realista
-      document.getElementById('btn-cad-style').addEventListener('click', () => {
+      // Alternar Modo Blanco CAD
+      document.getElementById('btn-cad-style').addEventListener('click', function() {
         isCadWhiteStyle = !isCadWhiteStyle;
-        document.getElementById('lbl-cad-style').textContent =
-          isCadWhiteStyle ? 'Estilo Realista' : 'Estilo CAD Blanco';
-        document.getElementById('btn-cad-style').classList.toggle('active', isCadWhiteStyle);
-
-        scene.background.set(isCadWhiteStyle ? 0xffffff : 0xf8fafc);
-        scene.fog.color.set(isCadWhiteStyle ? 0xffffff : 0xf8fafc);
+        this.classList.toggle('active', isCadWhiteStyle);
+        scene.background.setHex(isCadWhiteStyle ? 0xffffff : 0xf1f5f9);
+        edgeLineMatDark.opacity = isCadWhiteStyle ? 0.85 : 0.55;
       });
 
-      // Volar al salón seleccionado
-      document.getElementById('btn-focus-room').addEventListener('click', () => {
-        selectSpace(selectedSpaceId, true);
+      // Filtros del explorador izquierdo
+      document.querySelectorAll('#exp-filters .exp-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          document.querySelectorAll('#exp-filters .exp-pill').forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          buildExplorerList(pill.dataset.filter);
+        });
       });
 
-      // Cerrar y abrir panel inspector
+      document.getElementById('btn-focus-room').addEventListener('click', () => selectSpace(selectedSpaceId, true));
       document.getElementById('btn-close-insp').addEventListener('click', () => {
-        document.getElementById('cad-inspector-3d').classList.add('collapsed');
-        document.getElementById('btn-reopen-insp').classList.add('visible');
-      });
-
-      document.getElementById('btn-reopen-insp').addEventListener('click', () => {
-        document.getElementById('cad-inspector-3d').classList.remove('collapsed');
-        document.getElementById('btn-reopen-insp').classList.remove('visible');
+        document.getElementById('inspector-3d').classList.add('collapsed');
       });
 
       // Atajos de teclado
@@ -2983,11 +3681,11 @@
         else if (e.key === '2') switchCameraPose('low');
         else if (e.key === '3') switchCameraPose('aerial');
         else if (e.key === 't' || e.key === 'T') document.getElementById('btn-toggle-roofs').click();
+        else if (e.key === 'l' || e.key === 'L') document.getElementById('btn-toggle-labels').click();
         else if (e.key === 'f' || e.key === 'F') selectSpace(selectedSpaceId, true);
         else if (e.key === 'Escape') document.getElementById('btn-close-insp').click();
       });
 
-      // Redimensionamiento
       window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
@@ -2995,15 +3693,14 @@
       });
     }
 
-    /* BUCLE DE ANIMACIÓN CONTINUO */
-    function animate(time) {
+    function animate() {
       requestAnimationFrame(animate);
       TWEEN.update();
       controls.update();
       renderer.render(scene, camera);
+      update3DFloatingLabels();
     }
 
-    // Iniciar al cargar el DOM
     window.addEventListener('DOMContentLoaded', init3D);
   })();
   </script>
