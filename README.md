@@ -119,15 +119,15 @@ flowchart LR
 
 El juego cuenta con un esquema de control arcade responsivo diseñado para teclado, permitiendo desplazarse con fluidez en 8 direcciones y defender el ambiente escolar.
 
-### 🕹️ Mapeo de Teclas
+### 🕹️ Mapeo de Teclas y Controles Táctiles
 
-| Acción | Tecla Principal | Alternativa | Descripción |
-| :--- | :---: | :---: | :--- |
-| **Moverse (8 Direcciones)** | <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> | <kbd>↑</kbd> <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd> | Desplazamiento libre con aceleración e inercia calculada. |
-| **Disparo de Valores** | <kbd>Espacio</kbd> | *Click Izquierdo* | Proyectil radiante en la dirección cardinal hacia donde mira el héroe. |
-| **Pausar / Continuar** | <kbd>Escape</kbd> | <kbd>P</kbd> | Despliega el menú de pausa y detiene la simulación temporalmente. |
-| **Reiniciar Nivel** | <kbd>R</kbd> | <kbd>Enter</kbd> | Reinicia la posición y estado del nivel en curso. |
-| **Selección de Dificultad** | <kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> | Flechas <kbd>←</kbd> / <kbd>→</kbd> | Configura el balance de juego directamente desde el menú principal. |
+| Acción | Tecla Principal (PC) | Alternativa (PC) | Control Móvil (Android / Táctil) | Descripción |
+| :--- | :---: | :---: | :---: | :--- |
+| **Moverse (8 Direcciones)** | <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> | <kbd>↑</kbd> <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd> | **Joystick Analógico Virtual** (Inferior Izq.) | Desplazamiento fluido en 8 direcciones con inercia y reborde táctil dinámico. |
+| **Disparo de Valores** | <kbd>Espacio</kbd> | *Click Izquierdo* | **Botón "VIRTUD"** (Inferior Der.) | Proyectil radiante en la dirección cardinal hacia donde mira el héroe. |
+| **Pausar / Continuar** | <kbd>Escape</kbd> | <kbd>P</kbd> | **Botón de Pausa `⏸`** (Superior Der.) | Despliega el menú de pausa y detiene la simulación temporalmente. |
+| **Reiniciar Nivel** | <kbd>R</kbd> | <kbd>Enter</kbd> | Botón en Pantalla Modal | Reinicia la posición y estado del nivel en curso. |
+| **Selección de Dificultad** | <kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> | Flechas <kbd>←</kbd> / <kbd>→</kbd> | Toque en botones de dificultad | Configura el balance de juego directamente desde el menú principal. |
 
 ---
 

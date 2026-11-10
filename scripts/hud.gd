@@ -32,6 +32,7 @@ const HEART_EMPTY := preload("res://assets/sprites/corazon_vacio.png")
 @onready var btn_menu_vic: Button = %BtnVictoryMenu
 @onready var sfx_game_over: AudioStreamPlayer = $SFXGameOver
 @onready var sfx_ui: AudioStreamPlayer = $SFXUi
+@onready var mobile_controls: MobileControls = get_node_or_null("MobileControls")
 
 var is_game_finished: bool = false
 var is_paused: bool = false
@@ -58,6 +59,9 @@ func _ready() -> void:
 
 	for btn in [btn_resume, btn_pause_menu, btn_retry, btn_menu_go, btn_play_again, btn_menu_vic]:
 		UiJuice.attach_button(btn, sfx_ui)
+
+	if mobile_controls:
+		mobile_controls.pause_requested.connect(func(): set_paused(not is_paused))
 
 func _process(delta: float) -> void:
 	# La barra avanza con suavidad en vez de saltar
@@ -114,8 +118,12 @@ func set_paused(paused: bool) -> void:
 	GameSettings.duck_music(paused)
 	if paused:
 		_show_panel(pause_panel, btn_resume)
+		if mobile_controls:
+			mobile_controls.visible = false
 	else:
 		_hide_panel(pause_panel)
+		if mobile_controls:
+			mobile_controls.visible = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("web_android") or OS.has_feature("web_ios") or DisplayServer.is_touchscreen_available()
 
 func set_difficulty_text(diff_name: String) -> void:
 	difficulty_label.text = "Dificultad: %s" % diff_name
@@ -132,6 +140,8 @@ func reset_state() -> void:
 	for panel in [pause_panel, game_over_panel, victory_panel]:
 		panel.visible = false
 	overlay.visible = false
+	if mobile_controls:
+		mobile_controls.visible = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("web_android") or OS.has_feature("web_ios") or DisplayServer.is_touchscreen_available()
 
 ## Reutiliza los nodos de corazones (antes se destruían y creaban en cada golpe)
 ## y anima los que cambian.
@@ -235,6 +245,8 @@ func show_game_over(stats: Dictionary = {}) -> void:
 	if is_game_finished:
 		return
 	is_game_finished = true
+	if mobile_controls:
+		mobile_controls.visible = false
 	if sfx_game_over:
 		sfx_game_over.play()
 	game_over_stats.text = "Antivalores vencidos: %d  ·  Progreso: %d %%" % [
@@ -246,6 +258,8 @@ func show_victory(stats: Dictionary = {}) -> void:
 	if is_game_finished:
 		return
 	is_game_finished = true
+	if mobile_controls:
+		mobile_controls.visible = false
 	_target_progress = 100.0
 	_show_panel(victory_panel, btn_play_again)
 

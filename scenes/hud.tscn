@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/player_idle.png" id="4_player"]
 [ext_resource type="Texture2D" path="res://assets/sprites/meta.png" id="5_meta"]
 [ext_resource type="AudioStream" path="res://assets/audio/ataque.wav" id="6_sfx_ui"]
+[ext_resource type="PackedScene" path="res://scenes/mobile_controls.tscn" id="7_mobile"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_top"]
 content_margin_left = 10.0
@@ -419,3 +420,5 @@ stream = ExtResource("2_sfx_go")
 stream = ExtResource("6_sfx_ui")
 volume_db = -12.0
 pitch_scale = 1.4
+
+[node name="MobileControls" parent="." instance=ExtResource("7_mobile")]
