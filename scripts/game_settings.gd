@@ -49,8 +49,11 @@ var _fade_tween: Tween
 var _ducked: bool = false
 var _stopping: bool = false
 
+const SETTINGS_PATH := "user://settings.cfg"
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	load_settings()
 	MUSIC_MENU = load("res://assets/audio/music_menu.wav")
 	MUSIC_GAME = load("res://assets/audio/music_game.wav")
 
@@ -61,11 +64,32 @@ func _ready() -> void:
 	_music.finished.connect(_on_music_finished)
 
 func _exit_tree() -> void:
+	save_settings()
+	if _fade_tween and _fade_tween.is_valid():
+		_fade_tween.kill()
 	if _music:
 		if _music.finished.is_connected(_on_music_finished):
 			_music.finished.disconnect(_on_music_finished)
 		_music.stop()
 		_music.stream = null
+		_music.free()
+		_music = null
+	MUSIC_MENU = null
+	MUSIC_GAME = null
+
+func save_settings() -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("game", "difficulty", difficulty)
+	cfg.set_value("audio", "music_volume_db", music_volume_db)
+	cfg.save(SETTINGS_PATH)
+
+func load_settings() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SETTINGS_PATH) == OK:
+		difficulty = cfg.get_value("game", "difficulty", Difficulty.NORMAL)
+		music_volume_db = cfg.get_value("audio", "music_volume_db", -8.0)
+		if _music:
+			_music.volume_db = music_volume_db
 
 func _on_music_finished() -> void:
 	if _music and _music.stream and not _stopping:

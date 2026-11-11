@@ -5,6 +5,7 @@ extends Control
 ## Atajos de teclado: Flechas / A-D / 1-2-3 cambian dificultad, ENTER inicia partida, ESC sale.
 
 const GAME_SCENE := "res://scenes/main.tscn"
+const LOADING_SCENE := "res://scenes/loading_screen.tscn"
 
 const DIFFICULTY_INFO := [
 	"♥ 5 corazones · enemigos lentos · disparo grande y rápido",
@@ -126,11 +127,9 @@ func _animate_intro() -> void:
 			tw.tween_property(child, "modulate:a", 1.0, 0.22).set_delay(0.08 + idx * 0.04)
 			idx += 1
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	if _scene_transition and _scene_transition.is_busy:
 		return
-	# Se usa _input (no _unhandled_input) para que las flechas no se las "coma"
-	# la navegación de foco de los botones.
 	if not (event is InputEventKey and event.pressed and not event.echo):
 		return
 	var handled := true
@@ -197,9 +196,9 @@ func _start_game() -> void:
 		sfx_select.pitch_scale = 1.15
 		sfx_select.play()
 	if _scene_transition and _scene_transition.has_method("change_scene"):
-		_scene_transition.change_scene(GAME_SCENE)
+		_scene_transition.change_scene(LOADING_SCENE)
 	else:
-		get_tree().change_scene_to_file(GAME_SCENE)
+		get_tree().change_scene_to_file(LOADING_SCENE)
 
 func _quit() -> void:
 	if OS.has_feature("web"):

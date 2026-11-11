@@ -245,7 +245,12 @@ func spawn_projectile() -> void:
 	shot.speed = shot_speed
 	shot.scale = Vector2(shot_scale, shot_scale)
 	shot.global_position = global_position + shot_dir * 24.0 + Vector2(0, -10.0)
-	get_parent().add_child(shot)
+
+	var target_parent: Node = get_parent()
+	if target_parent == null or not is_inside_tree():
+		target_parent = get_tree().current_scene if get_tree() else null
+	if target_parent:
+		target_parent.add_child(shot)
 
 func check_attack_hits() -> void:
 	if not is_attacking:

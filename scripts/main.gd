@@ -20,6 +20,7 @@ var elapsed_time: float = 0.0
 
 var _cached_goal_pos: Vector2 = Vector2.ZERO
 var _cached_total_dist: float = 1.0
+var _max_reached_dist: float = 0.0
 
 var _game_settings: Node:
 	get:
@@ -85,6 +86,7 @@ func load_level(index: int) -> void:
 	var g_pos: Vector2 = lvl_data.get("goal_position", Vector2(1000, 400))
 	_cached_goal_pos = g_pos
 	_cached_total_dist = maxf(1.0, p_spawn.distance_to(g_pos))
+	_max_reached_dist = 0.0
 
 	var title: String = lvl_data.get("title", "Nivel %d" % (current_level_index + 1))
 	hud.set_level_title(title)
@@ -102,7 +104,25 @@ func _process(delta: float) -> void:
 	if active_level and active_level.player and is_instance_valid(active_level.player):
 		var remaining_dist := active_level.player.position.distance_to(_cached_goal_pos)
 		var current_dist := clampf(_cached_total_dist - remaining_dist, 0.0, _cached_total_dist)
-		hud.update_progress(current_dist, _cached_total_dist)
+		_max_reached_dist = maxf(_max_reached_dist, current_dist)
+		hud.update_progress(_max_reached_dist, _cached_total_dist)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_F11 or (event.keycode == KEY_ENTER and event.alt_pressed):
+			_toggle_fullscreen()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_ESCAPE:
+			if hud and hud.has_method("set_paused"):
+				hud.set_paused(not hud.is_paused)
+				get_viewport().set_input_as_handled()
+
+func _toggle_fullscreen() -> void:
+	var mode := DisplayServer.window_get_mode()
+	if mode == DisplayServer.WINDOW_MODE_FULLSCREEN or mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 func _on_enemy_defeated(_enemy: Enemy) -> void:
 	enemies_defeated += 1
@@ -170,34 +190,8 @@ func _on_go_to_menu() -> void:
 	else:
 		get_tree().change_scene_to_file(MENU_SCENE)
 
-## Registra acciones de teclado y joypad en InputMap si aún no existen
+## Asegura mapeos de joypad y gamepad complementarios en tiempo de ejecución
 func setup_inputs() -> void:
-	var actions := {
-		"move_left": [KEY_A, KEY_LEFT],
-		"move_right": [KEY_D, KEY_RIGHT],
-		"move_up": [KEY_W, KEY_UP],
-		"move_down": [KEY_S, KEY_DOWN],
-		"attack": [KEY_SPACE],
-		"restart": [KEY_R, KEY_ENTER],
-		"aim_left": [KEY_J],
-		"aim_right": [KEY_L],
-		"aim_up": [KEY_I],
-		"aim_down": [KEY_K],
-	}
-	for action in actions:
-		if not InputMap.has_action(action):
-			InputMap.add_action(action)
-		for k in actions[action]:
-			var exists := false
-			for ev in InputMap.action_get_events(action):
-				if ev is InputEventKey and ev.keycode == k:
-					exists = true
-					break
-			if not exists:
-				var ev := InputEventKey.new()
-				ev.keycode = k
-				InputMap.action_add_event(action, ev)
-
 	# Ejes analógicos de mando / gamepad (Android y PC)
 	_ensure_joy_motion("move_left", JOY_AXIS_LEFT_X, -1.0)
 	_ensure_joy_motion("move_right", JOY_AXIS_LEFT_X, 1.0)

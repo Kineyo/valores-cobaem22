@@ -114,6 +114,14 @@ func _update_ai(delta: float) -> void:
 		var dist_sq := global_position.distance_squared_to(player.global_position)
 		if dist_sq <= _detection_range_sq:
 			move_dir = (player.global_position - global_position).normalized()
+			# Evasión inteligente de paredes y esquinas (context-steering antienquistes)
+			if is_on_wall():
+				var wall_n := get_wall_normal()
+				var tangent := Vector2(-wall_n.y, wall_n.x)
+				if tangent.dot(move_dir) < 0.0:
+					tangent = -tangent
+				move_dir = (move_dir * 0.3 + tangent * 0.85).normalized()
+
 			velocity = velocity.move_toward(move_dir * speed, 600.0 * delta)
 			if move_dir.x != 0.0:
 				sprite.flip_h = move_dir.x < 0.0
@@ -121,6 +129,9 @@ func _update_ai(delta: float) -> void:
 
 	# Patrullaje errante alrededor de la posición de spawn
 	_wander_timer -= delta
+	if is_on_wall():
+		_wander_timer = 0.0 # Redirigir de inmediato si toca muro durante patrullaje
+
 	if _wander_timer <= 0.0:
 		_wander_timer = randf_range(1.5, 3.5)
 		var offset := Vector2(randf_range(-wander_radius, wander_radius), randf_range(-wander_radius, wander_radius))
@@ -128,6 +139,13 @@ func _update_ai(delta: float) -> void:
 
 	if global_position.distance_squared_to(_target_wander) > 400.0:
 		move_dir = (_target_wander - global_position).normalized()
+		if is_on_wall():
+			var wall_n := get_wall_normal()
+			var tangent := Vector2(-wall_n.y, wall_n.x)
+			if tangent.dot(move_dir) < 0.0:
+				tangent = -tangent
+			move_dir = (move_dir * 0.3 + tangent * 0.85).normalized()
+
 		velocity = velocity.move_toward(move_dir * (speed * 0.65), 400.0 * delta)
 		if move_dir.x != 0.0:
 			sprite.flip_h = move_dir.x < 0.0
@@ -174,6 +192,7 @@ func hit_by_attack(attacker_pos: Variant = null) -> void:
 	velocity = Vector2.ZERO
 	hitbox.set_deferred("monitoring", false)
 	hitbox.set_deferred("monitorable", false)
+	$CollisionShape2D.set_deferred("disabled", true)
 	_respawn_timer = respawn_delay
 
 ## Reaparece en el punto de spawn con animación pop
@@ -185,6 +204,7 @@ func respawn() -> void:
 	visible = true
 	hitbox.set_deferred("monitoring", true)
 	hitbox.set_deferred("monitorable", true)
+	$CollisionShape2D.set_deferred("disabled", false)
 	modulate = Color.WHITE
 
 	if _spawn_tween and _spawn_tween.is_valid():

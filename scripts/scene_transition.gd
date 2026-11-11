@@ -18,6 +18,7 @@ var is_busy: bool = false
 
 var _rect: ColorRect
 var _mat: ShaderMaterial
+var _logo_rect: TextureRect
 
 func _ready() -> void:
 	layer = 100
@@ -31,6 +32,18 @@ func _ready() -> void:
 	_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_rect)
+
+	_logo_rect = TextureRect.new()
+	var logo_tex = load("res://assets/logos/cobaem-logo.png")
+	if logo_tex:
+		_logo_rect.texture = logo_tex
+	_logo_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_logo_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_logo_rect.custom_minimum_size = Vector2(54, 80)
+	_logo_rect.size = Vector2(54, 80)
+	_logo_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_logo_rect.modulate.a = 0.0
+	add_child(_logo_rect)
 
 	get_viewport().size_changed.connect(_update_screen_size)
 	_update_screen_size()
@@ -60,8 +73,11 @@ func _run(action: Callable) -> void:
 
 	_mat.set_shader_parameter("reverse", false)
 	var tw := create_tween()
+	tw.set_parallel(true)
 	tw.tween_method(_set_progress, 0.0, 1.0, cover_time) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	if _logo_rect:
+		tw.tween_property(_logo_rect, "modulate:a", 0.95, cover_time)
 	await tw.finished
 
 	get_tree().paused = false
@@ -78,8 +94,11 @@ func _reveal() -> void:
 	_rect.visible = true
 	_mat.set_shader_parameter("reverse", true)
 	var tw := create_tween()
+	tw.set_parallel(true)
 	tw.tween_method(_set_progress, 1.0, 0.0, reveal_time) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if _logo_rect:
+		tw.tween_property(_logo_rect, "modulate:a", 0.0, reveal_time * 0.6)
 	await tw.finished
 	_rect.visible = false
 	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -91,4 +110,7 @@ func _set_progress(value: float) -> void:
 	_mat.set_shader_parameter("progress", value)
 
 func _update_screen_size() -> void:
-	_mat.set_shader_parameter("screen_size", get_viewport().get_visible_rect().size)
+	var vp_size := get_viewport().get_visible_rect().size
+	_mat.set_shader_parameter("screen_size", vp_size)
+	if _logo_rect:
+		_logo_rect.position = (vp_size - _logo_rect.size) * 0.5

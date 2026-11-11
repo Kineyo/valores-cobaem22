@@ -52,4 +52,4 @@ venv/
 # Audit reports and internal logs (hidden and ignored)
 .audit*
 .audit_report.md
-
+reformas_v2.md

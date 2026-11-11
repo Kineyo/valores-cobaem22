@@ -39,11 +39,14 @@ Una experiencia lúdica ambientada a **escala arquitectónica real** dentro de l
 - [🎬 Video de Presentación del Proyecto](#-video-de-presentación-del-proyecto)
 - [🎯 Propósito y Visión Educativa](#-propósito-y-visión-educativa)
 - [🎮 Manual del Jugador y Controles](#-manual-del-jugador-y-controles)
+- [🏛️ Pantalla de Carga Institucional y Transiciones](#️-pantalla-de-carga-institucional-y-transiciones)
+- [📱🖥️ Arquitectura Multiplataforma y Responsividad](#️-arquitectura-multiplataforma-y-responsividad)
 - [🌟 Mecánicas de Juego y Sistema de Valores](#-mecánicas-de-juego-y-sistema-de-valores)
 - [👹 Bestiario de Antivalores y Redención](#-bestiario-de-antivalores-y-redención)
 - [⚙️ Modos de Dificultad y Balance](#️-modos-de-dificultad-y-balance)
 - [🗺️ Guía de los 6 Escenarios Escolares a Escala Real](#️-guía-de-los-6-escenarios-escolares-a-escala-real)
 - [📐 Sistema CAD y Maqueta 3D Interactiva](#-sistema-cad-y-maqueta-3d-interactiva)
+- [📚 Informes Especializados de Auditoría y Dictamen v2](#-informes-especializados-de-auditoría-y-dictamen-v2)
 - [💻 Shells y Comandos de Terminal](#-shells-y-comandos-de-terminal)
 - [🏗️ Arquitectura de Software y Estructura del Código](#️-arquitectura-de-software-y-estructura-del-código)
 - [🚀 Optimizaciones Técnicas y Rendimiento](#-optimizaciones-técnicas-y-rendimiento)
@@ -136,17 +139,63 @@ flowchart LR
 
 ## 🎮 Manual del Jugador y Controles
 
-El juego cuenta con un esquema de control arcade responsivo diseñado para teclado, permitiendo desplazarse con fluidez en 8 direcciones y defender el ambiente escolar.
+El juego cuenta con un esquema de control arcade responsivo diseñado para teclado, ratón, mandos gamepad y pantallas táctiles móviles, permitiendo desplazarse con fluidez en 8 direcciones y defender pacíficamente el ambiente escolar.
 
-### 🕹️ Mapeo de Teclas y Controles Táctiles
+### 🕹️ Mapeo Universal de Teclado, Ratón, Mando y Pantalla Táctil
 
-| Acción | Tecla Principal (PC) | Alternativa (PC) | Control Móvil (Android / Táctil) | Descripción |
+| Acción | Tecla Principal (PC) | Ratón & Gamepad | Control Móvil (Android / Táctil v2.0) | Descripción |
 | :--- | :---: | :---: | :---: | :--- |
-| **Moverse (8 Direcciones)** | <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> | <kbd>↑</kbd> <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd> | **Joystick Analógico Virtual** (Inferior Izq.) | Desplazamiento fluido en 8 direcciones con inercia y reborde táctil dinámico. |
-| **Disparo de Valores** | <kbd>Espacio</kbd> | *Click Izquierdo* | **Botón "VIRTUD"** (Inferior Der.) | Proyectil radiante en la dirección cardinal hacia donde mira el héroe. |
-| **Pausar / Continuar** | <kbd>Escape</kbd> | <kbd>P</kbd> | **Botón de Pausa `⏸`** (Superior Der.) | Despliega el menú de pausa y detiene la simulación temporalmente. |
-| **Reiniciar Nivel** | <kbd>R</kbd> | <kbd>Enter</kbd> | Botón en Pantalla Modal | Reinicia la posición y estado del nivel en curso. |
-| **Selección de Dificultad** | <kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> | Flechas <kbd>←</kbd> / <kbd>→</kbd> | Toque en botones de dificultad | Configura el balance de juego directamente desde el menú principal. |
+| **Moverse (8 Direcciones)** | <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> / <kbd>Flechas</kbd> | Stick Izquierdo / D-Pad | **Joystick Dinámico Izquierdo** | Desplazamiento analógico fluido 8D con muescas cardinales y guías en reposo. |
+| **Disparo de Virtud** | <kbd>Espacio</kbd> | Clic Izquierdo / Botón <kbd>A</kbd> / <kbd>R1</kbd> | **Joystick Dinámico Derecho "VIRTUD"** | Emite haces de luz en 360° con halo guinda/oro y flecha de puntería. |
+| **Apuntado Cardinal / 360°** | <kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> | Cursor del Ratón / Stick Der. | Arrastre de Joystick Derecho | Orienta la dirección del proyectil de virtud hacia los antivalores. |
+| **Pausar / Reanudar** | <kbd>Escape</kbd> / <kbd>P</kbd> | Botón <kbd>Start</kbd> | **Botón `⏸`** (Superior Derecho) | Abre el modal de pausa institucional sin interrumpir la música de fondo. |
+| **Pantalla Completa (Toggle)** | <kbd>F11</kbd> / <kbd>Alt + Enter</kbd> | — | Automático en Móviles | Alterna instantáneamente entre modo ventana y pantalla completa en PC. |
+| **Reiniciar Nivel** | <kbd>R</kbd> | Botón en Modal | Botón en Pantalla Modal | Reinicia la posición y estado del nivel en curso. |
+| **Alternar Controles Táctiles** | <kbd>F1</kbd> | — | Automático por hardware | Muestra u oculta manualmente la superposición de controles táctiles en PC. |
+| **Selección de Dificultad** | <kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> | D-Pad <kbd>←</kbd> / <kbd>→</kbd> | Toque en botones de dificultad | Configura el balance de juego directamente desde el menú principal. |
+
+---
+
+## 🏛️ Pantalla de Carga Institucional y Transiciones
+
+El juego integra una nueva **Pantalla de Carga Asíncrona (`scenes/loading_screen.tscn`)** y un sistema de transiciones con identidad del **Colegio de Bachilleres del Estado de México (COBAEM)**:
+
+- **Escudo y Banners Oficiales:** Renderizado en alta fidelidad de los emblemas institucionales ubicados en `assets/logos/` (`cobaem-logo.png` y `logo_cobaem.png`).
+- **Carga en Hilo Secundario:** Implementado mediante `ResourceLoader.load_threaded_request()`, asegurando una transición fluida sin congelamientos de fotogramas al instanciar mapas grandes.
+- **Barra de Progreso y Telemetría Escolar:** Visualización del porcentaje exacto acompañado de mensajes dinámicos de preparación de baldosas a escala real ($1\text{ m} = 40\text{ px}$).
+- **Carrusel Didáctico de Valores:** Rotación de 9 citas formativas sobre convivencia armónica, filosofía universal (Mandela, Rogers) y sabiduría ancestral otomí de Temoaya (*K'öte m'ui* - Respeto Comunitario) y náhuatl (*Tlamatiliztli* - Sabiduría Recta).
+- **Transiciones Cinematográficas:** La cortinilla de rombos pixel-art (`shaders/pixel_transition.gdshader`) incorpora una marca de agua suave del escudo COBAEM en el punto medio del fundido para erradicar cualquier corte brusco de pantalla.
+
+---
+
+## 📱🖥️ Arquitectura Multiplataforma y Responsividad
+
+Diseñado para ejecutarse con excelencia tanto en computadoras de escritorio y laptops escolares como en teléfonos inteligentes y tabletas de estudiantes y docentes:
+
+```mermaid
+flowchart TD
+    subgraph MultiplatformTarget ["Plataformas Soportadas"]
+        Android["📱 Android 7.0+\nSmartphones & Tablets (18:9, 19.5:9, 20:9, Notch)"]
+        Windows["💻 Windows Desktop\n1080p, 1440p, 4K, 16:9, 16:10 y Ultrawide"]
+        Linux["🐧 Linux (x86_64)\nEquipos Escolares con Intel HD / AMD Vega"]
+        Web["🌐 Web / HTML5 / PWA\nEjecución offline en navegadores y aulas de cómputo"]
+    end
+
+    subgraph CoreGodot ["Motor Godot 4 (GL Compatibility)"]
+        CanvasMode["window/stretch/mode = 'canvas_items'\nNitidez vectorial en HUD + Pixel Art estricto en Sprites"]
+        AspectExp["window/stretch/aspect = 'expand'\nCero distorsión anamórfica + Visión panorámica sin barras negras"]
+        SafeArea["Safe Area Insets (DisplayServer.get_display_safe_area)\nProtección de notches, cámaras perforadas y barras gestuales"]
+        InputComp["Compensación Radial Continua\nEliminación de deadzone del 50% en stick virtual (Respuesta 1:1)"]
+    end
+
+    MultiplatformTarget --> CoreGodot
+```
+
+### 🌟 Pilares Técnicos de la Responsividad Universal:
+1. **Cero Distorsión de Aspecto:** Los sprites se dibujan siempre con relación de aspecto $1:1$ mediante `snap_2d_transforms_to_pixel = true`.
+2. **Blindaje de Safe Area en Móviles:** La barra de corazones, el progreso de la meta y el botón de pausa se ajustan automáticamente a los márgenes seguros reportados por el sistema operativo, impidiendo que queden ocultos tras la muesca de la cámara.
+3. **Desacoplamiento Inteligente de Dispositivos:** Si el juego se abre en una PC sin pantalla táctil, los joysticks virtuales permanecen invisibles para no ensuciar la pantalla; en cuanto se detecta un toque de hardware en una pantalla táctil o dispositivo móvil, los controles se activan con opacidad en reposo (`resting_alpha = 0.18`) y se expanden dinámicamente al apoyar los pulgares.
+4. **Exportación Llave en Mano:** Incluye presets listos para compilar en Linux (`.x86_64`), Windows (`.exe`), Android (`.apk` con keystore de depuración autofirmado incluido) y Web (`index.html` PWA monohilo para compatibilidad universal).
 
 ---
 
@@ -292,6 +341,23 @@ python3 -m http.server 8000
 # -> Maqueta 3D:     http://localhost:8000/plano_3d.html
 # -> Planos CAD 2D:  http://localhost:8000/planos_interactivos.html
 ```
+
+---
+
+## 📚 Informes Especializados de Auditoría y Dictamen v2
+
+El proyecto cuenta con una batería de dictámenes exhaustivos elaborados por 7 agentes y especialistas técnicos, pedagógicos y arquitectónicos en noviembre de 2026, alojados en la carpeta [`reports/`](reports/):
+
+| Documento de Auditoría | Especialista / Área | Enfoque Principal y Contenido |
+| :--- | :--- | :--- |
+| 📁 [`reports/multiplatform_architecture_report.md`](reports/multiplatform_architecture_report.md) | **Arquitecto Multiplataforma** | Matriz de resoluciones (18:9, 19.5:9, 20:9 móvil vs 16:9, 16:10 ultrawide PC), Safe Area insets, perfiles de exportación APK/AAB/Linux/Web y DisplayServer. |
+| 📁 [`reports/plans_and_scenarios_audit.md`](reports/plans_and_scenarios_audit.md) | **Perito en BIM / CAD Escolar** | Auditoría pericial 1m = 40px, cálculo de áreas de envolvente (Edif. A, B, C, D: $1,460.81\text{ m}^2$, Predio: $4,462\text{ m}^2$) y cotejo con el plano oficial. |
+| 📁 [`reports/pedagogical_impact_and_values_audit.md`](reports/pedagogical_impact_and_values_audit.md) | **Doctor en Pedagogía y Ética** | Análisis de impacto en bachillerato (COBAEM / NEM), no violencia activa, recepción con padres de familia, y banco de 25 frases formativas y sabiduría Otomí de Temoaya. |
+| 📁 [`reports/mobile_touch_system_report.md`](reports/mobile_touch_system_report.md) | **Especialista en Controles Móviles** | Diagnóstico del bug de doble toque (`emulate_mouse_from_touch`), aislamiento multitáctil, compensación radial continua y guías en reposo. |
+| 📁 [`reports/desktop_experience_report.md`](reports/desktop_experience_report.md) | **Especialista en PC de Escritorio** | Mapeo de gamepad D-Pad, apuntado con ratón, atajos F11/Alt+Enter, optimización en gráficos integrados Intel HD y prevención de interferencias touch en laptops. |
+| 📁 [`reports/godot_engine_audit.md`](reports/godot_engine_audit.md) | **Auditor de Motor Godot 4 (Core)** | Resolución de fugas ObjectDB en AudioStreamWAV al salir, coherencia de capas de colisión 2D, condición de carrera en hitstop y suite de pruebas físicas. |
+| 📁 [`reports/frontend_ui_ux_report.md`](reports/frontend_ui_ux_report.md) | **Diseñador Líder UI/UX** | Diseño de la nueva Pantalla de Carga, integración de logos institucionales (`assets/logos/`), telemetría de carga y carrusel de valores. |
+| 📁 [`reformas_v2.md`](reformas_v2.md) | **Dictamen General de Reformas** | Hoja de ruta completa de los 20 hallazgos resueltos y verificados de Nivel Rojo a Verde. |
 
 ---
 

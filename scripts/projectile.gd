@@ -16,6 +16,7 @@ var _done: bool = false
 
 func _ready() -> void:
 	area_entered.connect(_on_area_entered)
+	body_entered.connect(_on_body_entered)
 
 	if direction is Vector2:
 		_dir_vec = direction.normalized()
@@ -44,14 +45,33 @@ func _physics_process(delta: float) -> void:
 	if _time >= lifetime:
 		queue_free()
 
+func _spawn_impact_fx(col: Color = Color(1.0, 0.92, 0.5), count: int = 8, vel: float = 120.0) -> void:
+	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+	if fx and get_parent():
+		fx.burst(get_parent(), global_position, col, count, vel)
+
+func _on_body_entered(body: Node2D) -> void:
+	if _done:
+		return
+	# Si impacta contra una pared u obstáculo sólido
+	if body is StaticBody2D or body.is_in_group("obstacles") or (body.collision_layer & 1) != 0:
+		_done = true
+		_spawn_impact_fx(Color(0.85, 0.88, 0.95), 6, 90.0)
+		queue_free()
+		return
+	# Si impacta directamente contra el CharacterBody2D del enemigo
+	if body.has_method("hit_by_attack") and body.is_in_group("enemies"):
+		_done = true
+		_spawn_impact_fx()
+		body.hit_by_attack(global_position)
+		queue_free()
+
 func _on_area_entered(area: Area2D) -> void:
 	if _done or not area.is_in_group("enemies"):
 		return
 	var enemy = area.get_parent()
 	if enemy and enemy.has_method("hit_by_attack"):
 		_done = true
-		var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
-		if fx:
-			fx.burst(get_parent(), global_position, Color(1.0, 0.92, 0.5), 8, 120.0)
+		_spawn_impact_fx()
 		enemy.hit_by_attack(global_position)
 		queue_free()

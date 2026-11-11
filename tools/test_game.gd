@@ -120,16 +120,31 @@ func _init() -> void:
 	mc_node._unhandled_input(touch_up)
 
 	assert(mc_node._left_touch_id == -1, "Debe liberar touch_id")
-	assert(mc_node._target_left_alpha == 0.0, "El objetivo de alfa debe volver a 0.0 al soltar")
+	assert(mc_node._target_left_alpha == mc_node.resting_alpha, "El objetivo de alfa debe volver a resting_alpha al soltar")
 	assert(not Input.is_action_pressed("move_right"), "move_right debe liberarse al soltar")
 
 	mc_node.deactivate()
+	assert(mc_node._target_left_alpha == 0.0, "Al desactivar, el objetivo de alfa debe ser 0.0")
 	mc_node._unhandled_input(touch_down)
 	assert(mc_node._left_touch_id == -1, "No debe registrar toques mientras está desactivado")
 
 	root.remove_child(mc_node)
 	mc_node.free()
-	print("Controles táctiles dinámicos transparentes verificados con éxito.")
+	print("Controles táctiles dinámicos con resting guides verificados con éxito.")
+
+	# 5. Probar nueva Pantalla de Carga (Loading Screen) con logos oficiales y carrusel de valores
+	var load_scene: PackedScene = load("res://scenes/loading_screen.tscn")
+	var load_node = load_scene.instantiate()
+	root.add_child(load_node)
+	assert(load_node != null, "Fallo al instanciar escena de LoadingScreen")
+	load_node._ensure_nodes()
+	load_node._process(0.1)
+	assert(load_node.logo_rect != null, "Logo institucional debe existir en LoadingScreen")
+	assert(load_node.progress_bar != null, "ProgressBar debe existir en LoadingScreen")
+	assert(load_node.tip_label != null, "TipLabel con carrusel de valores debe existir en LoadingScreen")
+	root.remove_child(load_node)
+	load_node.free()
+	print("Pantalla de Carga Institucional (COBAEM CEMSaD 22) verificada con éxito.")
 
 	print("--- TODOS LOS TESTS DE ESCENARIOS Y PROGRESIÓN PASARON CON ÉXITO ---")
 	quit(0)

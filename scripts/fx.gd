@@ -10,6 +10,7 @@ var _shake_strength: float = 0.0
 var _shake_decay: float = 0.0
 var _camera: Camera2D
 var _fade_gradient: Gradient
+var _hitstop_id: int = 0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -45,9 +46,12 @@ func shake(strength: float = 4.0, duration: float = 0.25) -> void:
 
 ## Pausa brevemente la escala de tiempo para acentuar el impacto de un golpe
 func hitstop(duration: float = 0.06, time_scale: float = 0.05) -> void:
+	_hitstop_id += 1
+	var current_id := _hitstop_id
 	Engine.time_scale = time_scale
 	await get_tree().create_timer(duration, true, false, true).timeout
-	Engine.time_scale = 1.0
+	if _hitstop_id == current_id:
+		Engine.time_scale = 1.0
 
 ## Crea un texto flotante emergente con animación ascendente (ej. "¡Respeto!")
 func floating_text(parent: Node, pos: Vector2, text: String, color: Color = Color.WHITE, size: int = 14) -> void:
@@ -100,8 +104,5 @@ func burst(parent: Node, pos: Vector2, color: Color, amount: int = 14, speed: fl
 	p.global_position = pos
 	p.emitting = true
 	p.finished.connect(p.queue_free)
-	# Respaldo para garantizar liberación de memoria si el evento finished no se dispara
-	get_tree().create_timer(p.lifetime + 0.1, false).timeout.connect(func() -> void:
-		if is_instance_valid(p):
-			p.queue_free()
-	)
+	# Respaldo seguro como tween hijo de p (se destruye automáticamente si p es liberado)
+	p.create_tween().tween_interval(p.lifetime + 0.15).finished.connect(p.queue_free)

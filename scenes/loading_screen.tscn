@@ -1,0 +1,175 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/loading_screen.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/logos/cobaem-logo.png" id="2_logo"]
+[ext_resource type="Theme" path="res://themes/pixel_theme.tres" id="3_theme"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tip"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.08, 0.04, 0.06, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 3
+border_color = Color(0.77, 0.63, 0.35, 0.85)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg_bar"]
+bg_color = Color(0.06, 0.04, 0.06, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.77, 0.63, 0.35, 0.7)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fill_bar"]
+bg_color = Color(0.12, 0.65, 0.36, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.4, 0.95, 0.6, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[node name="LoadingScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("3_theme")
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.08, 0.07, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+custom_minimum_size = Vector2(580, 0)
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="HeaderBox" type="HBoxContainer" parent="Center/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="LogoRect" type="TextureRect" parent="Center/VBox/HeaderBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(56, 76)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("2_logo")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Titles" type="VBoxContainer" parent="Center/VBox/HeaderBox"]
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="InstSub" type="Label" parent="Center/VBox/HeaderBox/Titles"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.77, 0.63, 0.35, 1)
+theme_override_font_sizes/font_size = 12
+text = "COLEGIO DE BACHILLERES DEL ESTADO DE MÉXICO"
+
+[node name="InstTitle" type="Label" parent="Center/VBox/HeaderBox/Titles"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96, 0.88, 1)
+theme_override_font_sizes/font_size = 15
+text = "PLANTEL CEMSaD 22 ENTHAVI — TEMOAYA"
+
+[node name="GameTitle" type="Label" parent="Center/VBox/HeaderBox/Titles"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 17
+text = "CAMPEONES DE LOS VALORES"
+
+[node name="TipPanel" type="PanelContainer" parent="Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(560, 68)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_tip")
+
+[node name="TipLabel" type="Label" parent="Center/VBox/TipPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.92, 0.82, 1)
+theme_override_font_sizes/font_size = 13
+text = "«La educación es el arma más poderosa que puedes usar para cambiar el mundo.»"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="ProgressBox" type="VBoxContainer" parent="Center/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="StatusHBox" type="HBoxContainer" parent="Center/VBox/ProgressBox"]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="Center/VBox/ProgressBox/StatusHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.75, 0.82, 0.78, 1)
+theme_override_font_sizes/font_size = 12
+text = "Cargando infraestructura del plantel CEMSaD 22..."
+
+[node name="PercentLabel" type="Label" parent="Center/VBox/ProgressBox/StatusHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 12
+text = "0%"
+horizontal_alignment = 2
+
+[node name="ProgressBar" type="ProgressBar" parent="Center/VBox/ProgressBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_bg_bar")
+theme_override_styles/fill = SubResource("StyleBoxFlat_fill_bar")
+max_value = 100.0
+step = 0.5
+value = 10.0
+show_percentage = false
+
+[node name="PromptLabel" type="Label" parent="Center/VBox/ProgressBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.95, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+text = "¡Listo! Ingresando al plantel escolar..."
+horizontal_alignment = 1
