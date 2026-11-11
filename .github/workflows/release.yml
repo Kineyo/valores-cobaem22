@@ -86,15 +86,18 @@ jobs:
       - name: Configure Android SDK & Keystore
         run: |
           mkdir -v -p ~/.config/godot
-          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+          if [ ! -f debug.keystore ]; then
+            keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12 || true
+          fi
           
           ANDROID_SDK_PATH="${ANDROID_HOME:-/usr/lib/android-sdk}"
-          JAVA_PATH="$(dirname "$(dirname "$(readlink -f "$(which javac || which java)")")")"
+          JAVA_PATH="${JAVA_HOME:-$(dirname "$(dirname "$(readlink -f "$(which javac 2>/dev/null || which java 2>/dev/null || echo '/usr/bin/java')")")")}"
           
           printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\nexport/android/debug_keystore = "%s/debug.keystore"\nexport/android/debug_keystore_user = "androiddebugkey"\nexport/android/debug_keystore_pass = "android"\nexport/android/force_system_user = false\nexport/android/shutdown_adb_on_exit = true\n' "${ANDROID_SDK_PATH}" "${JAVA_PATH}" "$(pwd)" > ~/.config/godot/editor_settings-4.3.tres
           cp -v ~/.config/godot/editor_settings-4.3.tres ~/.config/godot/editor_settings-4.tres 2>/dev/null || true
           cp -v ~/.config/godot/editor_settings-4.3.tres ~/.config/godot/editor_settings-4.7.tres 2>/dev/null || true
           cp -v ~/.config/godot/editor_settings-4.3.tres ~/.config/godot/editor_settings-4.7.2.tres 2>/dev/null || true
+          cp -v ~/.config/godot/editor_settings-4.3.tres ~/.config/godot/editor_settings-4.7.2.stable.tres 2>/dev/null || true
           cat ~/.config/godot/editor_settings-4.3.tres
 
       - name: Godot Headless Import
@@ -164,18 +167,40 @@ jobs:
           body: |
             # 🎮 Campeones de los Valores — ${{ steps.tag_info.outputs.tag }}
             
-            Versión oficial compilada y empaquetada automáticamente por GitHub Actions.
+            Versión oficial compilada y empaquetada automáticamente mediante GitHub Actions para **Linux**, **Windows** y **Android**.
             
-            ### 📦 Paquetes Listos para Descargar:
-            - 🐧 **Linux (x86_64):** `campeones_valores_linux_x86_64.zip` (Ejecutable nativo para Ubuntu, Debian, Fedora, Arch y derivados)
-            - 🪟 **Windows (64-bit):** `campeones_valores_windows_x86_64.zip` (Ejecutable `.exe` independiente)
-            - 📱 **Android:** `campeones_valores.apk` (Instalador directo para celulares y tablets)
+            ---
             
-            ### 🏫 Novedades y Características de la Versión v1.3:
-            - **📖 Modo Historia Completo:** Cinemáticas con diálogos, retratos procedurales pixel-art, Prólogo, 6 Actos y Epílogo basados en el plantel **CEMSaD 22 ENTHAVI (Temoaya)**.
-            - **👹 Los 6 Jefes Finales:** Apatyx, Desperdicius, Superbus, Ciber-Murmullus, Plagiatrix y Titanor con ataques telegrafiados y filosofía de redención pacífica.
-            - **🎓 Alumnos Secundarios COBAEM:** Personajes interactivos (Mateo, Xóchitl, Emiliano, Sofía) con estados de aflicción/felicidad y curación de esperanza.
-            - **📱 Ergonomía Táctil Móvil y Safe Area:** Joysticks virtuales dinámicos con resting guides, compensación de muescas (notches) y botones adaptados a $\ge 44\times 44\text{ dp}$.
-            - **🌐 Arquitectura Multiplataforma:** Armonización completa para Linux, Windows y Android bajo el renderizador `gl_compatibility` y escala real ($1\text{ m} = 40\text{ px}$).
-            - **Visor CAD 2D y Maqueta 3D:** Herramientas interactivas integradas en HTML5 y Three.js.
-            - **Audio Original:** Banda sonora chiptune y efectos sintetizados proceduralmente.
+            ### 📦 Paquetes Oficiales Listos para Descargar:
+            - 🐧 **Linux (x86_64):** `campeones_valores_linux_x86_64.zip` — Ejecutable nativo compatible con Ubuntu, Debian, Fedora, Arch y derivados.
+            - 🪟 **Windows (64-bit):** `campeones_valores_windows_x86_64.zip` — Ejecutable `.exe` independiente sin requerir dependencias externas.
+            - 📱 **Android:** `campeones_valores.apk` — Instalador directo para celulares, tabletas y pantallas táctiles educativas.
+            
+            ---
+            
+            ### 🛠️ ¿Qué se reparó? (Corrección de Bugs y Errores):
+            1. **Interacción con Ratón y Botones del Menú:** Se solucionó el bloqueo donde los botones del menú no respondían al clic del ratón y requerían obligatoriamente atajos de teclado (`<Esc>`), asegurando ahora compatibilidad fluida y unificada con ratón, gamepad y pantalla táctil.
+            2. **Joystick Táctil sin Latigazo (*Lurching Fix*):** Al tocar la pantalla, el stick virtual se ancla dinámicamente en el punto de contacto y el vector analógico inicia en reposo neutral `(0, 0)`, eliminando tirones involuntarios del personaje.
+            3. **Compatibilidad con Notches y Cámaras Frontales:** Se implementó `get_safe_insets_for_viewport` con `DisplayServer.get_display_safe_area()`, reubicando paneles superiores, botón de pausa y barras para que no queden ocultos tras muescas o esquinas redondeadas.
+            4. **Secuencia del Modo Historia:** Se reparó la omisión del Acto I al iniciar el juego; ahora la cadena narrativa progresa fluidamente: `Prólogo -> Acto I -> Escenario 1 -> ... -> Acto VI -> Escenario 6 -> Epílogo -> Victoria`.
+            5. **Fuga de Animaciones (Tweens) en Alumnos:** Se corrigió un error de cascada en `student.gd` donde se creaban múltiples tweens en cada frame de físicas, estabilizando los 60 FPS continuos en dispositivos de gama de entrada.
+            6. **Llamadas Defensivas en Redención de Jefes:** Se blindaron los métodos de colisión y hitbox en `boss.gd` ante llamadas de cierre o recarga rápida, impidiendo excepciones de puntero nulo.
+            7. **Ocultamiento Limpio de Barra de Jefe:** Se corrigió el desvanecimiento de la barra de vida en el HUD mediante `Tween.TWEEN_PAUSE_PROCESS` y cerrado inmediato al transicionar de escenario.
+            8. **Pipeline de Compilación Android:** Se solventó el fallo en CI de `keytool` cuando `debug.keystore` ya está rastreado en el repositorio.
+            
+            ---
+            
+            ### ✨ ¿Qué se arregló y mejoró? (Novedades de la Versión v1.3):
+            - **📖 Modo Historia Completo:** Incorporación de Prólogo, 6 Actos cinemáticos con diálogos institucionales, Epílogo y retratos pixel-art procedurales inspirados en el plantel **CEMSaD 22 ENTHAVI (Temoaya)** y la herencia cultural otomí.
+            - **👹 Los 6 Jefes Finales con Redención Pacífica:**
+              - *Nivel 1:* **Apatyx, el Espectro del Desgano** (Acceso y Laboratorio D).
+              - *Nivel 2:* **Desperdicius, el Titán del Desperdicio** (Edificio A — Cafetería).
+              - *Nivel 3:* **Superbus, el Heraldo de la Arrogancia** (Plaza Cívica y Escalinata Sur).
+              - *Nivel 4:* **Ciber-Murmullus, el Espectro de la Difamación** (Edificio B — Biblioteca).
+              - *Nivel 5:* **Plagiatrix, el Señor de la Falsedad** (Edificio C — Cómputo y Dirección).
+              - *Nivel 6:* **Titanor, el Coloso del Bullying Escolar** (Cancha de Usos Múltiples).
+              Todos con ataques telegrafiados ($\ge 0.8\text{ s}$ de anticipación) y filosofía formativa de redención sin violencia.
+            - **🎓 Alumnos Secundarios COBAEM:** Mateo, Xóchitl, Emiliano y Sofía con uniformes escolares oficiales, diálogos de proximidad, estados de aflicción/alivio y curación de +1 corazón de esperanza al héroe herido.
+            - **📱 Ergonomía Táctil Móvil:** Botones interactivos ampliados a $\ge 44\times 44\text{ dp}$, joystick analógico con guías sutiles en reposo y botón flotante de Virtud.
+            - **🌐 Arquitectura Multiplataforma Optimizada:** Rendimiento garantizado para Linux, Windows y Android bajo el renderizador `gl_compatibility` y la escala real ($1\text{ m} = 40\text{ px}$).
+            - **Banda Sonora y Efectos Chiptune:** Música y audio procedural sincronizados.
