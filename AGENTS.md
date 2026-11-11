@@ -1,7 +1,7 @@
 # 🤖 AGENTS.md — Guía Técnica Maestra para Agentes de IA y Desarrolladores
 
 > **Proyecto:** Campeones de los Valores  
-> **Motor:** Godot Engine 4.2+ (Renderer: `gl_compatibility`)  
+> **Motor:** Godot Engine 4.7+ (Renderer: `gl_compatibility`)  
 > **Ámbito:** Videojuego educativo 2D en perspectiva 3/4 (estilo RPG retro) y visor arquitectónico BIM/CAD 3D  
 > **Plantel de Referencia:** CEMSaD 22 ENTHAVI — Colegio de Bachilleres del Estado de México (COBAEM)  
 > **Escala Unificada:** $1\text{ metro lineal} = 40\text{ píxeles}$ ($1\text{ px} = 2.5\text{ cm}$, $1\text{ baldosa } 40\times 40\text{ px} = 1.00\text{ m}^2$)

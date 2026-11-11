@@ -170,7 +170,7 @@ export const IntroScene: React.FC = () => {
         }}
       >
         {[
-          '⚡ Godot Engine 4.3',
+          '⚡ Godot Engine 4.7',
           '🛡️ Filosofía de No Violencia',
           '📐 6 Escenarios a Escala Real',
           '📱 Versión Android con Joysticks',
@@ -931,7 +931,7 @@ with urllib.request.urlopen(req) as resp:
       <div class="scene-card">
         <div class="scene-num">Escena 1 (0:00 - 0:03)</div>
         <div class="scene-title">🎮 Identidad Institucional</div>
-        <p class="scene-desc">COBAEM CEMSaD 22 ENTHAVI, motor Godot 4.3, escala 1m = 40px y perspectiva 3/4.</p>
+        <p class="scene-desc">COBAEM CEMSaD 22 ENTHAVI, motor Godot 4.7, escala 1m = 40px y perspectiva 3/4.</p>
       </div>
       <div class="scene-card">
         <div class="scene-num">Escena 2 (0:03 - 0:07)</div>

@@ -53,3 +53,5 @@ venv/
 .audit*
 .audit_report.md
 reformas_v2.md
+reports/
+/reports/

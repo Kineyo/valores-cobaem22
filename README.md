@@ -12,7 +12,7 @@
         — D E   L O S   V A L O R E S  •  C E M S a D   2 2   E N T H A V I —
 ```
 
-[![Godot Engine](https://img.shields.io/badge/Godot%20Engine-4.2%2B%20%2F%204.x-478CBF?style=for-the-badge&logo=godotengine&logoColor=white)](https://godotengine.org/)
+[![Godot Engine](https://img.shields.io/badge/Godot%20Engine-4.7%2B%20%2F%204.x-478CBF?style=for-the-badge&logo=godotengine&logoColor=white)](https://godotengine.org/)
 [![GL Compatibility](https://img.shields.io/badge/Renderer-GL%20Compatibility-5272F2?style=for-the-badge&logo=opengl&logoColor=white)](https://docs.godotengine.org/en/stable/tutorials/rendering/)
 [![Perspective](https://img.shields.io/badge/Perspectiva-3%2F4%20RPG%20Retro-9C27B0?style=for-the-badge)](https://github.com/Kineyo/valores-cobaem22)
 [![Escala Arquitectónica](https://img.shields.io/badge/Escala%20Real-1%20m%20%3D%2040%20px-2EA043?style=for-the-badge)](https://github.com/Kineyo/valores-cobaem22)
@@ -64,7 +64,7 @@ Ejecuta el proyecto en tu entorno local en menos de dos minutos siguiendo estos 
 
 | Componente | Versión Recomendada | Notas |
 | :--- | :--- | :--- |
-| **Godot Engine** | `4.2.x` o superior | Descargar versión estándar (GL Compatibility / .NET no requerido). |
+| **Godot Engine** | `4.7.x` (compatible con 4.3+) | Descargar versión estándar (GL Compatibility / .NET no requerido). |
 | **Python** | `3.10+` *(Opcional)* | Necesario únicamente para regenerar la música o los mapas procedimentales. |
 | **Navegador Web** | Chrome, Firefox, Edge o Safari | Compatible con WebGL para visualizar las maquetas 3D y planos interactivos. |
 

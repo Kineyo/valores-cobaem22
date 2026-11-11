@@ -91,6 +91,7 @@ jobs:
           
           printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\nexport/android/debug_keystore = "%s/debug.keystore"\nexport/android/debug_keystore_user = "androiddebugkey"\nexport/android/debug_keystore_pass = "android"\nexport/android/force_system_user = false\nexport/android/shutdown_adb_on_exit = true\n' "${ANDROID_SDK_PATH}" "${JAVA_PATH}" "$(pwd)" > ~/.config/godot/editor_settings-4.3.tres
           cp -v ~/.config/godot/editor_settings-4.3.tres ~/.config/godot/editor_settings-4.tres
+          cp -v ~/.config/godot/editor_settings-4.3.tres ~/.config/godot/editor_settings-4.7.tres
           cat ~/.config/godot/editor_settings-4.3.tres
 
       - name: Godot Headless Import

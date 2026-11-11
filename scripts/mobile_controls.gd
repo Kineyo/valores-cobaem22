@@ -2,7 +2,7 @@ extends Control
 class_name MobileControls
 
 ## Sistema de Controles Táctiles Virtuales de Alta Precisión (v2.0).
-## Diseñado para Godot 4.2+ (GL Compatibility) en Campeones de los Valores (COBAEM CEMSaD 22).
+## Diseñado para Godot 4.7+ / 4.3+ (GL Compatibility) en Campeones de los Valores (COBAEM CEMSaD 22).
 ##
 ## Características principales:
 ## 1. Supresión total del conflicto de doble evento (Touch vs Mouse Emulation).

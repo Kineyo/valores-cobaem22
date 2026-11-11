@@ -156,7 +156,7 @@ def render_frame(f: int) -> Image.Image:
 
     # Cajas de características
     pills = [
-        "⚡ Godot 4.3",
+        "⚡ Godot 4.7",
         "📐 Escala Real 1m = 40px",
         "💖 Cultura de No Violencia",
         "📱 Controles Táctiles Android",
