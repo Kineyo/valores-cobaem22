@@ -1,31 +1,32 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/menu.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/background/fondo.png" id="2_bg"]
 [ext_resource type="Texture2D" path="res://icon.png" id="3_icon"]
 [ext_resource type="AudioStream" path="res://assets/audio/ataque.wav" id="4_sfx"]
 [ext_resource type="Theme" path="res://themes/pixel_theme.tres" id="5_theme"]
+[ext_resource type="Texture2D" path="res://assets/sprites/cobaem_logo.png" id="6_cobaem"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-content_margin_left = 30.0
+content_margin_left = 32.0
 content_margin_top = 18.0
-content_margin_right = 30.0
+content_margin_right = 32.0
 content_margin_bottom = 18.0
-bg_color = Color(0.08, 0.08, 0.14, 0.92)
+bg_color = Color(0.1, 0.05, 0.07, 0.96)
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
 border_width_bottom = 5
-border_color = Color(0.95, 0.85, 0.4, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+border_color = Color(0.77, 0.63, 0.35, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 corner_detail = 1
 anti_aliasing = false
 
 [sub_resource type="Gradient" id="Gradient_sparkles"]
-colors = PackedColorArray(1, 0.94, 0.55, 0.85, 1, 0.85, 0.35, 0)
+colors = PackedColorArray(1, 0.92, 0.45, 0.85, 0.77, 0.63, 0.35, 0)
 
 [node name="Menu" type="Control"]
 layout_mode = 3
@@ -57,11 +58,11 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.03, 0.03, 0.1, 0.42)
+color = Color(0.04, 0.02, 0.05, 0.5)
 
 [node name="AmbientParticles" type="CPUParticles2D" parent="."]
 position = Vector2(400, 440)
-amount = 22
+amount = 24
 lifetime = 4.5
 preprocess = 2.0
 emission_shape = 3
@@ -94,49 +95,73 @@ layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="IconHolder" type="Control" parent="Center/Panel/VBox"]
-custom_minimum_size = Vector2(78, 78)
+[node name="HeaderHBox" type="HBoxContainer" parent="Center/Panel/VBox"]
 layout_mode = 2
-size_flags_horizontal = 4
+theme_override_constants/separation = 12
+alignment = 1
 
-[node name="GameIcon" type="TextureRect" parent="Center/Panel/VBox/IconHolder"]
+[node name="CobaemLogo" type="TextureRect" parent="Center/Panel/VBox/HeaderHBox"]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("6_cobaem")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HeaderTexts" type="VBoxContainer" parent="Center/Panel/VBox/HeaderHBox"]
+layout_mode = 2
+theme_override_constants/separation = 1
+alignment = 1
+
+[node name="InstSub" type="Label" parent="Center/Panel/VBox/HeaderHBox/HeaderTexts"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.77, 0.63, 0.35, 1)
+theme_override_font_sizes/font_size = 12
+text = "COLEGIO DE BACHILLERES DEL ESTADO DE MÉXICO"
+horizontal_alignment = 1
+
+[node name="InstTitle" type="Label" parent="Center/Panel/VBox/HeaderHBox/HeaderTexts"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+theme_override_font_sizes/font_size = 15
+text = "PLANTEL CEMSaD 22 ENTHAVI"
+horizontal_alignment = 1
+
+[node name="GameIcon" type="TextureRect" parent="Center/Panel/VBox/HeaderHBox"]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+size_flags_vertical = 4
 texture = ExtResource("3_icon")
 expand_mode = 1
 stretch_mode = 5
 
 [node name="Title" type="RichTextLabel" parent="Center/Panel/VBox"]
-custom_minimum_size = Vector2(480, 40)
+custom_minimum_size = Vector2(520, 38)
 layout_mode = 2
 mouse_filter = 2
 theme_override_colors/default_color = Color(1, 0.88, 0.35, 1)
-theme_override_colors/font_shadow_color = Color(0.35, 0.12, 0, 1)
+theme_override_colors/font_shadow_color = Color(0.24, 0.03, 0.08, 1)
 theme_override_constants/shadow_offset_x = 3
 theme_override_constants/shadow_offset_y = 3
-theme_override_font_sizes/normal_font_size = 30
+theme_override_font_sizes/normal_font_size = 28
 bbcode_enabled = true
-text = "[center][wave amp=18.0 freq=3.0]CAMPEONES DE LOS VALORES[/wave][/center]"
+text = "[center][wave amp=16.0 freq=3.0]CAMPEONES DE LOS VALORES[/wave][/center]"
 fit_content = true
 scroll_active = false
 autowrap_mode = 0
 
 [node name="Subtitle" type="Label" parent="Center/Panel/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
-theme_override_font_sizes/font_size = 13
-text = "¡Vence a los antivalores y llega a la meta!"
+theme_override_colors/font_color = Color(0.9, 0.88, 0.75, 1)
+theme_override_font_sizes/font_size = 12
+text = "Edición Arquitectónica CAD a Escala Real (1 metro = 40 px)"
 horizontal_alignment = 1
 
 [node name="DifficultyTitle" type="Label" parent="Center/Panel/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 14
 text = "Dificultad  (← / →)"
 horizontal_alignment = 1
 
@@ -147,7 +172,7 @@ alignment = 1
 
 [node name="BtnEasy" type="Button" parent="Center/Panel/VBox/DifficultyRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(105, 32)
+custom_minimum_size = Vector2(110, 32)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
@@ -155,7 +180,7 @@ text = "Fácil"
 
 [node name="BtnNormal" type="Button" parent="Center/Panel/VBox/DifficultyRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(105, 32)
+custom_minimum_size = Vector2(110, 32)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
@@ -163,7 +188,7 @@ text = "Normal"
 
 [node name="BtnHard" type="Button" parent="Center/Panel/VBox/DifficultyRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(105, 32)
+custom_minimum_size = Vector2(110, 32)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
@@ -182,24 +207,25 @@ layout_mode = 2
 
 [node name="BtnPlay" type="Button" parent="Center/Panel/VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(230, 40)
+custom_minimum_size = Vector2(240, 40)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 20
-text = "▶  JUGAR  (Enter)"
+theme_override_font_sizes/font_size = 18
+text = "▶  INICIAR PARTIDA  (Enter)"
 
 [node name="BtnQuit" type="Button" parent="Center/Panel/VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(230, 32)
+custom_minimum_size = Vector2(240, 32)
 layout_mode = 2
 size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 14
 text = "Salir  (Esc)"
 
 [node name="Controls" type="Label" parent="Center/Panel/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.75, 0.8, 0.9, 1)
+theme_override_colors/font_color = Color(0.75, 0.72, 0.65, 1)
 theme_override_font_sizes/font_size = 11
-text = "WASD / Flechas: mover (perspectiva 3/4) · ESPACIO: disparar · ESC: pausa"
+text = "WASD / Flechas / Táctil: mover (3/4) · ESPACIO: virtud · ESC: pausa"
 horizontal_alignment = 1
 
 [node name="SFXSelect" type="AudioStreamPlayer" parent="."]

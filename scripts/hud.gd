@@ -26,6 +26,8 @@ const HEART_EMPTY := preload("res://assets/sprites/corazon_vacio.png")
 @onready var victory_stats: Label = %VictoryStats
 @onready var btn_resume: Button = %BtnResume
 @onready var btn_pause_menu: Button = %BtnPauseMenu
+@onready var btn_pause_retry: Button = get_node_or_null("%BtnPauseRetry")
+@onready var btn_pause_hud: Button = get_node_or_null("%BtnPauseHud")
 @onready var btn_retry: Button = %BtnRetry
 @onready var btn_menu_go: Button = %BtnGameOverMenu
 @onready var btn_play_again: Button = %BtnPlayAgain
@@ -67,6 +69,10 @@ func _ensure_nodes() -> void:
 		game_over_panel = get_node_or_null("%GameOverPanel")
 	if victory_panel == null:
 		victory_panel = get_node_or_null("%VictoryPanel")
+	if btn_pause_hud == null:
+		btn_pause_hud = get_node_or_null("%BtnPauseHud")
+	if btn_pause_retry == null:
+		btn_pause_retry = get_node_or_null("%BtnPauseRetry")
 
 func _ready() -> void:
 	_ensure_nodes()
@@ -81,6 +87,13 @@ func _ready() -> void:
 	btn_play_again.pressed.connect(_on_retry_pressed)
 	btn_menu_go.pressed.connect(_on_menu_pressed)
 	btn_menu_vic.pressed.connect(_on_menu_pressed)
+
+	if btn_pause_hud:
+		btn_pause_hud.pressed.connect(func(): set_paused(not is_paused))
+		UiJuice.attach_button(btn_pause_hud, sfx_ui)
+	if btn_pause_retry:
+		btn_pause_retry.pressed.connect(_on_retry_pressed)
+		UiJuice.attach_button(btn_pause_retry, sfx_ui)
 
 	for btn in [btn_resume, btn_pause_menu, btn_retry, btn_menu_go, btn_play_again, btn_menu_vic]:
 		UiJuice.attach_button(btn, sfx_ui)
@@ -156,13 +169,13 @@ func set_paused(paused: bool) -> void:
 	if gs and gs.has_method("duck_music"):
 		gs.duck_music(paused)
 	if paused:
-		_show_panel(pause_panel, btn_resume)
 		if mobile_controls:
-			mobile_controls.visible = false
+			mobile_controls.deactivate()
+		_show_panel(pause_panel, btn_resume)
 	else:
 		_hide_panel(pause_panel)
 		if mobile_controls:
-			mobile_controls.visible = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("web_android") or OS.has_feature("web_ios") or DisplayServer.is_touchscreen_available()
+			mobile_controls.activate()
 
 func set_difficulty_text(diff_name: String) -> void:
 	_ensure_nodes()
@@ -186,7 +199,7 @@ func reset_state() -> void:
 	if overlay:
 		overlay.visible = false
 	if mobile_controls:
-		mobile_controls.visible = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("web_android") or OS.has_feature("web_ios") or DisplayServer.is_touchscreen_available()
+		mobile_controls.activate()
 
 ## Reutiliza los nodos de corazones (antes se destruían y creaban en cada golpe)
 ## y anima los que cambian.
@@ -302,7 +315,7 @@ func show_game_over(stats: Dictionary = {}) -> void:
 		return
 	is_game_finished = true
 	if mobile_controls:
-		mobile_controls.visible = false
+		mobile_controls.deactivate()
 	if sfx_game_over:
 		sfx_game_over.play()
 	game_over_stats.text = "Antivalores vencidos: %d  ·  Progreso: %d %%" % [
@@ -315,7 +328,7 @@ func show_victory(stats: Dictionary = {}) -> void:
 		return
 	is_game_finished = true
 	if mobile_controls:
-		mobile_controls.visible = false
+		mobile_controls.deactivate()
 	_target_progress = 100.0
 	_show_panel(victory_panel, btn_play_again)
 

@@ -7,22 +7,23 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/meta.png" id="5_meta"]
 [ext_resource type="AudioStream" path="res://assets/audio/ataque.wav" id="6_sfx_ui"]
 [ext_resource type="PackedScene" path="res://scenes/mobile_controls.tscn" id="7_mobile"]
+[ext_resource type="Texture2D" path="res://assets/sprites/cobaem_mini.png" id="8_cobaem_mini"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_top"]
-content_margin_left = 10.0
+content_margin_left = 12.0
 content_margin_top = 4.0
-content_margin_right = 10.0
+content_margin_right = 12.0
 content_margin_bottom = 4.0
-bg_color = Color(0.08, 0.08, 0.14, 0.72)
+bg_color = Color(0.24, 0.05, 0.1, 0.94)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.05, 0.05, 0.1, 0.9)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+border_width_bottom = 3
+border_color = Color(0.77, 0.63, 0.35, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
 corner_detail = 1
 anti_aliasing = false
 
@@ -31,16 +32,16 @@ content_margin_left = 28.0
 content_margin_top = 18.0
 content_margin_right = 28.0
 content_margin_bottom = 18.0
-bg_color = Color(0.08, 0.08, 0.14, 0.95)
+bg_color = Color(0.12, 0.04, 0.07, 0.96)
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.45, 0.7, 1, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+border_width_bottom = 5
+border_color = Color(0.77, 0.63, 0.35, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 corner_detail = 1
 anti_aliasing = false
 
@@ -49,16 +50,16 @@ content_margin_left = 28.0
 content_margin_top = 18.0
 content_margin_right = 28.0
 content_margin_bottom = 18.0
-bg_color = Color(0.1, 0.06, 0.1, 0.95)
+bg_color = Color(0.14, 0.03, 0.06, 0.96)
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.95, 0.3, 0.3, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+border_width_bottom = 5
+border_color = Color(0.92, 0.3, 0.35, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 corner_detail = 1
 anti_aliasing = false
 
@@ -67,16 +68,16 @@ content_margin_left = 28.0
 content_margin_top = 18.0
 content_margin_right = 28.0
 content_margin_bottom = 18.0
-bg_color = Color(0.06, 0.1, 0.1, 0.95)
+bg_color = Color(0.06, 0.12, 0.08, 0.96)
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
-border_width_bottom = 3
+border_width_bottom = 5
 border_color = Color(1, 0.85, 0.35, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 corner_detail = 1
 anti_aliasing = false
 
@@ -99,24 +100,33 @@ unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 8.0
-offset_top = 6.0
-offset_right = -8.0
-offset_bottom = 40.0
+offset_left = 6.0
+offset_top = 4.0
+offset_right = -6.0
+offset_bottom = 42.0
 grow_horizontal = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_top")
 
 [node name="TopBar" type="HBoxContainer" parent="Root/TopPanel"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 12
+
+[node name="CobaemMiniLogo" type="TextureRect" parent="Root/TopPanel/TopBar"]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("8_cobaem_mini")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="TitleLabel" type="Label" parent="Root/TopPanel/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
-theme_override_font_sizes/font_size = 16
-text = "Campeones de los valores"
+theme_override_colors/font_color = Color(1, 0.92, 0.45, 1)
+theme_override_font_sizes/font_size = 15
+text = "COBAEM · CEMSaD 22 ENTHAVI"
 vertical_alignment = 1
 
 [node name="HeartsContainer" type="HBoxContainer" parent="Root/TopPanel/TopBar"]
@@ -127,8 +137,8 @@ theme_override_constants/separation = 4
 [node name="DifficultyLabel" type="Label" parent="Root/TopPanel/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.75, 0.85, 1, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.9, 0.85, 0.65, 1)
+theme_override_font_sizes/font_size = 12
 text = "Dificultad: Normal"
 vertical_alignment = 1
 
@@ -139,8 +149,8 @@ mouse_filter = 2
 
 [node name="ProgressLabel" type="Label" parent="Root/TopPanel/TopBar"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.92, 1, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+theme_override_font_sizes/font_size = 12
 text = "Meta:"
 vertical_alignment = 1
 
@@ -173,6 +183,14 @@ texture = ExtResource("5_meta")
 expand_mode = 1
 stretch_mode = 5
 
+[node name="BtnPauseHud" type="Button" parent="Root/TopPanel/TopBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 26)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 11
+text = "❚❚ Pausa"
+
 [node name="ControlsLabel" type="Label" parent="Root"]
 unique_name_in_owner = true
 layout_mode = 1
@@ -180,13 +198,13 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -30.0
-offset_bottom = -8.0
+offset_top = -28.0
+offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 13
-text = "Muévete: WASD / Flechas (3/4)  ·  Disparar: ESPACIO  ·  Pausa: ESC"
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+text = "WASD / Flechas: mover (perspectiva 3/4)  ·  ESPACIO / Táctil: virtud  ·  ESC: pausa"
 horizontal_alignment = 1
 
 [node name="IntroBanner" type="Label" parent="Root"]
@@ -203,7 +221,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
 theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 30
+theme_override_font_sizes/font_size = 28
 text = "¡Llega a la meta!"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -217,7 +235,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.03, 0.02, 0.08, 0.6)
+color = Color(0.04, 0.02, 0.05, 0.65)
 
 [node name="PausePanel" type="PanelContainer" parent="Root"]
 unique_name_in_owner = true
@@ -228,31 +246,38 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -170.0
-offset_top = -105.0
-offset_right = 170.0
-offset_bottom = 105.0
+offset_left = -180.0
+offset_top = -120.0
+offset_right = 180.0
+offset_bottom = 120.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_pause")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Root/PausePanel"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 7
 alignment = 1
+
+[node name="InstLabel" type="Label" parent="Root/PausePanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.77, 0.63, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "COBAEM · CEMSaD 22 ENTHAVI"
+horizontal_alignment = 1
 
 [node name="Title" type="Label" parent="Root/PausePanel/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.55, 0.8, 1, 1)
-theme_override_font_sizes/font_size = 30
+theme_override_colors/font_color = Color(1, 0.92, 0.45, 1)
+theme_override_font_sizes/font_size = 28
 text = "PAUSA"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="Root/PausePanel/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(0.95, 0.9, 0.85, 1)
 theme_override_font_sizes/font_size = 13
-text = "Respira hondo, campeón."
+text = "Respira hondo, campeón escolar."
 horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="Root/PausePanel/VBoxContainer"]
@@ -262,14 +287,22 @@ mouse_filter = 2
 
 [node name="BtnResume" type="Button" parent="Root/PausePanel/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 36)
+custom_minimum_size = Vector2(210, 36)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Continuar (Esc)"
 
+[node name="BtnPauseRetry" type="Button" parent="Root/PausePanel/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 32)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 14
+text = "Reiniciar nivel (R)"
+
 [node name="BtnPauseMenu" type="Button" parent="Root/PausePanel/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 32)
+custom_minimum_size = Vector2(210, 32)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 14
@@ -297,23 +330,30 @@ layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
+[node name="InstLabel" type="Label" parent="Root/GameOverPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.77, 0.63, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "COBAEM · CEMSaD 22 ENTHAVI"
+horizontal_alignment = 1
+
 [node name="Title" type="RichTextLabel" parent="Root/GameOverPanel/VBoxContainer"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/default_color = Color(0.95, 0.3, 0.3, 1)
-theme_override_font_sizes/normal_font_size = 32
+theme_override_colors/default_color = Color(1, 0.4, 0.45, 1)
+theme_override_font_sizes/normal_font_size = 30
 bbcode_enabled = true
-text = "[center][shake rate=12.0 level=6]GAME OVER... :([/shake][/center]"
+text = "[center][shake rate=12.0 level=6]¡Ánimo Campeón![/shake][/center]"
 fit_content = true
 scroll_active = false
 autowrap_mode = 0
 
 [node name="Subtitle" type="Label" parent="Root/GameOverPanel/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.9, 0.95, 1)
-theme_override_font_sizes/font_size = 15
-text = "¡Los antivalores te alcanzaron!
-No te rindas, los valores siempre triunfan."
+theme_override_colors/font_color = Color(0.95, 0.9, 0.9, 1)
+theme_override_font_sizes/font_size = 13
+text = "Los antivalores se vencen con paciencia y perseverancia.
+¡Vuelve a intentarlo con toda la actitud bachiller!"
 horizontal_alignment = 1
 
 [node name="GameOverStats" type="Label" parent="Root/GameOverPanel/VBoxContainer"]
@@ -331,14 +371,14 @@ mouse_filter = 2
 
 [node name="BtnRetry" type="Button" parent="Root/GameOverPanel/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 36)
+custom_minimum_size = Vector2(210, 36)
 layout_mode = 2
 size_flags_horizontal = 4
-text = "Reintentar (R)"
+text = "Reintentar (Enter / R)"
 
 [node name="BtnGameOverMenu" type="Button" parent="Root/GameOverPanel/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 32)
+custom_minimum_size = Vector2(210, 32)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 14
@@ -354,9 +394,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -270.0
-offset_top = -150.0
+offset_top = -155.0
 offset_right = 270.0
-offset_bottom = 150.0
+offset_bottom = 155.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_victory")
@@ -366,23 +406,30 @@ layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
+[node name="InstLabel" type="Label" parent="Root/VictoryPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.77, 0.63, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "COBAEM · CEMSaD 22 ENTHAVI"
+horizontal_alignment = 1
+
 [node name="Title" type="RichTextLabel" parent="Root/VictoryPanel/VBoxContainer"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/default_color = Color(0.3, 0.95, 0.5, 1)
-theme_override_font_sizes/normal_font_size = 32
+theme_override_colors/default_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/normal_font_size = 30
 bbcode_enabled = true
-text = "[center][wave amp=30.0 freq=4.0]¡FELICIDADES! GANASTE :D[/wave][/center]"
+text = "[center][wave amp=24.0 freq=4.0]¡VICTORIA EN EL PLANTEL![/wave][/center]"
 fit_content = true
 scroll_active = false
 autowrap_mode = 0
 
 [node name="Subtitle" type="Label" parent="Root/VictoryPanel/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.95, 0.95, 1, 1)
-theme_override_font_sizes/font_size = 15
-text = "¡Llegaste a la meta esquivando los antivalores!
-Premio: Eres un promotor oficial de los buenos valores."
+theme_override_colors/font_color = Color(0.95, 0.98, 0.92, 1)
+theme_override_font_sizes/font_size = 14
+text = "¡Llegaste a la meta sembrando buenos valores en CEMSaD 22!
+Premio: Eres un promotor oficial de la comunidad COBAEM."
 horizontal_alignment = 1
 
 [node name="VictoryStats" type="Label" parent="Root/VictoryPanel/VBoxContainer"]
@@ -400,14 +447,14 @@ mouse_filter = 2
 
 [node name="BtnPlayAgain" type="Button" parent="Root/VictoryPanel/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(220, 36)
+custom_minimum_size = Vector2(230, 36)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Jugar de nuevo (Enter)"
 
 [node name="BtnVictoryMenu" type="Button" parent="Root/VictoryPanel/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(220, 32)
+custom_minimum_size = Vector2(230, 32)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 14

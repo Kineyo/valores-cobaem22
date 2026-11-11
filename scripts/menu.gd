@@ -49,7 +49,32 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		_quit()
 
+func _ensure_nodes() -> void:
+	if bg_scroller == null:
+		bg_scroller = get_node_or_null("%BgScroller")
+	if panel == null:
+		panel = get_node_or_null("%Panel")
+	if vbox == null:
+		vbox = get_node_or_null("%VBox")
+	if btn_easy == null:
+		btn_easy = get_node_or_null("%BtnEasy")
+	if btn_normal == null:
+		btn_normal = get_node_or_null("%BtnNormal")
+	if btn_hard == null:
+		btn_hard = get_node_or_null("%BtnHard")
+	if info_label == null:
+		info_label = get_node_or_null("%DifficultyInfo")
+	if btn_play == null:
+		btn_play = get_node_or_null("%BtnPlay")
+	if btn_quit == null:
+		btn_quit = get_node_or_null("%BtnQuit")
+	if game_icon == null:
+		game_icon = get_node_or_null("%GameIcon")
+	if sfx_select == null:
+		sfx_select = get_node_or_null("SFXSelect")
+
 func _ready() -> void:
+	_ensure_nodes()
 	_diff_buttons = [btn_easy, btn_normal, btn_hard]
 	for i in _diff_buttons.size():
 		_diff_buttons[i].pressed.connect(_select_difficulty.bind(i))
@@ -70,15 +95,18 @@ func _ready() -> void:
 	_animate_intro()
 
 func _process(delta: float) -> void:
+	_ensure_nodes()
 	_time += delta
 	# Animación de flotación y balanceo del icono de trofeo
-	game_icon.pivot_offset = game_icon.size * 0.5
-	game_icon.position.y = roundf(sin(_time * 2.2) * 4.0)
-	game_icon.rotation = sin(_time * 1.4) * 0.05
+	if game_icon:
+		game_icon.pivot_offset = game_icon.size * 0.5
+		game_icon.position.y = roundf(sin(_time * 2.2) * 4.0)
+		game_icon.rotation = sin(_time * 1.4) * 0.05
 
 	# Desplazamiento panorámico continuo del fondo
-	_bg_scroll = fposmod(_bg_scroll + 22.0 * delta, 800.0)
-	bg_scroller.position.x = -roundf(_bg_scroll)
+	if bg_scroller:
+		_bg_scroll = fposmod(_bg_scroll + 22.0 * delta, 800.0)
+		bg_scroller.position.x = -roundf(_bg_scroll)
 
 func _animate_intro() -> void:
 	await get_tree().process_frame
@@ -141,11 +169,13 @@ func _select_difficulty(index: int) -> void:
 
 func _refresh_difficulty(animate: bool = false) -> void:
 	var d: int = _game_settings.difficulty if _game_settings else 1
+	var names := ["Fácil", "Normal", "Difícil"]
 	for i in _diff_buttons.size():
 		var btn := _diff_buttons[i]
 		var selected := i == d
 		btn.button_pressed = selected
-		btn.modulate = DIFFICULTY_COLORS[i] if selected else Color(0.7, 0.72, 0.8)
+		btn.text = "► %s ◄" % names[i] if selected else names[i]
+		btn.modulate = DIFFICULTY_COLORS[i] if selected else Color(0.85, 0.82, 0.75)
 		if animate and selected:
 			btn.pivot_offset = btn.size * 0.5
 			btn.scale = Vector2(1.14, 1.14)

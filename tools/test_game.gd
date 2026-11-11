@@ -77,5 +77,59 @@ func _init() -> void:
 	root.remove_child(main_node)
 	main_node.free()
 
+	# 3. Probar escena Menu y branding oficial COBAEM
+	var menu_scene: PackedScene = load("res://scenes/menu.tscn")
+	var menu_node = menu_scene.instantiate()
+	root.add_child(menu_node)
+	assert(menu_node != null, "Fallo al instanciar escena de Menu")
+	menu_node._process(0.016)
+	root.remove_child(menu_node)
+	menu_node.free()
+	print("Menú principal y estilo pixel art COBAEM verificados con éxito.")
+
+	# 4. Probar MobileControls dinámico y transparente
+	var mc_scene: PackedScene = load("res://scenes/mobile_controls.tscn")
+	var mc_node: MobileControls = mc_scene.instantiate()
+	root.add_child(mc_node)
+	mc_node.visible = true
+	mc_node.activate()
+
+	assert(mc_node._left_alpha == 0.0, "Joystick izquierdo debe iniciar en alfa 0.0")
+	assert(mc_node._right_alpha == 0.0, "Joystick derecho debe iniciar en alfa 0.0")
+
+	var touch_down := InputEventScreenTouch.new()
+	touch_down.index = 0
+	touch_down.pressed = true
+	touch_down.position = Vector2(150, 300)
+	mc_node._unhandled_input(touch_down)
+
+	assert(mc_node._left_touch_id == 0, "Debe registrar touch_id 0")
+	assert(mc_node._left_base == Vector2(150, 300), "La base debe posicionarse dinámicamente en el punto de contacto")
+	assert(mc_node._target_left_alpha > 0.5, "El objetivo de alfa debe encenderse en contacto")
+
+	var drag := InputEventScreenDrag.new()
+	drag.index = 0
+	drag.position = Vector2(190, 300)
+	mc_node._unhandled_input(drag)
+	assert(Input.is_action_pressed("move_right"), "Debe emitir move_right al arrastrar")
+
+	var touch_up := InputEventScreenTouch.new()
+	touch_up.index = 0
+	touch_up.pressed = false
+	touch_up.position = Vector2(190, 300)
+	mc_node._unhandled_input(touch_up)
+
+	assert(mc_node._left_touch_id == -1, "Debe liberar touch_id")
+	assert(mc_node._target_left_alpha == 0.0, "El objetivo de alfa debe volver a 0.0 al soltar")
+	assert(not Input.is_action_pressed("move_right"), "move_right debe liberarse al soltar")
+
+	mc_node.deactivate()
+	mc_node._unhandled_input(touch_down)
+	assert(mc_node._left_touch_id == -1, "No debe registrar toques mientras está desactivado")
+
+	root.remove_child(mc_node)
+	mc_node.free()
+	print("Controles táctiles dinámicos transparentes verificados con éxito.")
+
 	print("--- TODOS LOS TESTS DE ESCENARIOS Y PROGRESIÓN PASARON CON ÉXITO ---")
 	quit(0)
