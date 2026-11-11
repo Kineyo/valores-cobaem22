@@ -384,11 +384,13 @@ def generate_scenario_1():
     draw.rectangle([px1, py1, px2, py1 + 4], fill=PAL["curb_yellow"], outline=PAL["outline"])
     draw.rectangle([px1, py2 - 4, px2, py2], fill=PAL["curb_yellow"], outline=PAL["outline"])
     draw.rectangle([px2 - 4, py1, px2, py2], fill=PAL["curb_yellow"], outline=PAL["outline"])
-    # Líneas amarillas de los cajones de estacionamiento y vehículos estacionados en los últimos cajones
+    # Líneas amarillas de los cajones de estacionamiento y vehículos estacionados (fotos Estacionamiento y barda.jpg)
     for cx in range(px1 + 80, px1 + 335, 50):
         draw.rectangle([cx, py1 + 5, cx + 2, py1 + 92], fill=PAL["curb_yellow"])
-    draw_car_3d(draw, px1 + 255, py1 + 52, PAL["roof_red"])
-    draw_car_3d(draw, px1 + 305, py1 + 52, PAL["zebra_blue"])
+    # 3 autos reales observados en las fotos de campo:
+    draw_car_3d(draw, px1 + 205, py1 + 52, PAL["roof_red"])       # Sedán rojo tipo VW Vento
+    draw_car_3d(draw, px1 + 255, py1 + 52, PAL["white"])          # Hatchback blanco tipo Mazda 2
+    draw_car_3d(draw, px1 + 305, py1 + 52, PAL["concrete_light"]) # Utilitaria blanca tipo Renault Kangoo
 
     # 5. Plaza de Acceso Principal (14.00m x 8.00m = 280 x 160 texeles) y Caseta C.V. (3.00m x 2.50m = 60 x 50 texeles)
     ax1, ay1, ax2, ay2 = 20, 260, 300, 425
@@ -410,6 +412,9 @@ def generate_scenario_1():
     draw.rectangle([cv_x1 + 22, cv_y1 + 12, cv_x2 - 22, cv_y1 + 26], fill=PAL["white"], outline=PAL["outline"])
     draw.ellipse([cv_x2 - 28, cv_y1 + 14, cv_x2 - 23, cv_y1 + 19], fill=PAL["brick_red"])
     draw_spiral_topiary(draw, cv_x1 + 30, cv_y2 - 2)
+    # Escalones amarillos de acceso junto a caseta (foto Caseta CV.jpg)
+    for sy in range(cv_y1 + 14, cv_y1 + 36, 7):
+        draw.rectangle([cv_x2 + 2, sy, cv_x2 + 18, sy + 6], fill=PAL["curb_yellow"], outline=PAL["outline"])
     draw_pixel_sign(draw, (cv_x1 + cv_x2) // 2, cv_y1 - 6, "CASETA C.V.", bg=PAL["guinda"], fg=PAL["white"])
 
     # Portón Triple Abatible verde con pilares color vino/guinda (foto 095144.jpg)
@@ -540,6 +545,12 @@ def generate_scenario_2():
         draw.rectangle([tx + 13, ty - 4, tx + 18, ty + 4], fill=PAL["curb_yellow"], outline=PAL["outline"])
         draw.rectangle([tx - 4, ty - 16, tx + 4, ty - 11], fill=PAL["green_bldg"], outline=PAL["outline"])
         draw.rectangle([tx - 4, ty + 11, tx + 4, ty + 16], fill=PAL["zebra_blue"], outline=PAL["outline"])
+    # Mesa picnic con mantel azul institucional y bancos oscuros (foto cafeteria.jpg)
+    pic_x, pic_y = caf_x1 + 40, ay1 + 84
+    draw.rectangle([pic_x - 18, pic_y - 8, pic_x + 18, pic_y + 8], fill=PAL["zebra_blue"], outline=PAL["outline"])
+    draw.rectangle([pic_x - 16, pic_y - 6, pic_x + 16, pic_y + 6], fill=PAL["window_glass"])
+    draw.rectangle([pic_x - 18, pic_y - 14, pic_x + 18, pic_y - 10], fill=PAL["stone_dark"], outline=PAL["outline"])
+    draw.rectangle([pic_x - 18, pic_y + 10, pic_x + 18, pic_y + 14], fill=PAL["stone_dark"], outline=PAL["outline"])
 
     # 2. Almacén General (3.80m x 7.00m = 76 x 140 texeles)
     alm_x1, alm_x2 = caf_x2 + 8, caf_x2 + 8 + m_to_t(3.80)
@@ -584,6 +595,9 @@ def generate_scenario_2():
 
     for cx in range(ax1, ax2 + 1, 70):
         draw.rectangle([cx, fy1 - 6, cx + 8, fy2], fill=PAL["guinda"], outline=PAL["outline"])
+    # Remate de módulo de tabique rojo en azotea (visible en fotos Pasillo Edificio A y arcotecho)
+    draw.rectangle([ax1 + 220, fy1 - 18, ax1 + 265, fy1], fill=PAL["brick_red"], outline=PAL["outline"])
+    draw.rectangle([ax1 + 220, fy1 - 18, ax1 + 265, fy1 - 15], fill=PAL["brick_dark"])
 
     # Placas arquitectónicas del Edificio A
     draw_pixel_sign(draw, (caf_x1 + caf_x2) // 2, fy1 + 3, "CAFETERIA 6.2X7M", bg=PAL["guinda"], fg=PAL["white"])
@@ -625,6 +639,10 @@ def generate_scenario_3():
 
     draw.rectangle([sx2, sy1, sx2 + 10, sy2 - 36], fill=PAL["alfarda_rose"], outline=PAL["outline"])
     draw.rectangle([sx2 + 2, sy1, sx2 + 8, sy2 - 38], fill=PAL["guinda_light"])
+    # Puerta metálica corrediza de bodega bajo rampa (foto Escaleras a Edificio B.jpg)
+    draw.rectangle([sx2 - 14, sy2 - 76, sx2 + 9, sy2 - 38], fill=PAL["white"], outline=PAL["outline"])
+    for rx in range(sx2 - 11, sx2 + 8, 4):
+        draw.line([(rx, sy2 - 74), (rx, sy2 - 40)], fill=PAL["silver"])
     draw_pixel_sign(draw, (sx1 + sx2) // 2, sy2 - 8, "ESCALINATA S +4M", bg=PAL["guinda"], fg=PAL["white"])
 
     # PLAZA CÍVICA CON TECHUMBRE METÁLICA (34.00m x 22.00m = 680 x 440 texeles)
@@ -640,6 +658,15 @@ def generate_scenario_3():
     mid_cy = (court_y1 + court_y2) // 2
     draw.line([(mid_cx, court_y1), (mid_cx, court_y2)], fill=PAL["zebra_blue"], width=2)
     draw.ellipse([mid_cx - 36, mid_cy - 36, mid_cx + 36, mid_cy + 36], outline=PAL["curb_yellow"], width=2)
+    # Red de voleibol con postes anclados en llantas de concreto (foto arcotecho, edificio A y pared.jpg)
+    for vx in [mid_cx - 70, mid_cx + 70]:
+        draw.ellipse([vx - 7, mid_cy + 14, vx + 7, mid_cy + 22], fill=PAL["stone_black"], outline=PAL["outline"])
+        draw.ellipse([vx - 5, mid_cy + 15, vx + 5, mid_cy + 20], fill=PAL["concrete_dark"])
+        draw.line([(vx, mid_cy - 28), (vx, mid_cy + 16)], fill=PAL["silver"], width=2)
+    for ny in range(mid_cy - 26, mid_cy - 8, 4):
+        draw.line([(mid_cx - 70, ny), (mid_cx + 70, ny)], fill=PAL["white"], width=1)
+    for nx in range(mid_cx - 66, mid_cx + 66, 8):
+        draw.line([(nx, mid_cy - 26), (nx, mid_cy - 8)], fill=PAL["white"], width=1)
 
     # Muro de Contención Norte de Piedra Braza Negra con Juntas Blancas
     wall_y1, wall_y2 = py1 + 12, py1 + 88
@@ -880,6 +907,12 @@ def generate_scenario_5():
     draw_pixel_sign(draw, (a5_x1 + a5_x2) // 2, fy1 - 2, "AULA 5 - 501", bg=PAL["green_bldg_dark"], fg=PAL["white"])
 
     draw.rectangle([x_ss + 4, fy2 + 2, x_ss + 22, fy2 + 10], fill=PAL["stone_black"], outline=PAL["outline"])
+    # Vitrina / exhibidor de trofeos en andador (foto Edificio C exhibidor.jpg)
+    exh_x = x_dir + 4
+    draw.rectangle([exh_x, fy2 + 2, exh_x + 18, fy2 + 10], fill=PAL["white"], outline=PAL["outline"])
+    draw.rectangle([exh_x + 2, fy2 + 3, exh_x + 16, fy2 + 8], fill=PAL["window_glass"])
+    draw.point((exh_x + 6, fy2 + 5), fill=PAL["curb_yellow"])
+    draw.point((exh_x + 12, fy2 + 5), fill=PAL["curb_yellow"])
     draw_green_trash_drum(draw, a5_x1 + 30, fy2 + 4)
 
     # 3. ANDADOR PRINCIPAL, JARDÍN DEL ASTA BANDERA Y RAMPA A LA CANCHA
