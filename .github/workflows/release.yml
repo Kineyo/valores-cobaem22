@@ -104,17 +104,22 @@ jobs:
         run: |
           godot --headless --editor --quit || true
 
-      - name: Build Android APK
+      - name: Build Android APKs (Release and Debug)
         run: |
           mkdir -v -p build/android
-          godot --headless --verbose --export-release "Android" build/android/campeones_valores.apk || godot --headless --verbose --export-debug "Android" build/android/campeones_valores.apk
+          echo "=== Compilando APK Release ==="
+          godot --headless --verbose --export-release "Android" build/android/campeones_valores_release.apk
+          echo "=== Compilando APK Debug ==="
+          godot --headless --verbose --export-debug "Android" build/android/campeones_valores_debug.apk
+          # Copia estándar de release para descarga directa
+          cp -v build/android/campeones_valores_release.apk build/android/campeones_valores.apk
           ls -lh build/android/
 
-      - name: Upload Android Artifact
+      - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-build
-          path: build/android/campeones_valores.apk
+          name: android-builds
+          path: build/android/*.apk
           retention-days: 1
 
   publish-release:
@@ -131,10 +136,10 @@ jobs:
           name: pc-builds
           path: release_assets
 
-      - name: Download Android Artifact
+      - name: Download Android Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: android-build
+          name: android-builds
           path: release_assets
 
       - name: Inspect Release Assets
@@ -150,7 +155,7 @@ jobs:
             echo "tag=${{ inputs.tag_name }}" >> $GITHUB_OUTPUT
           else
             VER=$(grep 'config/version=' project.godot | cut -d'"' -f2)
-            echo "tag=v${VER:-1.3}" >> $GITHUB_OUTPUT
+            echo "tag=v${VER:-1.3.1}" >> $GITHUB_OUTPUT
           fi
 
       - name: Create or Update GitHub Release
@@ -164,17 +169,20 @@ jobs:
             release_assets/campeones_valores_linux_x86_64.zip
             release_assets/campeones_valores_windows_x86_64.zip
             release_assets/campeones_valores.apk
+            release_assets/campeones_valores_release.apk
+            release_assets/campeones_valores_debug.apk
           body: |
             # 🎮 Campeones de los Valores — ${{ steps.tag_info.outputs.tag }}
             
-            Versión oficial compilada y empaquetada automáticamente mediante GitHub Actions para **Linux**, **Windows** y **Android**.
+            Versión oficial compilada y empaquetada automáticamente mediante GitHub Actions para **Linux**, **Windows** y **Android** (con variantes **Release** y **Debug**).
             
             ---
             
             ### 📦 Paquetes Oficiales Listos para Descargar:
             - 🐧 **Linux (x86_64):** `campeones_valores_linux_x86_64.zip` — Ejecutable nativo compatible con Ubuntu, Debian, Fedora, Arch y derivados.
             - 🪟 **Windows (64-bit):** `campeones_valores_windows_x86_64.zip` — Ejecutable `.exe` independiente sin requerir dependencias externas.
-            - 📱 **Android:** `campeones_valores.apk` — Instalador directo para celulares, tabletas y pantallas táctiles educativas.
+            - 📱 **Android (Release Oficial):** `campeones_valores_release.apk` (y `campeones_valores.apk`) — Instalador de producción firmado y optimizado para máximo rendimiento.
+            - 🛠️ **Android (Debug / Pruebas):** `campeones_valores_debug.apk` — Instalador con símbolos y consola de depuración activada para auditoría y pruebas técnicas en planteles educativos.
             
             ---
             
