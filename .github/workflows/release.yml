@@ -2,12 +2,14 @@ name: Build and Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Tag de release (ej: v1.1, v1.2)'
+        description: 'Tag de release (ej: v1.1, v1.2, v1.3)'
         required: false
         default: ''
 
@@ -15,14 +17,14 @@ permissions:
   contents: write
 
 env:
-  GODOT_VERSION: "4.3"
+  GODOT_VERSION: "4.7.2"
 
 jobs:
   export-pc:
     name: Export PC (Linux & Windows)
     runs-on: ubuntu-24.04
     container:
-      image: barichello/godot-ci:4.3
+      image: barichello/godot-ci:4.7.2
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,8 +32,8 @@ jobs:
       - name: Setup Export Templates
         run: |
           mkdir -v -p ~/.local/share/godot/export_templates/
-          cp -r /root/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable ~/.local/share/godot/export_templates/ || true
-          ls -la ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable/
+          cp -r /root/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable ~/.local/share/godot/export_templates/ 2>/dev/null || cp -r /root/.local/share/godot/export_templates/* ~/.local/share/godot/export_templates/ 2>/dev/null || true
+          ls -la ~/.local/share/godot/export_templates/
 
       - name: Godot Headless Import
         run: |
@@ -70,7 +72,7 @@ jobs:
     name: Export Android (APK)
     runs-on: ubuntu-24.04
     container:
-      image: barichello/godot-ci:4.3
+      image: barichello/godot-ci:4.7.2
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -78,8 +80,8 @@ jobs:
       - name: Setup Export Templates
         run: |
           mkdir -v -p ~/.local/share/godot/export_templates/
-          cp -r /root/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable ~/.local/share/godot/export_templates/ || true
-          ls -la ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable/
+          cp -r /root/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable ~/.local/share/godot/export_templates/ 2>/dev/null || cp -r /root/.local/share/godot/export_templates/* ~/.local/share/godot/export_templates/ 2>/dev/null || true
+          ls -la ~/.local/share/godot/export_templates/
 
       - name: Configure Android SDK & Keystore
         run: |
@@ -90,8 +92,9 @@ jobs:
           JAVA_PATH="$(dirname "$(dirname "$(readlink -f "$(which javac || which java)")")")"
           
           printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\nexport/android/debug_keystore = "%s/debug.keystore"\nexport/android/debug_keystore_user = "androiddebugkey"\nexport/android/debug_keystore_pass = "android"\nexport/android/force_system_user = false\nexport/android/shutdown_adb_on_exit = true\n' "${ANDROID_SDK_PATH}" "${JAVA_PATH}" "$(pwd)" > ~/.config/godot/editor_settings-4.3.tres
-          cp -v ~/.config/godot/editor_settings-4.3.tres ~/.config/godot/editor_settings-4.tres
-          cp -v ~/.config/godot/editor_settings-4.3.tres ~/.config/godot/editor_settings-4.7.tres
+          cp -v ~/.config/godot/editor_settings-4.3.tres ~/.config/godot/editor_settings-4.tres 2>/dev/null || true
+          cp -v ~/.config/godot/editor_settings-4.3.tres ~/.config/godot/editor_settings-4.7.tres 2>/dev/null || true
+          cp -v ~/.config/godot/editor_settings-4.3.tres ~/.config/godot/editor_settings-4.7.2.tres 2>/dev/null || true
           cat ~/.config/godot/editor_settings-4.3.tres
 
       - name: Godot Headless Import
@@ -144,7 +147,7 @@ jobs:
             echo "tag=${{ inputs.tag_name }}" >> $GITHUB_OUTPUT
           else
             VER=$(grep 'config/version=' project.godot | cut -d'"' -f2)
-            echo "tag=v${VER:-1.1}" >> $GITHUB_OUTPUT
+            echo "tag=v${VER:-1.3}" >> $GITHUB_OUTPUT
           fi
 
       - name: Create or Update GitHub Release
@@ -168,8 +171,11 @@ jobs:
             - 🪟 **Windows (64-bit):** `campeones_valores_windows_x86_64.zip` (Ejecutable `.exe` independiente)
             - 📱 **Android:** `campeones_valores.apk` (Instalador directo para celulares y tablets)
             
-            ### 🏫 Características de esta Versión:
-            - **Plantel Oficial CEMSaD 22 ENTHAVI:** Los 6 escenarios a escala real 1:1 ($1\text{ metro} = 40\text{ px}$).
+            ### 🏫 Novedades y Características de la Versión v1.3:
+            - **📖 Modo Historia Completo:** Cinemáticas con diálogos, retratos procedurales pixel-art, Prólogo, 6 Actos y Epílogo basados en el plantel **CEMSaD 22 ENTHAVI (Temoaya)**.
+            - **👹 Los 6 Jefes Finales:** Apatyx, Desperdicius, Superbus, Ciber-Murmullus, Plagiatrix y Titanor con ataques telegrafiados y filosofía de redención pacífica.
+            - **🎓 Alumnos Secundarios COBAEM:** Personajes interactivos (Mateo, Xóchitl, Emiliano, Sofía) con estados de aflicción/felicidad y curación de esperanza.
+            - **📱 Ergonomía Táctil Móvil y Safe Area:** Joysticks virtuales dinámicos con resting guides, compensación de muescas (notches) y botones adaptados a $\ge 44\times 44\text{ dp}$.
+            - **🌐 Arquitectura Multiplataforma:** Armonización completa para Linux, Windows y Android bajo el renderizador `gl_compatibility` y escala real ($1\text{ m} = 40\text{ px}$).
             - **Visor CAD 2D y Maqueta 3D:** Herramientas interactivas integradas en HTML5 y Three.js.
-            - **Dinámica de Virtudes:** Sistema de combate no violento con redención pacífica de antivalores.
             - **Audio Original:** Banda sonora chiptune y efectos sintetizados proceduralmente.
