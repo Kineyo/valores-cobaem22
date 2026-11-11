@@ -44,7 +44,32 @@ var _overlay_alpha: float = 0.6
 var _panel_tweens: Dictionary = {}
 var _overlay_tween: Tween
 
+func _ensure_nodes() -> void:
+	if hearts_container == null:
+		hearts_container = get_node_or_null("%HeartsContainer")
+	if title_label == null:
+		title_label = get_node_or_null("%TitleLabel")
+	if progress_bar == null:
+		progress_bar = get_node_or_null("%ProgressBar")
+	if runner_icon == null:
+		runner_icon = get_node_or_null("%RunnerIcon")
+	if difficulty_label == null:
+		difficulty_label = get_node_or_null("%DifficultyLabel")
+	if controls_label == null:
+		controls_label = get_node_or_null("%ControlsLabel")
+	if intro_banner == null:
+		intro_banner = get_node_or_null("%IntroBanner")
+	if overlay == null:
+		overlay = get_node_or_null("%Overlay")
+	if pause_panel == null:
+		pause_panel = get_node_or_null("%PausePanel")
+	if game_over_panel == null:
+		game_over_panel = get_node_or_null("%GameOverPanel")
+	if victory_panel == null:
+		victory_panel = get_node_or_null("%VictoryPanel")
+
 func _ready() -> void:
+	_ensure_nodes()
 	_overlay_alpha = overlay.color.a
 	for panel in [pause_panel, game_over_panel, victory_panel]:
 		panel.visible = false
@@ -77,7 +102,8 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.echo):
 		return
-	if SceneTransition.is_busy:
+	var st = get_node_or_null("/root/SceneTransition") if is_inside_tree() else null
+	if st and st.is_busy:
 		return
 	var key: int = event.keycode
 	var handled := true
@@ -105,17 +131,30 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _notification(what: int) -> void:
-	# Pausa automática si la ventana pierde el foco
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and is_inside_tree():
-		if not is_game_finished and not is_paused and not SceneTransition.is_busy:
-			set_paused(true)
+	if not is_inside_tree():
+		return
+	var st = get_node_or_null("/root/SceneTransition")
+	var is_transitioning: bool = st.is_busy if st else false
+	match what:
+		NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED:
+			if not is_game_finished and not is_paused and not is_transitioning:
+				set_paused(true)
+		NOTIFICATION_WM_GO_BACK_REQUEST:
+			if is_game_finished:
+				_on_menu_pressed()
+			elif is_paused:
+				set_paused(false)
+			else:
+				set_paused(true)
 
 func set_paused(paused: bool) -> void:
 	if paused == is_paused or is_game_finished:
 		return
 	is_paused = paused
 	get_tree().paused = paused
-	GameSettings.duck_music(paused)
+	var gs = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	if gs and gs.has_method("duck_music"):
+		gs.duck_music(paused)
 	if paused:
 		_show_panel(pause_panel, btn_resume)
 		if mobile_controls:
@@ -126,28 +165,38 @@ func set_paused(paused: bool) -> void:
 			mobile_controls.visible = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("web_android") or OS.has_feature("web_ios") or DisplayServer.is_touchscreen_available()
 
 func set_difficulty_text(diff_name: String) -> void:
-	difficulty_label.text = "Dificultad: %s" % diff_name
+	_ensure_nodes()
+	if difficulty_label:
+		difficulty_label.text = "Dificultad: %s" % diff_name
 
 func set_level_title(title: String) -> void:
+	_ensure_nodes()
 	if title_label:
 		title_label.text = title
 
 func reset_state() -> void:
+	_ensure_nodes()
 	is_game_finished = false
 	is_paused = false
 	_shown_hp = -1
 	_target_progress = 0.0
 	for panel in [pause_panel, game_over_panel, victory_panel]:
-		panel.visible = false
-	overlay.visible = false
+		if panel:
+			panel.visible = false
+	if overlay:
+		overlay.visible = false
 	if mobile_controls:
 		mobile_controls.visible = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("web_android") or OS.has_feature("web_ios") or DisplayServer.is_touchscreen_available()
 
 ## Reutiliza los nodos de corazones (antes se destruían y creaban en cada golpe)
 ## y anima los que cambian.
 func update_hearts(current: int, max_hp: int) -> void:
+	_ensure_nodes()
+	if hearts_container == null:
+		return
 	if _hearts.size() != max_hp:
 		for child in hearts_container.get_children():
+			hearts_container.remove_child(child)
 			child.queue_free()
 		_hearts.clear()
 		for i in range(max_hp):
@@ -197,6 +246,9 @@ func update_progress(current_x: float, max_x: float) -> void:
 
 ## Cartel de inicio de nivel y desvanecimiento de las instrucciones.
 func show_intro(level_title: String, diff_name: String = "") -> void:
+	_ensure_nodes()
+	if intro_banner == null:
+		return
 	if diff_name != "":
 		intro_banner.text = "¡%s!\nDificultad: %s" % [level_title, diff_name]
 	else:
@@ -218,13 +270,17 @@ func show_intro(level_title: String, diff_name: String = "") -> void:
 	tw.set_parallel(false)
 	tw.tween_callback(intro_banner.hide)
 
-	controls_label.modulate.a = 1.0
-	var tw2 := create_tween()
-	tw2.tween_interval(6.0)
-	tw2.tween_property(controls_label, "modulate:a", 0.0, 1.0)
+	if controls_label:
+		controls_label.modulate.a = 1.0
+		var tw2 := create_tween()
+		tw2.tween_interval(6.0)
+		tw2.tween_property(controls_label, "modulate:a", 0.0, 1.0)
 
 ## Cartel de nivel superado
 func show_level_complete(level_name: String) -> void:
+	_ensure_nodes()
+	if intro_banner == null:
+		return
 	intro_banner.text = "¡NIVEL SUPERADO!\n%s" % level_name
 	intro_banner.visible = true
 	intro_banner.modulate.a = 0.0

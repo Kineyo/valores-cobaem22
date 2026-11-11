@@ -37,6 +37,8 @@ var is_invulnerable: bool = false
 var is_attacking: bool = false
 ## Vector cardinal actual de orientación: (0, 1) Abajo, (0, -1) Arriba, (1, 0) Der, (-1, 0) Izq
 var facing_vector: Vector2 = Vector2.DOWN
+## Vector de puntería para joystick derecho táctil o gamepad (360°)
+var aim_vector: Vector2 = Vector2.ZERO
 var can_control: bool = true
 
 var shot_scale: float = 1.3
@@ -48,6 +50,7 @@ var _knockback_left: float = 0.0
 var _walk_time: float = 0.0
 var _dust_timer: float = 0.0
 var _squash_tween: Tween
+var _flash_tween: Tween
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var attack_area: Area2D = $AttackArea
@@ -90,11 +93,19 @@ func _draw() -> void:
 
 ## Aplica los parámetros de balance configurados en GameSettings
 func apply_difficulty() -> void:
-	max_health = GameSettings.get_param("max_health")
-	shot_cooldown = GameSettings.get_param("shot_cooldown")
-	shot_scale = GameSettings.get_param("shot_scale")
-	shot_speed = GameSettings.get_param("shot_speed")
-	invulnerable_time = GameSettings.get_param("invulnerable_time")
+	var gs = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	if gs and gs.has_method("get_param"):
+		max_health = gs.get_param("max_health")
+		shot_cooldown = gs.get_param("shot_cooldown")
+		shot_scale = gs.get_param("shot_scale")
+		shot_speed = gs.get_param("shot_speed")
+		invulnerable_time = gs.get_param("invulnerable_time")
+	else:
+		max_health = 3
+		shot_cooldown = 0.35
+		shot_scale = 1.3
+		shot_speed = 520.0
+		invulnerable_time = 1.0
 
 func _physics_process(delta: float) -> void:
 	if not can_control:
@@ -105,18 +116,31 @@ func _physics_process(delta: float) -> void:
 	_shot_cooldown_left = maxf(0.0, _shot_cooldown_left - delta)
 	_knockback_left = maxf(0.0, _knockback_left - delta)
 
-	# Entrada direccional en 8 direcciones (WASD o Flechas)
+	# Entrada direccional en 8 direcciones (WASD, Flechas o Joystick Izquierdo)
 	var input_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 
-	# Disparo de valores continuo mientras se mantiene presionada la tecla de ataque
-	if Input.is_action_pressed("attack") and _shot_cooldown_left <= 0.0:
+	# Puntería direccional (Joystick Derecho táctil o stick derecho de Gamepad)
+	var joy_aim := Input.get_vector("aim_left", "aim_right", "aim_up", "aim_down")
+	if joy_aim.length_squared() > 0.08:
+		aim_vector = joy_aim
+	elif not Input.is_action_pressed("attack"):
+		aim_vector = Vector2.ZERO
+
+	# Si se apunta con joystick derecho, orientar al personaje hacia ese ángulo; si no, por movimiento
+	if aim_vector != Vector2.ZERO:
+		_update_facing(aim_vector)
+	elif input_vector != Vector2.ZERO and _knockback_left <= 0.0:
+		_update_facing(input_vector)
+
+	# Disparo de valores continuo si se mantiene ataque o se apunta con el joystick derecho
+	var wants_attack := Input.is_action_pressed("attack") or aim_vector != Vector2.ZERO
+	if wants_attack and _shot_cooldown_left <= 0.0:
 		perform_attack()
 
 	# Movimiento en plano 2D con aceleración e inercia
 	if _knockback_left <= 0.0:
 		if input_vector != Vector2.ZERO:
 			velocity = velocity.move_toward(input_vector * speed, acceleration * delta)
-			_update_facing(input_vector)
 		else:
 			velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
 
@@ -213,13 +237,14 @@ func perform_attack() -> void:
 	spawn_projectile()
 	_squash(Vector2(0.92, 1.06), 0.12)
 
-## Instancia un proyectil radiante hacia la dirección cardinal de mira
+## Instancia un proyectil radiante hacia la dirección cardinal de mira o puntería de joystick
 func spawn_projectile() -> void:
+	var shot_dir: Vector2 = aim_vector.normalized() if aim_vector != Vector2.ZERO else facing_vector
 	var shot: Projectile = PROJECTILE_SCENE.instantiate()
-	shot.direction = facing_vector
+	shot.direction = shot_dir
 	shot.speed = shot_speed
 	shot.scale = Vector2(shot_scale, shot_scale)
-	shot.global_position = global_position + facing_vector * 24.0 + Vector2(0, -10.0)
+	shot.global_position = global_position + shot_dir * 24.0 + Vector2(0, -10.0)
 	get_parent().add_child(shot)
 
 func check_attack_hits() -> void:
@@ -266,8 +291,10 @@ func take_damage(amount: int, from_pos: Variant = null) -> void:
 	sprite.texture = TEX_HURT
 	sprite.flip_h = false
 	_flash(Color(3.0, 1.2, 1.2))
-	Fx.shake(5.0, 0.25)
-	Fx.hitstop(0.06)
+	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+	if fx:
+		fx.shake(5.0, 0.25)
+		fx.hitstop(0.06)
 
 	if health <= 0:
 		_die(push_dir)
@@ -277,6 +304,8 @@ func take_damage(amount: int, from_pos: Variant = null) -> void:
 			invulnerable_timer.start(invulnerable_time)
 
 func _die(push_dir: Vector2) -> void:
+	if _flash_tween and _flash_tween.is_valid():
+		_flash_tween.kill()
 	can_control = false
 	is_attacking = false
 	velocity = push_dir * (knockback_force * 0.4)
@@ -313,9 +342,11 @@ func _squash(amount: Vector2, time: float) -> void:
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _flash(color: Color) -> void:
+	if _flash_tween and _flash_tween.is_valid():
+		_flash_tween.kill()
 	sprite.self_modulate = color
-	var tw := create_tween()
-	tw.tween_property(sprite, "self_modulate", Color.WHITE, 0.22)
+	_flash_tween = create_tween()
+	_flash_tween.tween_property(sprite, "self_modulate", Color.WHITE, 0.22)
 
 func _on_invulnerable_timer_timeout() -> void:
 	is_invulnerable = false

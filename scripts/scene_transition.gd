@@ -47,6 +47,10 @@ func change_scene(path: String) -> void:
 func reload_scene() -> void:
 	_run(func() -> void: get_tree().reload_current_scene())
 
+## Ejecuta un callback arbitrario con transición de pantalla
+func transition_call(action: Callable) -> void:
+	_run(action)
+
 ## Cubre la pantalla con el shader, ejecuta la acción (callback) y luego revela la escena
 func _run(action: Callable) -> void:
 	if is_busy:

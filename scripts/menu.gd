@@ -33,6 +33,22 @@ var _diff_buttons: Array[Button] = []
 var _time: float = 0.0
 var _bg_scroll: float = 0.0
 
+var _game_settings: Node:
+	get:
+		if not is_inside_tree():
+			return null
+		return get_node_or_null("/root/GameSettings")
+
+var _scene_transition: Node:
+	get:
+		if not is_inside_tree():
+			return null
+		return get_node_or_null("/root/SceneTransition")
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		_quit()
+
 func _ready() -> void:
 	_diff_buttons = [btn_easy, btn_normal, btn_hard]
 	for i in _diff_buttons.size():
@@ -49,7 +65,8 @@ func _ready() -> void:
 
 	_refresh_difficulty(false)
 	btn_play.grab_focus()
-	GameSettings.play_menu_music()
+	if _game_settings and _game_settings.has_method("play_menu_music"):
+		_game_settings.play_menu_music()
 	_animate_intro()
 
 func _process(delta: float) -> void:
@@ -82,18 +99,19 @@ func _animate_intro() -> void:
 			idx += 1
 
 func _input(event: InputEvent) -> void:
-	if SceneTransition.is_busy:
+	if _scene_transition and _scene_transition.is_busy:
 		return
 	# Se usa _input (no _unhandled_input) para que las flechas no se las "coma"
 	# la navegación de foco de los botones.
 	if not (event is InputEventKey and event.pressed and not event.echo):
 		return
 	var handled := true
+	var current_d: int = _game_settings.difficulty if _game_settings else 1
 	match event.keycode:
 		KEY_LEFT, KEY_A:
-			_select_difficulty(maxi(0, GameSettings.difficulty - 1))
+			_select_difficulty(maxi(0, current_d - 1))
 		KEY_RIGHT, KEY_D:
-			_select_difficulty(mini(2, GameSettings.difficulty + 1))
+			_select_difficulty(mini(2, current_d + 1))
 		KEY_1:
 			_select_difficulty(0)
 		KEY_2:
@@ -110,17 +128,19 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _select_difficulty(index: int) -> void:
-	if index == GameSettings.difficulty:
+	var current_d: int = _game_settings.difficulty if _game_settings else 1
+	if index == current_d:
 		_diff_buttons[index].button_pressed = true
 		return
 	if sfx_select:
 		sfx_select.pitch_scale = 0.95 + index * 0.1
 		sfx_select.play()
-	GameSettings.difficulty = index
+	if _game_settings:
+		_game_settings.difficulty = index
 	_refresh_difficulty(true)
 
 func _refresh_difficulty(animate: bool = false) -> void:
-	var d: int = GameSettings.difficulty
+	var d: int = _game_settings.difficulty if _game_settings else 1
 	for i in _diff_buttons.size():
 		var btn := _diff_buttons[i]
 		var selected := i == d
@@ -141,14 +161,19 @@ func _refresh_difficulty(animate: bool = false) -> void:
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _start_game() -> void:
-	if SceneTransition.is_busy:
+	if _scene_transition and _scene_transition.is_busy:
 		return
 	if sfx_select:
 		sfx_select.pitch_scale = 1.15
 		sfx_select.play()
-	SceneTransition.change_scene(GAME_SCENE)
+	if _scene_transition and _scene_transition.has_method("change_scene"):
+		_scene_transition.change_scene(GAME_SCENE)
+	else:
+		get_tree().change_scene_to_file(GAME_SCENE)
 
 func _quit() -> void:
-	if OS.has_feature("web") or SceneTransition.is_busy:
+	if OS.has_feature("web"):
+		return
+	if _scene_transition and _scene_transition.is_busy:
 		return
 	get_tree().quit()

@@ -65,13 +65,14 @@ func floating_text(parent: Node, pos: Vector2, text: String, color: Color = Colo
 
 	label.reset_size()
 	label.pivot_offset = label.size * 0.5
-	label.position = pos - label.size * 0.5
+	label.global_position = pos - label.size * 0.5
 	label.scale = Vector2(0.4, 0.4)
 
+	var start_y := label.global_position.y
 	var tw := label.create_tween()
 	tw.set_parallel(true)
 	tw.tween_property(label, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_property(label, "position:y", label.position.y - 38.0, 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(label, "global_position:y", start_y - 38.0, 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(label, "modulate:a", 0.0, 0.35).set_delay(0.55)
 	tw.chain().tween_callback(label.queue_free)
 
@@ -94,9 +95,9 @@ func burst(parent: Node, pos: Vector2, color: Color, amount: int = 14, speed: fl
 	p.scale_amount_max = 4.0
 	p.color = color
 	p.color_ramp = _fade_gradient
-	p.position = pos
 	p.z_index = 40
 	parent.add_child(p)
+	p.global_position = pos
 	p.emitting = true
 	p.finished.connect(p.queue_free)
 	# Respaldo para garantizar liberación de memoria si el evento finished no se dispara

@@ -420,5 +420,6 @@ stream = ExtResource("2_sfx_go")
 stream = ExtResource("6_sfx_ui")
 volume_db = -12.0
 pitch_scale = 1.4
+max_polyphony = 4
 
 [node name="MobileControls" parent="." instance=ExtResource("7_mobile")]

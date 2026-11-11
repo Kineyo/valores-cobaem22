@@ -48,3 +48,8 @@ __pycache__/
 .venv/
 env/
 venv/
+
+# Audit reports and internal logs (hidden and ignored)
+.audit*
+.audit_report.md
+

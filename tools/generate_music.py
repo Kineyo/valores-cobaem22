@@ -13,7 +13,7 @@ import struct
 import wave
 from array import array
 
-RATE = 22050
+RATE = 44100
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "assets", "audio")
 
 NOTE_INDEX = {"C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5,
@@ -147,8 +147,8 @@ def song(bpm, chords, melody, arp=True, drums=True, lead_duty=0.25):
     for i in range(delay, len(out)):
         out[i] += out[i - delay] * 0.22
 
-    # Filtro paso-bajo de un polo para redondear el sonido
-    alpha = 0.55
+    # Filtro paso-bajo de un polo para redondear el sonido a 44.1 kHz
+    alpha = 0.38
     y = 0.0
     for i in range(len(out)):
         y += alpha * (out[i] - y)

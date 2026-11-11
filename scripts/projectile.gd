@@ -50,6 +50,8 @@ func _on_area_entered(area: Area2D) -> void:
 	var enemy = area.get_parent()
 	if enemy and enemy.has_method("hit_by_attack"):
 		_done = true
-		Fx.burst(get_parent(), global_position, Color(1.0, 0.92, 0.5), 8, 120.0)
+		var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+		if fx:
+			fx.burst(get_parent(), global_position, Color(1.0, 0.92, 0.5), 8, 120.0)
 		enemy.hit_by_attack(global_position)
 		queue_free()

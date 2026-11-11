@@ -205,3 +205,4 @@ horizontal_alignment = 1
 [node name="SFXSelect" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("4_sfx")
 volume_db = -10.0
+max_polyphony = 4

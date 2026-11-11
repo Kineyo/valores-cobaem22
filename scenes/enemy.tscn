@@ -7,11 +7,18 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hitbox"]
 size = Vector2(30, 30)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_enemy_body"]
+size = Vector2(20, 12)
+
 [node name="Enemy" type="CharacterBody2D"]
 y_sort_enabled = true
 collision_layer = 4
 collision_mask = 1
 script = ExtResource("1_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -6)
+shape = SubResource("RectangleShape2D_enemy_body")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 position = Vector2(0, -18)

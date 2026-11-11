@@ -407,6 +407,8 @@ def generate_scenario_1():
     draw.rectangle([cv_x1, cv_y2 - 6, cv_x2, cv_y2], fill=PAL["guinda"])
     draw.polygon([(cv_x1 - 6, cv_y1), (cv_x2 + 6, cv_y1), (cv_x2, cv_y1 - 12), (cv_x1, cv_y1 - 12)], fill=PAL["roof_red"], outline=PAL["outline"])
     draw.rectangle([cv_x1 + 18, cv_y1 - 24, cv_x1 + 42, cv_y1 - 12], fill=PAL["green_mint_dark"], outline=PAL["outline"])
+    draw.line([(cv_x1 + 30, cv_y1 - 36), (cv_x1 + 30, cv_y1 - 24)], fill=PAL["white"], width=1)
+    draw.line([(cv_x1 + 27, cv_y1 - 32), (cv_x1 + 33, cv_y1 - 32)], fill=PAL["white"], width=1)
     draw_window_grille(draw, cv_x1 + 4, cv_y1 + 10, cv_x1 + 20, cv_y1 + 34)
     draw_window_grille(draw, cv_x2 - 20, cv_y1 + 10, cv_x2 - 4, cv_y1 + 34)
     draw.rectangle([cv_x1 + 22, cv_y1 + 12, cv_x2 - 22, cv_y1 + 26], fill=PAL["white"], outline=PAL["outline"])
@@ -468,6 +470,9 @@ def generate_scenario_1():
     draw_window_grille(draw, dx1 + 8, fy1 + 6, dx1 + 78, fy1 + 15)
     draw_brick_wall_patch(draw, dx1 + 8, fy1 + 15, dx1 + 78, fy2)
     draw.rectangle([dx1 + 82, fy1 + 6, dx1 + 168, fy2], fill=PAL["ochre_wall"], outline=PAL["outline"])
+    # Jaula exterior metálica de Gas L.P. y reactivos
+    draw.rectangle([dx2 - 28, fy2 - 14, dx2 - 4, fy2], fill=PAL["curb_yellow"], outline=PAL["outline"])
+    draw_window_grille(draw, dx2 - 26, fy2 - 12, dx2 - 6, fy2 - 2)
     draw_green_trash_drum(draw, dx1 + 92, fy2 + 2)
     draw_window_grille(draw, dx1 + 174, fy1 + 6, dx1 + 236, fy1 + 15)
     draw_brick_wall_patch(draw, dx1 + 174, fy1 + 15, dx1 + 236, fy2)

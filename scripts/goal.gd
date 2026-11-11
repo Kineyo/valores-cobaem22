@@ -48,5 +48,7 @@ func trigger(body: Node2D) -> void:
 	var tw := create_tween().set_parallel(true)
 	tw.tween_property(sprite, "modulate", Color.WHITE, 0.6)
 	tw.tween_property(sprite, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
-	Fx.shake(4.0, 0.3)
+	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+	if fx:
+		fx.shake(4.0, 0.3)
 	player_reached_goal.emit()

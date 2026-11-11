@@ -1,9 +1,26 @@
-extends Node
+extends SceneTree
 
 const LevelManager := preload("res://scripts/level_manager.gd")
+const GameSettingsScript := preload("res://scripts/game_settings.gd")
+const SceneTransitionScript := preload("res://scripts/scene_transition.gd")
+const FxScript := preload("res://scripts/fx.gd")
 
-func _ready() -> void:
+func _init() -> void:
 	print("--- INICIANDO TEST AUTOMÁTICO DE CAMPEONES DE LOS VALORES (CEMSaD 22 ENTHAVI) ---")
+
+	# Inicializar singletons requeridos si se ejecuta en modo standalone (-s)
+	if root.get_node_or_null("GameSettings") == null:
+		var gs = GameSettingsScript.new()
+		gs.name = "GameSettings"
+		root.add_child(gs)
+	if root.get_node_or_null("SceneTransition") == null:
+		var st = SceneTransitionScript.new()
+		st.name = "SceneTransition"
+		root.add_child(st)
+	if root.get_node_or_null("Fx") == null:
+		var fx = FxScript.new()
+		fx.name = "Fx"
+		root.add_child(fx)
 
 	# 1. Verificar que los 6 escenarios a escala real (1m = 40px) existen y cargan en LevelManager
 	var levels := LevelManager.get_all_levels()
@@ -19,7 +36,7 @@ func _ready() -> void:
 		assert(ResourceLoader.exists(img_path) or FileAccess.file_exists(img_path), "El escenario no existe: %s" % img_path)
 
 		var level_inst = level_scene.instantiate()
-		add_child(level_inst)
+		root.add_child(level_inst)
 		level_inst.setup_level(lvl)
 
 		var expected_size: Vector2 = lvl.get("map_size", lvl.get("real_dimensions_m", Vector2.ZERO) * LevelManager.SCALE_PX_PER_METER)
@@ -42,12 +59,13 @@ func _ready() -> void:
 			level_inst.obstacles.get_child_count(),
 			level_inst.enemies_container.get_child_count()
 		])
-		level_inst.queue_free()
+		root.remove_child(level_inst)
+		level_inst.free()
 
 	# 2. Probar escena Main y progresión multinivel entre los 6 escenarios
 	var main_scene: PackedScene = load("res://scenes/main.tscn")
 	var main_node = main_scene.instantiate()
-	add_child(main_node)
+	root.add_child(main_node)
 	assert(main_node.current_level_index == 0, "Main debe iniciar en el escenario 0")
 
 	for idx in range(levels.size()):
@@ -56,7 +74,8 @@ func _ready() -> void:
 		assert(main_node.active_level != null, "active_level nulo en escenario %d" % idx)
 		main_node._process(0.016)
 	print("Progresión secuencial por los 6 escenarios en Main verificada correctamente.")
-	main_node.queue_free()
+	root.remove_child(main_node)
+	main_node.free()
 
 	print("--- TODOS LOS TESTS DE ESCENARIOS Y PROGRESIÓN PASARON CON ÉXITO ---")
-	get_tree().quit(0)
+	quit(0)

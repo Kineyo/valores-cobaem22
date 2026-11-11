@@ -20,8 +20,8 @@ const GOAL_SCENE := preload("res://scenes/goal.tscn")
 @onready var entities: Node2D = $Entities
 @onready var enemies_container: Node2D = $Entities/Enemies
 
-var player: CharacterBody2D = null
-var goal: Area2D = null
+var player: Player = null
+var goal: Goal = null
 var map_size: Vector2 = Vector2(800, 450)
 var level_data: Dictionary = {}
 

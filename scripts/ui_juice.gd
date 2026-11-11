@@ -38,7 +38,11 @@ static func attach_button(btn: Button, sfx: AudioStreamPlayer = null) -> void:
 static func _scale_to(control: Control, target: Vector2, duration: float) -> void:
 	if not is_instance_valid(control) or not control.is_inside_tree():
 		return
+	var old_tw: Tween = control.get_meta("_juice_tw", null)
+	if old_tw and old_tw.is_valid():
+		old_tw.kill()
 	control.pivot_offset = control.size * 0.5
 	var tw := control.create_tween()
+	control.set_meta("_juice_tw", tw)
 	tw.tween_property(control, "scale", target, duration) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

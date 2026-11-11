@@ -31,9 +31,9 @@ static func get_default_levels() -> Array[Dictionary]:
 				# Jardinera del Osito Topiario
 				Rect2(288, 220, 260, 80),
 				# Edificio D: Laboratorio de Usos Múltiples (12.8x7.2m), Reactivos y Almacén
-				Rect2(604, 0, 836, 360),
-				# Autos estacionados en batería
-				Rect2(490, 440, 210, 140),
+				Rect2(604, 0, 836, 390),
+				# 3 Autos reales estacionados en batería (Sedán rojo, Mazda 2 y Kangoo)
+				Rect2(600, 410, 300, 120),
 				# Sistema Captador de Agua Pluvial (5.0x5.0m = 25 m²)
 				Rect2(1150, 510, 220, 220),
 				# Caseta de Vigilancia C.V. (3.0x2.5m = 7.5 m²)
@@ -64,8 +64,8 @@ static func get_default_levels() -> Array[Dictionary]:
 				Rect2(0, 0, 1600, 220),
 				# Edificio A: Almacén, Aula 1 (8x7m), Aula 2 (8x7m) y Sanitarios H/M (6x7m)
 				Rect2(356, 368, 1150, 400),
-				# Barra sur del Desayunador / Cafetería (deja abierta el área de mesas)
-				Rect2(100, 550, 256, 220),
+				# Barra sur del Desayunador / Cafetería (libera la banca sur de la mesa picnic)
+				Rect2(108, 570, 248, 200),
 				# Muro verde menta poniente
 				Rect2(0, 200, 96, 560),
 			]
@@ -92,7 +92,7 @@ static func get_default_levels() -> Array[Dictionary]:
 				# Barda colindante poniente
 				Rect2(0, 0, 36, 900),
 				# Muro lateral (alfarda color vino) entre Plaza Cívica y Escalinata S
-				Rect2(216, 180, 20, 560),
+				Rect2(216, 72, 20, 668),
 			]
 		},
 		{
@@ -160,6 +160,10 @@ static func get_default_levels() -> Array[Dictionary]:
 			"obstacles": [
 				# Muro perimetral norte verde claro de la cancha
 				Rect2(120, 0, 1220, 56),
+				# Estructura de portería y tablero de básquetbol poniente
+				Rect2(192, 356, 18, 24),
+				# Estructura de portería y tablero de básquetbol oriente
+				Rect2(1264, 356, 18, 24),
 				# Zona de Bancas y Mesas de Estudio al sur (260 m²)
 				Rect2(0, 690, 1360, 210),
 				# Barda Perimetral Oriente Acotada (52.00 m)

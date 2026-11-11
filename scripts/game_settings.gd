@@ -47,6 +47,7 @@ var music_volume_db: float = -8.0
 var _music: AudioStreamPlayer
 var _fade_tween: Tween
 var _ducked: bool = false
+var _stopping: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -57,14 +58,18 @@ func _ready() -> void:
 	_music.volume_db = music_volume_db
 	add_child(_music)
 	# Respaldo de loop si el stream WAV no tiene el flag loop activado
-	_music.finished.connect(_music.play)
+	_music.finished.connect(_on_music_finished)
 
 func _exit_tree() -> void:
 	if _music:
-		if _music.finished.is_connected(_music.play):
-			_music.finished.disconnect(_music.play)
+		if _music.finished.is_connected(_on_music_finished):
+			_music.finished.disconnect(_on_music_finished)
 		_music.stop()
 		_music.stream = null
+
+func _on_music_finished() -> void:
+	if _music and _music.stream and not _stopping:
+		_music.play()
 
 ## Retorna un parámetro de configuración para la dificultad activa
 func get_param(key: String) -> Variant:
@@ -82,10 +87,16 @@ func play_game_music() -> void:
 
 ## Detiene la música aplicando un fundido suave
 func stop_music(fade: float = FADE_TIME) -> void:
-	if not _music.playing:
+	if not _music or not _music.playing:
 		return
+	_stopping = true
 	_ducked = false
-	_fade_to(SILENT_DB, fade).tween_callback(_music.stop)
+	var tw := _fade_to(SILENT_DB, fade)
+	tw.tween_callback(func() -> void:
+		if _music:
+			_music.stop()
+		_stopping = false
+	)
 
 ## Reduce temporalmente el volumen de la música (ej. al pausar el juego)
 func duck_music(enabled: bool) -> void:
@@ -97,6 +108,7 @@ func duck_music(enabled: bool) -> void:
 ## Reproduce un stream de audio con fundido cruzado si ya había música sonando
 func _play(stream: AudioStream) -> void:
 	_ducked = false
+	_stopping = false
 	if _music.stream == stream and _music.playing:
 		_fade_to(music_volume_db, 0.3)
 		return
@@ -110,6 +122,7 @@ func _play(stream: AudioStream) -> void:
 		_fade_to(music_volume_db, FADE_TIME)
 
 func _start_stream(stream: AudioStream) -> void:
+	_stopping = false
 	_music.stream = stream
 	_music.play()
 

@@ -62,7 +62,9 @@ func _ready() -> void:
 	_target_wander = global_position
 	hitbox.body_entered.connect(_on_body_entered)
 	setup_type()
-	speed *= GameSettings.get_param("enemy_speed_mult")
+	var gs = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	if gs and gs.has_method("get_param"):
+		speed *= gs.get_param("enemy_speed_mult")
 	_anim_time = randf() * TAU
 	_wander_timer = randf_range(0.5, 2.0)
 	queue_redraw()
@@ -76,6 +78,7 @@ func _draw() -> void:
 ## Desactiva el movimiento y colisiones del enemigo
 func stop() -> void:
 	is_active = false
+	_respawn_timer = 0.0
 	velocity = Vector2.ZERO
 
 ## Configura textura, velocidad, color y virtud proclamada según el tipo
@@ -157,10 +160,12 @@ func hit_by_attack(attacker_pos: Variant = null) -> void:
 
 	var fx_parent := get_parent()
 	var hit_pos := global_position + Vector2(0, -16)
-	Fx.burst(fx_parent, hit_pos, _color, 16, 160.0)
-	Fx.burst(fx_parent, hit_pos, Color.WHITE, 6, 110.0)
-	Fx.floating_text(fx_parent, hit_pos + Vector2(0, -20), _value_text, Color(1.0, 0.95, 0.55), 15)
-	Fx.shake(2.5, 0.12)
+	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+	if fx:
+		fx.burst(fx_parent, hit_pos, _color, 16, 160.0)
+		fx.burst(fx_parent, hit_pos, Color.WHITE, 6, 110.0)
+		fx.floating_text(fx_parent, hit_pos + Vector2(0, -20), _value_text, Color(1.0, 0.95, 0.55), 15)
+		fx.shake(2.5, 0.12)
 	defeated.emit(self)
 
 	# Se oculta temporalmente y arranca el temporizador de reaparición
