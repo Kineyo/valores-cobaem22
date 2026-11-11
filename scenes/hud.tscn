@@ -27,11 +27,29 @@ corner_radius_bottom_left = 2
 corner_detail = 1
 anti_aliasing = false
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_boss"]
+content_margin_left = 12.0
+content_margin_top = 4.0
+content_margin_right = 12.0
+content_margin_bottom = 4.0
+bg_color = Color(0.18, 0.04, 0.08, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.95, 0.35, 0.45, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+corner_detail = 1
+anti_aliasing = false
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pause"]
-content_margin_left = 28.0
-content_margin_top = 18.0
-content_margin_right = 28.0
-content_margin_bottom = 18.0
+content_margin_left = 22.0
+content_margin_top = 10.0
+content_margin_right = 22.0
+content_margin_bottom = 10.0
 bg_color = Color(0.12, 0.04, 0.07, 0.96)
 border_width_left = 3
 border_width_top = 3
@@ -85,6 +103,9 @@ anti_aliasing = false
 process_mode = 3
 script = ExtResource("1_script")
 
+[node name="MobileControls" parent="." instance=ExtResource("7_mobile")]
+show_pause_button = false
+
 [node name="Root" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 15
@@ -102,18 +123,18 @@ anchors_preset = 10
 anchor_right = 1.0
 offset_left = 6.0
 offset_top = 4.0
-offset_right = -6.0
-offset_bottom = 42.0
+offset_right = -102.0
+offset_bottom = 48.0
 grow_horizontal = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_top")
 
 [node name="TopBar" type="HBoxContainer" parent="Root/TopPanel"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8
 
 [node name="CobaemMiniLogo" type="TextureRect" parent="Root/TopPanel/TopBar"]
-custom_minimum_size = Vector2(26, 26)
+custom_minimum_size = Vector2(24, 24)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
@@ -123,11 +144,13 @@ stretch_mode = 5
 
 [node name="TitleLabel" type="Label" parent="Root/TopPanel/TopBar"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.45, 1)
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 13
 text = "COBAEM · CEMSaD 22 ENTHAVI"
 vertical_alignment = 1
+clip_text = true
 
 [node name="HeartsContainer" type="HBoxContainer" parent="Root/TopPanel/TopBar"]
 unique_name_in_owner = true
@@ -138,8 +161,16 @@ theme_override_constants/separation = 4
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.85, 0.65, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 11
 text = "Dificultad: Normal"
+vertical_alignment = 1
+
+[node name="QuotaLabel" type="Label" parent="Root/TopPanel/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.55, 1)
+theme_override_font_sizes/font_size = 11
+text = "Antivalores: 0/3"
 vertical_alignment = 1
 
 [node name="Spacer" type="Control" parent="Root/TopPanel/TopBar"]
@@ -150,13 +181,13 @@ mouse_filter = 2
 [node name="ProgressLabel" type="Label" parent="Root/TopPanel/TopBar"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 11
 text = "Meta:"
 vertical_alignment = 1
 
 [node name="ProgressBar" type="ProgressBar" parent="Root/TopPanel/TopBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(170, 16)
+custom_minimum_size = Vector2(110, 16)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
@@ -175,7 +206,7 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="GoalIcon" type="TextureRect" parent="Root/TopPanel/TopBar"]
-custom_minimum_size = Vector2(20, 24)
+custom_minimum_size = Vector2(18, 22)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
@@ -183,13 +214,70 @@ texture = ExtResource("5_meta")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="BtnPauseHud" type="Button" parent="Root/TopPanel/TopBar"]
+[node name="BossBarContainer" type="PanelContainer" parent="Root"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(48, 26)
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -170.0
+offset_top = 44.0
+offset_right = 170.0
+offset_bottom = 78.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_boss")
+
+[node name="BossVBox" type="VBoxContainer" parent="Root/BossBarContainer"]
 layout_mode = 2
-size_flags_vertical = 4
+theme_override_constants/separation = 2
+
+[node name="BossTitleRow" type="HBoxContainer" parent="Root/BossBarContainer/BossVBox"]
+layout_mode = 2
+
+[node name="BossNameLabel" type="Label" parent="Root/BossBarContainer/BossVBox/BossTitleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.45, 0.55, 1)
 theme_override_font_sizes/font_size = 11
-text = "❚❚ Pausa"
+text = "JEFE: Sombra de la Apatía"
+
+[node name="Spacer" type="Control" parent="Root/BossBarContainer/BossVBox/BossTitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BossHpLabel" type="Label" parent="Root/BossBarContainer/BossVBox/BossTitleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "6 / 6"
+
+[node name="BossProgressBar" type="ProgressBar" parent="Root/BossBarContainer/BossVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+max_value = 10.0
+value = 10.0
+show_percentage = false
+
+[node name="BtnPauseHud" type="Button" parent="Root"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(88, 44)
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -94.0
+offset_top = 4.0
+offset_right = -6.0
+offset_bottom = 48.0
+grow_horizontal = 0
+focus_mode = 0
+mouse_filter = 0
+theme_override_font_sizes/font_size = 12
+text = "❚❚ MENÚ"
 
 [node name="ControlsLabel" type="Label" parent="Root"]
 unique_name_in_owner = true
@@ -246,66 +334,67 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -180.0
-offset_top = -120.0
-offset_right = 180.0
-offset_bottom = 120.0
+offset_left = -165.0
+offset_top = -130.0
+offset_right = 165.0
+offset_bottom = 130.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_pause")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Root/PausePanel"]
 layout_mode = 2
-theme_override_constants/separation = 7
+theme_override_constants/separation = 5
 alignment = 1
 
 [node name="InstLabel" type="Label" parent="Root/PausePanel/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.77, 0.63, 0.35, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 10
 text = "COBAEM · CEMSaD 22 ENTHAVI"
 horizontal_alignment = 1
 
 [node name="Title" type="Label" parent="Root/PausePanel/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.45, 1)
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 22
 text = "PAUSA"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="Root/PausePanel/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.9, 0.85, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 12
 text = "Respira hondo, campeón escolar."
 horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="Root/PausePanel/VBoxContainer"]
-custom_minimum_size = Vector2(0, 4)
+custom_minimum_size = Vector2(0, 2)
 layout_mode = 2
 mouse_filter = 2
 
 [node name="BtnResume" type="Button" parent="Root/PausePanel/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(210, 36)
+custom_minimum_size = Vector2(220, 46)
 layout_mode = 2
 size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 13
 text = "Continuar (Esc)"
 
 [node name="BtnPauseRetry" type="Button" parent="Root/PausePanel/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(210, 32)
+custom_minimum_size = Vector2(220, 44)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 13
 text = "Reiniciar nivel (R)"
 
 [node name="BtnPauseMenu" type="Button" parent="Root/PausePanel/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(210, 32)
+custom_minimum_size = Vector2(220, 44)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 13
 text = "Menú principal (M)"
 
 [node name="GameOverPanel" type="PanelContainer" parent="Root"]
@@ -317,10 +406,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -230.0
-offset_top = -140.0
-offset_right = 230.0
-offset_bottom = 140.0
+offset_left = -235.0
+offset_top = -150.0
+offset_right = 235.0
+offset_bottom = 150.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_gameover")
@@ -371,14 +460,14 @@ mouse_filter = 2
 
 [node name="BtnRetry" type="Button" parent="Root/GameOverPanel/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(210, 36)
+custom_minimum_size = Vector2(230, 46)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Reintentar (Enter / R)"
 
 [node name="BtnGameOverMenu" type="Button" parent="Root/GameOverPanel/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(210, 32)
+custom_minimum_size = Vector2(230, 44)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 14
@@ -394,9 +483,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -270.0
-offset_top = -155.0
+offset_top = -165.0
 offset_right = 270.0
-offset_bottom = 155.0
+offset_bottom = 165.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_victory")
@@ -447,14 +536,14 @@ mouse_filter = 2
 
 [node name="BtnPlayAgain" type="Button" parent="Root/VictoryPanel/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(230, 36)
+custom_minimum_size = Vector2(240, 46)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Jugar de nuevo (Enter)"
 
 [node name="BtnVictoryMenu" type="Button" parent="Root/VictoryPanel/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(230, 32)
+custom_minimum_size = Vector2(240, 44)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 14
@@ -469,4 +558,4 @@ volume_db = -12.0
 pitch_scale = 1.4
 max_polyphony = 4
 
-[node name="MobileControls" parent="." instance=ExtResource("7_mobile")]
+

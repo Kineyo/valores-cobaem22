@@ -80,7 +80,8 @@ static func is_touch_device() -> bool:
 		or OS.has_feature("ios") \
 		or OS.has_feature("web_android") \
 		or OS.has_feature("web_ios") \
-		or DisplayServer.is_touchscreen_available()
+		or DisplayServer.is_touchscreen_available() \
+		or bool(ProjectSettings.get_setting("input_devices/pointing/emulate_touch_from_mouse", false))
 
 func _ready() -> void:
 	_has_native_touch = is_touch_device()
@@ -117,13 +118,13 @@ func _get_safe_viewport_size() -> Vector2:
 		return Vector2(800.0, 450.0)
 	return vp
 
-## Calcula los márgenes de seguridad en coordenadas virtuales considerando el Safe Area real del dispositivo
-func get_safe_insets() -> Rect2:
-	var vp_size := _get_safe_viewport_size()
-	var left_m := safe_margin
-	var top_m := safe_margin
-	var right_m := safe_margin
-	var bottom_m := safe_margin
+## Calcula los márgenes de seguridad en coordenadas virtuales considerando el Safe Area real del dispositivo (muescas/notches)
+static func get_safe_insets_for_viewport(vp: Viewport, min_margin: float = 6.0) -> Rect2:
+	var vp_size: Vector2 = vp.get_visible_rect().size if (vp and vp.get_visible_rect().size.x > 10.0) else Vector2(800.0, 450.0)
+	var left_m := min_margin
+	var top_m := min_margin
+	var right_m := min_margin
+	var bottom_m := min_margin
 
 	if DisplayServer.has_method("get_display_safe_area"):
 		var safe_area := DisplayServer.get_display_safe_area()
@@ -136,6 +137,10 @@ func get_safe_insets() -> Rect2:
 			right_m = maxf(right_m, (win_size.x - (safe_area.position.x + safe_area.size.x)) * sx)
 			bottom_m = maxf(bottom_m, (win_size.y - (safe_area.position.y + safe_area.size.y)) * sy)
 	return Rect2(left_m, top_m, right_m, bottom_m)
+
+## Calcula los márgenes de seguridad de esta instancia
+func get_safe_insets() -> Rect2:
+	return MobileControls.get_safe_insets_for_viewport(get_viewport(), safe_margin)
 
 func _update_positions() -> void:
 	var vp_size := _get_safe_viewport_size()
@@ -254,8 +259,16 @@ func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> void:
 	var vp_half_x := vp_size.x * 0.5
 
 	if pressed:
-		# 1. Botón de Pausa superior derecho
-		if show_pause_button and pos.distance_squared_to(_pause_pos) <= 900.0:
+		# 1. Botón de Pausa superior derecho (icono flotante o botón del HUD)
+		var pause_hit := false
+		if show_pause_button:
+			pause_hit = pos.distance_squared_to(_pause_pos) <= 1600.0 # Radio 40px
+		else:
+			# Zona de respaldo táctil para el botón del HUD respetando safe area
+			var hud_pause_rect := Rect2(vp_size.x - insets.size.x - 104.0, insets.position.y, 104.0 + insets.size.x, 52.0)
+			pause_hit = hud_pause_rect.has_point(pos)
+
+		if pause_hit:
 			_pause_touch_id = touch_id
 			_pause_pressed = true
 			pause_requested.emit()
@@ -263,7 +276,7 @@ func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> void:
 			return
 
 		# Ignorar toques sobre la franja superior del HUD
-		if pos.y < insets.position.y + 36.0:
+		if pos.y < insets.position.y + 46.0:
 			return
 
 		# 2. Joystick Izquierdo (Mitad Izquierda)
@@ -272,7 +285,8 @@ func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> void:
 			_left_base = _clamp_base_pos(pos, true)
 			_left_pos = _left_base
 			_target_left_alpha = active_alpha
-			_update_left_stick(pos)
+			# En el primer contacto iniciamos en reposo neutral sin latigazos
+			_apply_analog_vector("move_left", "move_right", "move_up", "move_down", Vector2.ZERO)
 			queue_redraw()
 			return
 
@@ -283,7 +297,9 @@ func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> void:
 			_right_pos = _right_base
 			_right_pressed = true
 			_target_right_alpha = active_alpha
-			_update_right_stick(pos)
+			current_aim_vector = Vector2.ZERO
+			if not Input.is_action_pressed("attack"):
+				Input.action_press("attack")
 			queue_redraw()
 			return
 	else:
@@ -494,14 +510,14 @@ func _draw() -> void:
 			var text_size := font.get_string_size(label_text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
 			draw_string(font, _right_pos + Vector2(-text_size.x * 0.5, text_size.y * 0.32), label_text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, Color(0.35, 0.08, 0.12, ra))
 
-	# 3. BOTÓN DE PAUSA ERGONÓMICO SUPERIOR DERECHO
+	# 3. BOTÓN DE PAUSA ERGONÓMICO SUPERIOR DERECHO (Mínimo 44x44 dp)
 	if show_pause_button and not get_tree().paused:
-		var pause_bg := Color(0.41, 0.11, 0.20, 0.82) if not _pause_pressed else Color(0.68, 0.16, 0.28, 0.98)
-		var pause_border := Color(1.0, 0.85, 0.35, 0.92)
-		draw_circle(_pause_pos, 19.0, pause_bg)
-		draw_arc(_pause_pos, 19.0, 0.0, TAU, 28, pause_border, 2.0)
+		var pause_bg := Color(0.41, 0.11, 0.20, 0.85) if not _pause_pressed else Color(0.68, 0.16, 0.28, 0.98)
+		var pause_border := Color(1.0, 0.85, 0.35, 0.95)
+		draw_circle(_pause_pos, 22.0, pause_bg)
+		draw_arc(_pause_pos, 22.0, 0.0, TAU, 32, pause_border, 2.0)
 
 		# Barras verticales doradas de pausa
 		var bar_col := Color(1.0, 0.92, 0.75, 1.0)
-		draw_rect(Rect2(_pause_pos.x - 5.5, _pause_pos.y - 6.0, 3.0, 12.0), bar_col)
-		draw_rect(Rect2(_pause_pos.x + 2.5, _pause_pos.y - 6.0, 3.0, 12.0), bar_col)
+		draw_rect(Rect2(_pause_pos.x - 6.0, _pause_pos.y - 7.0, 3.5, 14.0), bar_col)
+		draw_rect(Rect2(_pause_pos.x + 2.5, _pause_pos.y - 7.0, 3.5, 14.0), bar_col)

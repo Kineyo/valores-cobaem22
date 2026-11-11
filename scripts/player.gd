@@ -68,6 +68,7 @@ var _flash_tween: Tween
 
 func _ready() -> void:
 	y_sort_enabled = true
+	add_to_group("player")
 	apply_difficulty()
 	health = max_health
 
@@ -76,9 +77,12 @@ func _ready() -> void:
 	if attack_collision:
 		attack_collision.disabled = true
 
-	attack_area.area_entered.connect(_on_attack_area_entered)
-	invulnerable_timer.timeout.connect(_on_invulnerable_timer_timeout)
-	attack_timer.timeout.connect(_on_attack_timer_timeout)
+	if not attack_area.area_entered.is_connected(_on_attack_area_entered):
+		attack_area.area_entered.connect(_on_attack_area_entered)
+	if not invulnerable_timer.timeout.is_connected(_on_invulnerable_timer_timeout):
+		invulnerable_timer.timeout.connect(_on_invulnerable_timer_timeout)
+	if not attack_timer.timeout.is_connected(_on_attack_timer_timeout):
+		attack_timer.timeout.connect(_on_attack_timer_timeout)
 
 	# Emitir estado inicial de salud
 	health_changed.emit(health, max_health)
@@ -143,6 +147,9 @@ func _physics_process(delta: float) -> void:
 			velocity = velocity.move_toward(input_vector * speed, acceleration * delta)
 		else:
 			velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
+	else:
+		# Fricción durante retroceso por impacto para desaceleración natural
+		velocity = velocity.move_toward(Vector2.ZERO, friction * 0.75 * delta)
 
 	_update_texture(input_vector)
 	move_and_slide()
@@ -257,6 +264,9 @@ func check_attack_hits() -> void:
 		return
 	for area in attack_area.get_overlapping_areas():
 		_hit_enemy_area(area)
+	for body in attack_area.get_overlapping_bodies():
+		if (body.is_in_group("enemies") or body is Enemy) and body.has_method("hit_by_attack"):
+			body.hit_by_attack(global_position)
 
 func _hit_enemy_area(area: Area2D) -> void:
 	if area.is_in_group("enemies"):
@@ -276,7 +286,7 @@ func take_damage(amount: int, from_pos: Variant = null) -> void:
 	if is_invulnerable or health <= 0 or not can_control:
 		return
 
-	health -= amount
+	health = maxi(0, health - amount)
 	health_changed.emit(health, max_health)
 
 	if sfx_hurt:

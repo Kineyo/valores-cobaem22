@@ -36,10 +36,13 @@ signal defeated(enemy: Enemy)
 @export var wander_radius: float = 140.0
 @export var detection_range: float = 220.0
 @export var respawn_delay: float = 3.2
+@export var max_respawns: int = 2 ## Límite de reapariciones por nivel antes de descansar
 
 var player: CharacterBody2D = null
 var is_active: bool = true
 var spawn_position: Vector2 = Vector2.ZERO
+var current_respawns: int = 0
+var allow_respawn: bool = true
 
 var _anim_time: float = 0.0
 var _value_text: String = ""
@@ -58,6 +61,11 @@ var _detection_range_sq: float = 0.0
 
 func _ready() -> void:
 	y_sort_enabled = true
+	collision_layer = 8
+	collision_mask = 1
+	if has_node("Hitbox"):
+		$Hitbox.collision_layer = 8
+		$Hitbox.collision_mask = 6
 	spawn_position = global_position
 	_target_wander = global_position
 	hitbox.body_entered.connect(_on_body_entered)
@@ -95,7 +103,7 @@ func setup_type() -> void:
 
 func _physics_process(delta: float) -> void:
 	if not is_active:
-		if _respawn_timer > 0.0:
+		if allow_respawn and current_respawns < max_respawns and _respawn_timer > 0.0:
 			_respawn_timer -= delta
 			if _respawn_timer <= 0.0:
 				respawn()
@@ -197,6 +205,9 @@ func hit_by_attack(attacker_pos: Variant = null) -> void:
 
 ## Reaparece en el punto de spawn con animación pop
 func respawn() -> void:
+	if not allow_respawn or current_respawns >= max_respawns:
+		return
+	current_respawns += 1
 	global_position = spawn_position
 	if has_method("reset_physics_interpolation"):
 		call("reset_physics_interpolation")
@@ -213,6 +224,10 @@ func respawn() -> void:
 	_spawn_tween = create_tween()
 	_spawn_tween.tween_property(self, "scale", Vector2.ONE, 0.3) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## Cesa cualquier reaparición futura de este enemigo
+func stop_respawns() -> void:
+	allow_respawn = false
 
 func _on_body_entered(body: Node2D) -> void:
 	if body is Player and is_active:

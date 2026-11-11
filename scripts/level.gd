@@ -8,11 +8,17 @@ class_name Level
 signal player_health_changed(current: int, max_hp: int)
 signal player_died
 signal enemy_defeated(enemy: Enemy)
+signal boss_spawned(boss: CharacterBody2D)
+signal boss_health_changed(current: int, max_hp: int)
+signal boss_redeemed(boss: CharacterBody2D)
+signal quota_updated(defeated: int, quota: int)
 signal level_completed
 
 const PLAYER_SCENE := preload("res://scenes/player.tscn")
 const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
 const GOAL_SCENE := preload("res://scenes/goal.tscn")
+const BossClass := preload("res://scripts/boss.gd")
+const StudentClass := preload("res://scripts/student.gd")
 
 @onready var background: Sprite2D = $Background
 @onready var world_boundaries: StaticBody2D = $WorldBoundaries
@@ -22,8 +28,14 @@ const GOAL_SCENE := preload("res://scenes/goal.tscn")
 
 var player: Player = null
 var goal: Goal = null
+var boss: CharacterBody2D = null
+var students: Array = []
 var map_size: Vector2 = Vector2(800, 450)
 var level_data: Dictionary = {}
+
+var quota_to_boss: int = 3
+var defeated_in_level: int = 0
+var boss_defeated: bool = false
 
 func _ensure_nodes() -> void:
 	if background == null:
@@ -89,24 +101,103 @@ func setup_level(data: Dictionary) -> void:
 		player.camera.limit_bottom = int(map_size.y)
 		player.camera.reset_smoothing()
 
-	# 5. Instanciar la meta de salida
+	# 5. Instanciar la meta de salida (inicia bloqueada hasta vencer al jefe)
 	goal = GOAL_SCENE.instantiate()
 	goal.position = data.get("goal_position", Vector2(map_size.x - 90.0, map_size.y * 0.5))
 	if entities:
 		entities.add_child(goal)
 	goal.set_goal_text(data.get("goal_label", "META"))
+	goal.set_locked(true)
 	goal.player_reached_goal.connect(_on_goal_reached)
 
-	# 6. Instanciar grupo de enemigos
+	# 6. Instanciar estudiantes secundarios (alumnos del CEMSaD 22)
+	students.clear()
+	var student_list: Array = data.get("students", [])
+	for s_info in student_list:
+		var student = StudentClass.new()
+		student.position = s_info.get("pos", Vector2(map_size.x * 0.5, map_size.y * 0.5))
+		student.student_name = s_info.get("name", "Estudiante")
+		student.gender = s_info.get("gender", 0)
+		student.initial_state = s_info.get("initial_state", 0)
+		student.player = player
+		if entities:
+			entities.add_child(student)
+		students.append(student)
+
+	# 7. Configuración de cuota de antivalores y jefe
+	quota_to_boss = data.get("quota_to_boss", 3)
+	defeated_in_level = 0
+	boss_defeated = false
+	boss = null
+
+	# 8. Instanciar grupo de enemigos
 	var enemy_list: Array = data.get("enemies", [])
 	for e_info in enemy_list:
 		var enemy: Enemy = ENEMY_SCENE.instantiate()
 		enemy.enemy_type = e_info.get("type", Enemy.Type.GROSERIA)
 		enemy.position = e_info.get("pos", Vector2(map_size.x * 0.5, map_size.y * 0.5))
 		enemy.player = player
-		enemy.defeated.connect(func(e): enemy_defeated.emit(e))
+		enemy.defeated.connect(_on_enemy_defeated)
 		if enemies_container:
 			enemies_container.add_child(enemy)
+
+func _on_enemy_defeated(enemy: Node2D) -> void:
+	defeated_in_level += 1
+	if enemy is Enemy:
+		enemy_defeated.emit(enemy)
+	quota_updated.emit(defeated_in_level, quota_to_boss)
+
+	# Aliviar a alumnos en la zona de influencia del antivalor redimido
+	for s in students:
+		if is_instance_valid(s):
+			s.cheer_up_area(enemy.global_position, 280.0)
+
+	# Si se cumple la cuota requerida y aún no hay jefe, invocar al Jefe de Escenario
+	if defeated_in_level >= quota_to_boss and boss == null and not boss_defeated:
+		_spawn_boss()
+
+func _spawn_boss() -> void:
+	# Detener reaparición de enemigos normales para enfocar el combate en el jefe
+	if enemies_container:
+		for e in enemies_container.get_children():
+			if e is Enemy:
+				e.stop_respawns()
+
+	boss = BossClass.new()
+	boss.boss_type = level_data.get("boss_type", 0)
+	boss.position = level_data.get("boss_spawn", level_data.get("goal_position", Vector2(500, 400)))
+	boss.player = player
+	boss.health_changed.connect(func(c, m): boss_health_changed.emit(c, m))
+	boss.redeemed.connect(_on_boss_redeemed)
+	if entities:
+		entities.add_child(boss)
+	boss_spawned.emit(boss)
+
+	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+	if fx:
+		fx.shake(5.0, 0.45)
+		fx.floating_text(self, boss.position + Vector2(0, -50), "¡APARECIÓ EL JEFE!", Color(1.0, 0.35, 0.45), 16)
+
+func _on_boss_redeemed(b: CharacterBody2D) -> void:
+	boss_defeated = true
+	boss_redeemed.emit(b)
+
+	# Desbloquear meta de salida
+	if goal and is_instance_valid(goal):
+		goal.unlock()
+
+	# Transicionar a TODOS los estudiantes del escenario al estado alegre
+	for s in students:
+		if is_instance_valid(s):
+			s.cheer_up()
+
+	# Detener a todos los enemigos restantes
+	stop_enemies()
+
+	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+	if fx:
+		fx.floating_text(self, b.position + Vector2(0, -60), "¡ANTIVALOR MAYOR REDIMIDO!", Color(1.0, 0.95, 0.40), 16)
+		fx.shake(4.0, 0.3)
 
 func _on_goal_reached() -> void:
 	if player and is_instance_valid(player):

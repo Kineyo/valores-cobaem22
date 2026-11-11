@@ -4,8 +4,10 @@ extends Node
 ## Gestiona la dificultad global (vidas, velocidades, cooldowns) y la música de fondo persistente.
 
 enum Difficulty { FACIL, NORMAL, DIFICIL }
+enum GameMode { ARCADE, STORY }
 
 const DIFFICULTY_NAMES := ["Fácil", "Normal", "Difícil"]
+const GAME_MODE_NAMES := ["Arcade", "Historia"]
 
 ## Parámetros de balance según el nivel de dificultad
 const PRESETS := {
@@ -42,6 +44,7 @@ const SILENT_DB := -40.0
 const FADE_TIME := 0.6
 
 var difficulty: int = Difficulty.NORMAL
+var game_mode: int = GameMode.ARCADE
 var music_volume_db: float = -8.0
 
 var _music: AudioStreamPlayer
@@ -63,6 +66,18 @@ func _ready() -> void:
 	# Respaldo de loop si el stream WAV no tiene el flag loop activado
 	_music.finished.connect(_on_music_finished)
 
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_APPLICATION_PAUSED:
+			save_settings()
+			# Pausar stream musical en segundo plano para ahorrar batería y respetar el SO
+			if _music and _music.playing:
+				_music.stream_paused = true
+		NOTIFICATION_APPLICATION_RESUMED:
+			# Reanudar música suavemente al regresar a primer plano
+			if _music and _music.stream_paused:
+				_music.stream_paused = false
+
 func _exit_tree() -> void:
 	save_settings()
 	if _fade_tween and _fade_tween.is_valid():
@@ -80,6 +95,7 @@ func _exit_tree() -> void:
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("game", "difficulty", difficulty)
+	cfg.set_value("game", "game_mode", game_mode)
 	cfg.set_value("audio", "music_volume_db", music_volume_db)
 	cfg.save(SETTINGS_PATH)
 
@@ -87,6 +103,7 @@ func load_settings() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(SETTINGS_PATH) == OK:
 		difficulty = cfg.get_value("game", "difficulty", Difficulty.NORMAL)
+		game_mode = cfg.get_value("game", "game_mode", GameMode.ARCADE)
 		music_volume_db = cfg.get_value("audio", "music_volume_db", -8.0)
 		if _music:
 			_music.volume_db = music_volume_db
@@ -102,6 +119,10 @@ func get_param(key: String) -> Variant:
 ## Retorna el nombre legible de la dificultad activa
 func difficulty_name() -> String:
 	return DIFFICULTY_NAMES[difficulty]
+
+## Retorna el nombre legible del modo de juego activo
+func game_mode_name() -> String:
+	return GAME_MODE_NAMES[game_mode]
 
 func play_menu_music() -> void:
 	_play(MUSIC_MENU)
@@ -133,6 +154,8 @@ func duck_music(enabled: bool) -> void:
 func _play(stream: AudioStream) -> void:
 	_ducked = false
 	_stopping = false
+	if _music == null:
+		return
 	if _music.stream == stream and _music.playing:
 		_fade_to(music_volume_db, 0.3)
 		return

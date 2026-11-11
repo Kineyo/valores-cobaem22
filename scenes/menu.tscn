@@ -9,9 +9,9 @@
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 content_margin_left = 32.0
-content_margin_top = 18.0
+content_margin_top = 12.0
 content_margin_right = 32.0
-content_margin_bottom = 18.0
+content_margin_bottom = 12.0
 bg_color = Color(0.1, 0.05, 0.07, 0.96)
 border_width_left = 3
 border_width_top = 3
@@ -92,7 +92,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 [node name="VBox" type="VBoxContainer" parent="Center/Panel"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 3
 alignment = 1
 
 [node name="HeaderHBox" type="HBoxContainer" parent="Center/Panel/VBox"]
@@ -137,14 +137,14 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="Title" type="RichTextLabel" parent="Center/Panel/VBox"]
-custom_minimum_size = Vector2(520, 38)
+custom_minimum_size = Vector2(520, 36)
 layout_mode = 2
 mouse_filter = 2
 theme_override_colors/default_color = Color(1, 0.88, 0.35, 1)
 theme_override_colors/font_shadow_color = Color(0.24, 0.03, 0.08, 1)
 theme_override_constants/shadow_offset_x = 3
 theme_override_constants/shadow_offset_y = 3
-theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/normal_font_size = 26
 bbcode_enabled = true
 text = "[center][wave amp=16.0 freq=3.0]CAMPEONES DE LOS VALORES[/wave][/center]"
 fit_content = true
@@ -154,15 +154,44 @@ autowrap_mode = 0
 [node name="Subtitle" type="Label" parent="Center/Panel/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.88, 0.75, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 11
 text = "Edición Arquitectónica CAD a Escala Real (1 metro = 40 px)"
+horizontal_alignment = 1
+
+[node name="ModeRow" type="HBoxContainer" parent="Center/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="BtnModeArcade" type="Button" parent="Center/Panel/VBox/ModeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(175, 44)
+layout_mode = 2
+focus_mode = 0
+toggle_mode = true
+text = "Modo Arcade"
+
+[node name="BtnModeStory" type="Button" parent="Center/Panel/VBox/ModeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(175, 44)
+layout_mode = 2
+focus_mode = 0
+toggle_mode = true
+text = "📖 Modo Historia"
+
+[node name="ModeInfo" type="Label" parent="Center/Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.88, 0.60, 1)
+theme_override_font_sizes/font_size = 11
+text = "📖 Modo Historia: Cinemáticas, diálogos escolares y trasfondo del CEMSaD 22"
 horizontal_alignment = 1
 
 [node name="DifficultyTitle" type="Label" parent="Center/Panel/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 14
-text = "Dificultad  (← / →)"
+theme_override_font_sizes/font_size = 13
+text = "Dificultad (← / →)"
 horizontal_alignment = 1
 
 [node name="DifficultyRow" type="HBoxContainer" parent="Center/Panel/VBox"]
@@ -172,7 +201,7 @@ alignment = 1
 
 [node name="BtnEasy" type="Button" parent="Center/Panel/VBox/DifficultyRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 32)
+custom_minimum_size = Vector2(116, 44)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
@@ -180,7 +209,7 @@ text = "Fácil"
 
 [node name="BtnNormal" type="Button" parent="Center/Panel/VBox/DifficultyRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 32)
+custom_minimum_size = Vector2(116, 44)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
@@ -188,7 +217,7 @@ text = "Normal"
 
 [node name="BtnHard" type="Button" parent="Center/Panel/VBox/DifficultyRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 32)
+custom_minimum_size = Vector2(116, 44)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
@@ -197,35 +226,35 @@ text = "Difícil"
 [node name="DifficultyInfo" type="Label" parent="Center/Panel/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 11
 text = "3 corazones · enemigos normales · disparo mediano"
 horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 4)
+custom_minimum_size = Vector2(0, 2)
 layout_mode = 2
 
 [node name="BtnPlay" type="Button" parent="Center/Panel/VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(240, 40)
+custom_minimum_size = Vector2(260, 48)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 18
-text = "▶  INICIAR PARTIDA  (Enter)"
+theme_override_font_sizes/font_size = 16
+text = "▶ INICIAR PARTIDA (Enter)"
 
 [node name="BtnQuit" type="Button" parent="Center/Panel/VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(240, 32)
+custom_minimum_size = Vector2(260, 44)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 14
-text = "Salir  (Esc)"
+theme_override_font_sizes/font_size = 13
+text = "Salir (Esc)"
 
 [node name="Controls" type="Label" parent="Center/Panel/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.72, 0.65, 1)
 theme_override_font_sizes/font_size = 11
-text = "WASD / Flechas / Táctil: mover (3/4) · ESPACIO: virtud · ESC: pausa"
+text = "WASD/↑↓/Táctil: modo · ←→: dificultad · ENTER/Toque: jugar · ESC: salir"
 horizontal_alignment = 1
 
 [node name="SFXSelect" type="AudioStreamPlayer" parent="."]

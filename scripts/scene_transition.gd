@@ -73,6 +73,7 @@ func _run(action: Callable) -> void:
 
 	_mat.set_shader_parameter("reverse", false)
 	var tw := create_tween()
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tw.set_parallel(true)
 	tw.tween_method(_set_progress, 0.0, 1.0, cover_time) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
@@ -94,6 +95,7 @@ func _reveal() -> void:
 	_rect.visible = true
 	_mat.set_shader_parameter("reverse", true)
 	var tw := create_tween()
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tw.set_parallel(true)
 	tw.tween_method(_set_progress, 1.0, 0.0, reveal_time) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)

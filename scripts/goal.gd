@@ -13,6 +13,7 @@ signal player_reached_goal
 @onready var _base_sprite_y: float = sprite.position.y
 
 var already_reached: bool = false
+var is_locked: bool = false
 var _time: float = 0.0
 
 func _ready() -> void:
@@ -23,6 +24,24 @@ func set_goal_text(txt: String) -> void:
 	if label:
 		label.text = txt
 
+func set_locked(locked: bool) -> void:
+	is_locked = locked
+	if sprite:
+		sprite.modulate = Color(0.6, 0.6, 0.75, 0.65) if is_locked else Color.WHITE
+
+func unlock() -> void:
+	if not is_locked:
+		return
+	is_locked = false
+	if sprite:
+		sprite.modulate = Color(2.0, 2.0, 1.4)
+		var tw := create_tween()
+		tw.tween_property(sprite, "modulate", Color.WHITE, 0.5)
+	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+	if fx:
+		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -32), "¡SALIDA DESBLOQUEADA!", Color(1.0, 0.92, 0.45), 14)
+		fx.burst(get_parent() if get_parent() else self, global_position, Color(1.0, 0.85, 0.35), 14, 120.0)
+
 func _process(delta: float) -> void:
 	_time += delta
 	# Flotación rítmica sutil del icono de meta
@@ -30,6 +49,11 @@ func _process(delta: float) -> void:
 
 func _on_body_entered(body: Node2D) -> void:
 	if body is Player:
+		if is_locked:
+			var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+			if fx:
+				fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -28), "¡Vence al antivalor jefe primero!", Color(1.0, 0.45, 0.45), 11)
+			return
 		trigger(body)
 
 ## Activa la meta, emite efectos visuales/sonoros y notifica la victoria del nivel

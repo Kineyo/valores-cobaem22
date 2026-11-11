@@ -146,5 +146,130 @@ func _init() -> void:
 	load_node.free()
 	print("Pantalla de Carga Institucional (COBAEM CEMSaD 22) verificada con éxito.")
 
+	# 6. Probar Sistema de Modo Historia, Cinemáticas y Base de Datos Narrativa (StoryData)
+	var story_data_class = load("res://scripts/story_data.gd")
+	assert(story_data_class != null, "Fallo al cargar StoryData")
+
+	var prologue: Dictionary = story_data_class.get_prologue()
+	assert(prologue.has("dialogue_nodes") and prologue["dialogue_nodes"].size() > 0, "Prólogo debe contener nodos de diálogo")
+
+	var epilogue: Dictionary = story_data_class.get_epilogue()
+	assert(epilogue.has("dialogue_nodes") and epilogue["dialogue_nodes"].size() > 0, "Epílogo debe contener nodos de diálogo")
+
+	for act_id in range(1, 7):
+		var act: Dictionary = story_data_class.get_scenario_cutscene(act_id)
+		assert(act.has("dialogue_nodes") and act["dialogue_nodes"].size() > 0, "Acto %d debe contener nodos de diálogo" % act_id)
+
+	var students_canon := ["mateo", "xochitl", "emiliano", "sofia"]
+	for s_id in students_canon:
+		var s_data: Dictionary = story_data_class.get_secondary_character(s_id)
+		assert(not s_data.is_empty(), "Perfil de estudiante canon '%s' no encontrado" % s_id)
+		assert(s_data.has("state_afflicted") and s_data.has("state_redeemed"), "Perfil '%s' debe tener estados sad y redeemed" % s_id)
+
+	# Probar instanciación de StoryCutscene y compatibilidad de entrada y layout
+	var cutscene_scene: PackedScene = load("res://scenes/story_cutscene.tscn")
+	var cutscene_node = cutscene_scene.instantiate()
+	root.add_child(cutscene_node)
+	assert(cutscene_node != null, "Fallo al instanciar escena de StoryCutscene")
+	cutscene_node.setup_cutscene(prologue)
+	cutscene_node._adjust_layout_for_viewport()
+	cutscene_node._process(0.1)
+
+	# Simular avance de diálogo con tecla Espacio
+	var space_key := InputEventKey.new()
+	space_key.pressed = true
+	space_key.keycode = KEY_SPACE
+	cutscene_node._unhandled_input(space_key)
+
+	# Simular avance con mando (Gamepad A)
+	var joy_btn := InputEventJoypadButton.new()
+	joy_btn.pressed = true
+	joy_btn.button_index = JOY_BUTTON_A
+	cutscene_node._unhandled_input(joy_btn)
+
+	# Simular toque / clic en pantalla
+	var touch_advance := InputEventScreenTouch.new()
+	touch_advance.pressed = true
+	touch_advance.position = Vector2(400, 300)
+	cutscene_node._gui_input(touch_advance)
+
+	# Simular redibujado de retratos procedurales (héroe, alumnos, antivalores, sol otomí)
+	for portrait_id in ["player_brave", "mateo_sad", "xochitl_brave", "emiliano_happy", "sofia_happy", "allies_united", "boss_apatyx", "boss_titanor", "spirit_otomi", "director", "narrator"]:
+		cutscene_node._current_portrait_id = portrait_id
+		cutscene_node._on_portrait_draw()
+
+	root.remove_child(cutscene_node)
+	cutscene_node.free()
+	print("Sistema de Modo Historia, Cinemáticas Multiplataforma y Retratos Pixel-Art verificados con éxito.")
+
+	# 7. Probar Jefes Finales (Boss), Alumnos Secundarios (Student) y Barra de Jefe en HUD
+	var boss_class = load("res://scripts/boss.gd")
+	assert(boss_class != null, "Fallo al cargar Boss script")
+	var student_class = load("res://scripts/student.gd")
+	assert(student_class != null, "Fallo al cargar Student script")
+
+	# 7.1 Verificar los 6 Jefes Finales
+	for b_type in range(6):
+		var boss_inst = boss_class.new()
+		boss_inst.boss_type = b_type
+		root.add_child(boss_inst)
+		boss_inst.setup_boss_type(b_type)
+		assert(boss_inst.max_hp > 0, "Boss tipo %d debe tener max_hp > 0" % b_type)
+		assert(boss_inst.current_hp == boss_inst.max_hp, "Boss tipo %d debe iniciar con HP al máximo" % b_type)
+
+		# Telegrafiado de ataque y física
+		boss_inst._start_telegraph()
+		assert(boss_inst.current_state == 2, "Boss debe estar en estado TELEGRAPHING")
+		boss_inst._update_telegraph(1.0)
+		assert(boss_inst.current_state == 3, "Boss debe pasar a estado ATTACKING tras telegrafiado")
+
+		# Impacto y redención pacífica (desactivar barrera temporal de Plagiatrix para recibir daño)
+		boss_inst._barrier_active = false
+		boss_inst.hit_by_attack(Vector2.ZERO, boss_inst.max_hp)
+		assert(boss_inst.current_state == 6, "Boss debe estar en estado REDEEMED tras recibir daño total")
+
+		root.remove_child(boss_inst)
+		boss_inst.free()
+	print("Los 6 Jefes Finales (Boss FSM, telegrafiado y redención) verificados con éxito.")
+
+	# 7.2 Verificar Alumnos Secundarios (Student)
+	var student_inst = student_class.new()
+	student_inst.student_name = "Mateo"
+	root.add_child(student_inst)
+	assert(student_inst.current_state == 0, "Student debe iniciar en estado SAD")
+
+	# Probar cambio de estado a HAPPY
+	student_inst.cheer_up()
+	assert(student_inst.current_state == 1, "Student debe pasar a RELIEVED al animarlo")
+	student_inst.current_state = 2 # Student.State.HAPPY
+	student_inst.can_heal_player = true
+
+	# Probar curación de esperanza si el jugador está herido
+	var player_test = load("res://scenes/player.tscn").instantiate()
+	root.add_child(player_test)
+	player_test.health = 1
+	student_inst.player = player_test
+	student_inst._check_player_proximity()
+	assert(player_test.health == 2, "Student feliz debe curar +1 esperanza al jugador herido")
+
+	root.remove_child(player_test)
+	player_test.free()
+	root.remove_child(student_inst)
+	student_inst.free()
+	print("Alumnos Secundarios (Student estados, alivio y curación) verificados con éxito.")
+
+	# 7.3 Verificar Barra de Jefe en HUD
+	var hud_scene: PackedScene = load("res://scenes/hud.tscn")
+	var hud_node: HUD = hud_scene.instantiate()
+	root.add_child(hud_node)
+	hud_node.show_boss_bar("Apatyx", 6, 6)
+	assert(hud_node.boss_bar_container != null and hud_node.boss_bar_container.visible, "BossBarContainer debe ser visible")
+	hud_node.update_boss_bar(3, 6)
+	hud_node.hide_boss_bar(true)
+	assert(not hud_node.boss_bar_container.visible, "BossBarContainer debe ocultarse")
+	root.remove_child(hud_node)
+	hud_node.free()
+	print("Barra de Vida de Jefes en HUD verificada con éxito.")
+
 	print("--- TODOS LOS TESTS DE ESCENARIOS Y PROGRESIÓN PASARON CON ÉXITO ---")
 	quit(0)

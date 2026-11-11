@@ -39,10 +39,12 @@ Una experiencia lúdica ambientada a **escala arquitectónica real** dentro de l
 - [🎬 Video de Presentación del Proyecto](#-video-de-presentación-del-proyecto)
 - [🎯 Propósito y Visión Educativa](#-propósito-y-visión-educativa)
 - [🎮 Manual del Jugador y Controles](#-manual-del-jugador-y-controles)
+- [📖 Modos de Juego: Modo Historia vs Modo Arcade](#-modos-de-juego-modo-historia-vs-modo-arcade)
 - [🏛️ Pantalla de Carga Institucional y Transiciones](#️-pantalla-de-carga-institucional-y-transiciones)
 - [📱🖥️ Arquitectura Multiplataforma y Responsividad](#️-arquitectura-multiplataforma-y-responsividad)
-- [🌟 Mecánicas de Juego y Sistema de Valores](#-mecánicas-de-juego-y-sistema-de-valores)
-- [👹 Bestiario de Antivalores y Redención](#-bestiario-de-antivalores-y-redención)
+- [🌟 Mecánicas de Juego, Cuotas y Desbloqueo de Metas](#-mecánicas-de-juego-cuotas-y-desbloqueo-de-metas)
+- [👹 Bestiario de Antivalores y los 6 Jefes Finales](#-bestiario-de-antivalores-y-los-6-jefes-finales)
+- [🎓 Personajes Secundarios: Alumnos del CEMSaD 22](#-personajes-secundarios-alumnos-del-cemsad-22)
 - [⚙️ Modos de Dificultad y Balance](#️-modos-de-dificultad-y-balance)
 - [🗺️ Guía de los 6 Escenarios Escolares a Escala Real](#️-guía-de-los-6-escenarios-escolares-a-escala-real)
 - [📐 Sistema CAD y Maqueta 3D Interactiva](#-sistema-cad-y-maqueta-3d-interactiva)
@@ -214,7 +216,18 @@ flowchart TD
 
 ---
 
-## 🌟 Mecánicas de Juego y Sistema de Valores
+## 📖 Modos de Juego: Modo Historia vs Modo Arcade
+
+El juego cuenta con dos modos principales seleccionables desde la pantalla de inicio:
+
+| Modo de Juego | Descripción | Cinemáticas | Condición de Victoria |
+| :--- | :--- | :---: | :--- |
+| **📖 Modo Historia** *(Story Mode)* | Experiencia inmersiva con trasfondo pedagógico, diálogos escolares y narrativa situada en el plantel CEMSaD 22 ENTHAVI y el valle de Temoaya. Incluye el **Prólogo ancestral**, **6 Actos cinematográficos** entre niveles y el **Epílogo triunfal**. | ✅ Sí | Superar los 6 actos, redimir a los 6 jefes mayores y liberar a la comunidad estudiantil. |
+| **🕹️ Modo Arcade** *(Partida Rápida)* | Partida directa orientada a la acción continua y superación ágil sin pausas narrativas. Ideal para torneos rápidos en laboratorios escolares o competencias de puntuación. | ❌ No | Avanzar directamente de un escenario al siguiente venciendo cuotas y jefes. |
+
+---
+
+## 🌟 Mecánicas de Juego, Cuotas y Desbloqueo de Metas
 
 ```
     ┌────────────────────────┐
@@ -230,22 +243,28 @@ flowchart TD
     └───────────┬────────────┘
                 │
     ┌───────────▼────────────┐
-    │  Redención & Virtud    │ ──► Proclama flotante + Liberación de la zona
+    │  Cuota de Antivalores  │ ──► Límite de reaparición (2 respawns máx)
+    └───────────┬────────────┘
+                │
+    ┌───────────▼────────────┐
+    │  Aparición de Jefe     │ ──► Antivalor Mayor con ataques telegrafiados 3/4
+    └───────────┬────────────┘
+                │
+    ┌───────────▼────────────┐
+    │  Redención & Desbloqueo│ ──► Meta desbloqueada + Alumnos felices + +1 Esperanza
     └────────────────────────┘
 ```
 
-- **Perspectiva 3/4 con Y-Sorting:** Todos los elementos gráficos (jugador, enemigos, bancas, árboles, automóviles y columnas) organizan dinámicamente su capa de renderizado según su coordenada vertical `Y`, logrando una sensación de profundidad volumétrica limpia.
-- **Proyectiles de Energía Positiva:** El ataque del jugador emite orbes resplandecientes que viajan en línea recta. Mantener presionada la barra espaciadora activa el fuego continuo según la cadencia permitida por el nivel de dificultad.
-- **Feedback Audiovisual Jugoso (Juice):**
-  - Sacudida procedural de cámara (*screen shake*) al acertar impactos o recibir daño.
-  - Efectos de partículas pixel art generados dinámicamente en código (`fx.gd`).
-  - Animaciones de *squash & stretch* reactivas en el personaje y los enemigos.
+- **Perspectiva 3/4 con Y-Sorting:** Todos los elementos gráficos (jugador, enemigos, jefes, estudiantes, bancas, árboles, automóviles y columnas) organizan dinámicamente su capa de renderizado según su coordenada vertical `Y`.
+- **Sistema de Cuotas y Límites de Reaparición:** Para cada nivel, el jugador debe vencer una cantidad establecida de antivalores (`quota_to_boss`, entre 3 y 5). Los antivalores poseen un límite estricto de reaparición (`max_respawns = 2`). Al alcanzar la cuota, cesan las reapariciones normales y aparece el Jefe Final del escenario.
+- **Salida Bloqueada:** La meta permanece bloqueada y protegida hasta que el Jefe Final del nivel es redimido pacíficamente.
+- **Proyectiles de Energía Positiva:** El ataque del jugador emite orbes resplandecientes que viajan en línea recta. Mantener presionada la barra espaciadora o el botón táctil activa el disparo continuo.
 
 ---
 
-## 👹 Bestiario de Antivalores y Redención
+## 👹 Bestiario de Antivalores y los 6 Jefes Finales
 
-Cada enemigo representa una conducta disruptiva escolar con características de inteligencia artificial y desplazamiento propias:
+### 👾 Antivalores Menores de Patrullaje
 
 | Antivalor | Color Distintivo | Comportamiento & IA | Rango / Velocidad | Virtud Liberada | Recompensa |
 | :---: | :---: | :--- | :---: | :---: | :---: |
@@ -253,8 +272,39 @@ Cada enemigo representa una conducta disruptiva escolar con características de 
 | **Acoso** | 🟠 Naranja Ámbar | Sombra persistente que vigila a gran distancia. Rodea obstáculos y persigue constantemente al jugador sin perderlo de vista. | Radio amplio / Medio | **¡Respeto!** | `+150 pts` |
 | **Bullying** | 🟣 Morado Intenso | Adversario pesado y blindado. Patrulla perímetros clave y ejecuta embestidas directas cuando el jugador invade su territorio. | Radio corto / Embestida veloz | **¡Empatía!** | `+250 pts` |
 
+---
+
+### 👑 Los 6 Jefes Finales de Escenario (Antivalores Mayores)
+
+Cada edificio del plantel está custodiado por una manifestación mayor que desafía al jugador con patrones de ataque telegrafiados en perspectiva 3/4 y barra de vida en el HUD:
+
+| Nivel | Jefe Final | Ubicación Escolar | Salud (HP) | Ataques Telegrafiados | Virtud de Redención |
+| :---: | :--- | :--- | :---: | :--- | :--- |
+| **1** | **Sombra de la Apatía** (*Apatyx*) | Acceso y Edificio D (Laboratorios) | **6 ♥** | Charco de Desgano, Orbe Apático | **¡Entusiasmo y Curiosidad!** |
+| **2** | **Troll del Desperdicio** (*Desperdicius*) | Edificio A — Cafetería y Desayunador | **8 ♥** | Lluvia de Desechos, Pisotón de Basura | **¡Responsabilidad y Cuidado Ambiental!** |
+| **3** | **Sombra de la Intolerancia** (*Superbus*) | Plaza Cívica y Escalinata Sur (+4m) | **9 ♥** | Onda de Rechazo, Ráfaga de Prejuicios | **¡Tolerancia y Dignidad Otomí!** |
+| **4** | **Espectro del Ciberacoso** (*Murmullus*) | Edificio B — Aulas 3-4 y Biblioteca | **10 ♥** | Cadenas de Rumores, Falla Espectral | **¡Empatía Digital y Honestidad!** |
+| **5** | **Titán del Plagio** (*Plagiatrix*) | Edificio C — Dirección y Cómputo | **12 ♥** | Copia Espejo, Barrera de Atajos | **¡Autenticidad e Integridad Académica!** |
+| **6** | **Coloso del Bullying** (*Titanor*) | Cancha de Usos Múltiples y Gradas | **15 ♥** | Golpe Terrestre, Embestida Ciclónica | **¡Fraternidad, Solidaridad y Fair Play!** |
+
 > [!NOTE]
-> Al impactar a un antivalor, este no desaparece de forma violenta: se ilumina en tonos dorados, exhibe una animación de alivio y proclama en pantalla el valor que lo redime, sumando puntos al casillero de virtudes del jugador.
+> **Filosofía de Redención Educativa (Cero Violencia):** Al reducir los puntos de vida de un jefe o enemigo, nunca hay destrucción violenta ni muertes. El jefe sufre una transformación luminosa ascendente, proclama su virtud redentora (*¡El respeto nos une a todos!*) y se reconcilia con la comunidad escolar.
+
+---
+
+## 🎓 Personajes Secundarios: Alumnos del CEMSaD 22
+
+Los escenarios cuentan con alumnos secundarios con uniforme oficial COBAEM (suéter guinda, camisa blanca, pantalón gris / falda tableada) que reaccionan dinámicamente al entorno escolar:
+
+| Alumno | Semestre / Rol | Ubicación | Estado Inicial | Reacción al Redimir Antivalor / Jefe |
+| :--- | :--- | :--- | :---: | :--- |
+| **Mateo Hernández** | 1er Semestre (Nuevo Ingreso) | Escenario 1 (Acceso / Jardinera) | 😢 Afligido (`SAD`) | Se levanta sonriente con su libreta y brinda aliento al jugador. |
+| **Xóchitl Morales** | 3er Semestre (Cultura Otomí) | Escenario 3 (Plaza Cívica / Escalinata) | 😢 Herida (`SAD`) | Porta su faja artesanal con orgullo y comparte sabiduría tradicional. |
+| **Sofía Valdés** | 5º Semestre (Robótica y Cómputo) | Escenario 5 (Edificio C — Cómputo) | 😢 Decepcionada (`SAD`) | Enciende los monitores de software libre y lidera tutorías solidarias. |
+| **Emiliano 'Milo' Cruz**| 5º Semestre (Capitán Baloncesto) | Escenario 6 (Cancha de Usos Múltiples) | 😢 Frustrado (`SAD`) | Bota el balón alegremente e invita a todos al juego limpio (*Fair Play*). |
+
+> [!TIP]
+> **Mecánica de Aliento (+1 Esperanza):** Cuando un estudiante se encuentra en estado alegre (`HAPPY`), si el jugador se acerca con corazones incompletos, el alumno le ofrecerá una frase de apoyo y le restaurará **+1 Corazón de Esperanza**.
 
 ---
 
@@ -494,25 +544,34 @@ campeones-de-los-valores/
 ├── scenes/                     # Escenas empaquetadas (.tscn)
 │   ├── enemy.tscn              # Nodo de antivalor con máquina de estados y colisiones
 │   ├── goal.tscn               # Zona de meta con partículas luminosas y detección
-│   ├── hud.tscn                # Capa de interfaz gráfica (CanvasLayer)
-│   ├── level.tscn              # Contenedor modular de escenario
+│   ├── hud.tscn                # Capa de interfaz gráfica con barra de jefes y corazones
+│   ├── level.tscn              # Contenedor modular de escenario con Y-Sort
+│   ├── loading_screen.tscn     # Pantalla de carga institucional COBAEM
 │   ├── main.tscn               # Orquestador del ciclo de vida del juego
-│   ├── menu.tscn               # Menú de título y selección de dificultad
+│   ├── menu.tscn               # Menú de título, selector de modo y dificultad
+│   ├── mobile_controls.tscn    # Capa de controles táctiles virtuales para Android
 │   ├── player.tscn             # Personaje jugable en perspectiva 3/4
-│   └── projectile.tscn         # Disparo de valores y virtudes
+│   ├── projectile.tscn         # Disparo de valores y virtudes
+│   └── story_cutscene.tscn     # Cinemáticas ilustradas del Modo Historia
 ├── scripts/                    # Lógica de programación en GDScript (.gd)
-│   ├── enemy.gd                # Inteligencia artificial, patrullaje y estados de redención
+│   ├── boss.gd                 # Los 6 Jefes Finales con patrones telegrafiados 3/4
+│   ├── enemy.gd                # Inteligencia artificial, cuotas y límites de reaparición
 │   ├── fx.gd                   # Singleton de efectos, sonido procedural y screen shake
 │   ├── game_settings.gd        # Singleton de configuración persistente y balance
-│   ├── goal.gd                 # Controlador de transición al completar nivel
-│   ├── hud.gd                  # Actualización de vidas, puntos y menú de pausa
-│   ├── level.gd                # Construcción dinámica de límites, obstáculos y spawns
+│   ├── goal.gd                 # Controlador de transición y desbloqueo de salida
+│   ├── hud.gd                  # Actualización de vidas, cuotas, barra de jefe y pausa
+│   ├── level.gd                # Construcción dinámica de límites, obstáculos, alumnos y jefes
 │   ├── level_manager.gd        # Catálogo centralizado de los 6 escenarios del plantel
-│   ├── main.gd                 # Progresión de niveles, condiciones de victoria y game over
+│   ├── loading_screen.gd       # Lógica de transición y barra de progreso institucional
+│   ├── main.gd                 # Progresión de niveles, Modo Historia y Modo Arcade
 │   ├── menu.gd                 # Animaciones de entrada e interacción del menú
+│   ├── mobile_controls.gd      # Joysticks virtuales multitáctiles con Safe Area
 │   ├── player.gd               # Movimiento 8D, física, cadencia de disparo y vidas
 │   ├── projectile.gd           # Movimiento del proyectil y colisión con antivalores
 │   ├── scene_transition.gd     # Singleton de fundido entre escenas con shader retro
+│   ├── story_cutscene.gd       # Controlador de diálogos y retratos pixel art
+│   ├── story_data.gd           # Guion literario del Modo Historia (Prólogo, 6 Actos, Epílogo)
+│   ├── student.gd              # Alumnos secundarios COBAEM con estados SAD y HAPPY
 │   └── ui_juice.gd             # Utilidades de animación elástica y tweening
 ├── shaders/
 │   └── pixel_transition.gdshader # Shader de cortinilla de píxeles para cambios de nivel
@@ -520,7 +579,11 @@ campeones-de-los-valores/
 ├── tools/                      # Herramientas de automatización en Python y GDScript
 │   ├── generate_music.py       # Sintetizador procedural de temas chiptune
 │   ├── generate_scenarios.py   # Generador procedural de los 6 mapas a escala real
-│   └── test_game.gd            # Script de pruebas automatizadas en modo headless
+│   ├── test_boss_student.gd    # Test automatizado de jefes y estudiantes
+│   ├── test_full_gameplay.gd   # Test automatizado integral de jugabilidad y redención
+│   ├── test_game.gd            # Script de pruebas automatizadas en modo headless
+│   ├── test_qa_diagnostics.gd  # Diagnóstico exhaustivo de colisiones, modales y toques
+│   └── test_story_data.gd      # Test de integridad del guion del Modo Historia
 ├── plano_3d.html               # Maqueta arquitectónica interactiva 3D (Three.js BIM/CAD)
 ├── planos_interactivos.html    # Sistema CAD 2D de planos interactivos vectoriales
 ├── icon.svg                    # Emblema heráldico vectorial del juego

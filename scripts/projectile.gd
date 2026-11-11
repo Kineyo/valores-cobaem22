@@ -1,11 +1,12 @@
 extends Area2D
 class_name Projectile
 
-## Proyectil de valores disparado por el jugador en perspectiva 3/4.
-## Se desplaza en línea recta y neutraliza al primer antivalor con el que colisiona.
+## Proyectil de valores disparado en perspectiva 3/4 (Jugador o Jefes).
+## Neutraliza antivalores, alegra a estudiantes tristes o daña al jugador si es proyectil hostil.
 
 @export var speed: float = 520.0
 @export var lifetime: float = 1.1
+@export var is_enemy_projectile: bool = false
 
 var direction: Variant = Vector2.RIGHT
 var _dir_vec: Vector2 = Vector2.RIGHT
@@ -17,6 +18,19 @@ var _done: bool = false
 func _ready() -> void:
 	area_entered.connect(_on_area_entered)
 	body_entered.connect(_on_body_entered)
+
+	if is_enemy_projectile or is_in_group("enemy_projectiles"):
+		is_enemy_projectile = true
+		collision_layer = 8 # Capa 4: Enemigo
+		collision_mask = 3  # Capa 1 (Obstaculos) + Capa 2 (Jugador)
+		remove_from_group("player_attack")
+		if not is_in_group("enemy_projectiles"):
+			add_to_group("enemy_projectiles")
+	else:
+		collision_layer = 4 # Capa 3: Proyectil
+		collision_mask = 9  # Capa 1 (Obstaculos) + Capa 4 (Enemigos)
+		if not is_in_group("player_attack"):
+			add_to_group("player_attack")
 
 	if direction is Vector2:
 		_dir_vec = direction.normalized()
@@ -53,25 +67,61 @@ func _spawn_impact_fx(col: Color = Color(1.0, 0.92, 0.5), count: int = 8, vel: f
 func _on_body_entered(body: Node2D) -> void:
 	if _done:
 		return
-	# Si impacta contra una pared u obstáculo sólido
+
+	if is_enemy_projectile:
+		if body is Player or body.has_method("take_damage"):
+			_done = true
+			_spawn_impact_fx(Color(1.0, 0.35, 0.45), 10, 140.0)
+			if body.has_method("take_damage"):
+				body.take_damage(1, global_position)
+			queue_free()
+			return
+		if body is StaticBody2D or body.is_in_group("obstacles") or (body.collision_layer & 1) != 0:
+			_done = true
+			_spawn_impact_fx(Color(0.85, 0.88, 0.95), 6, 90.0)
+			queue_free()
+			return
+		return
+
+	# Proyectil virtuoso del jugador:
+	# 1. Alumnos secundarios: si está triste, lo alegra de inmediato con esperanza
+	if body is Student or body.has_method("cheer_up"):
+		var s_state = body.get("current_state")
+		if s_state == 0: # Student.State.SAD
+			_done = true
+			body.cheer_up()
+			_spawn_impact_fx(Color(1.0, 0.92, 0.45), 12, 110.0)
+			queue_free()
+			return
+		else:
+			# Traspasa pacíficamente al alumno ya alegre
+			return
+
+	# 2. Antivalor o Jefe
+	if body.is_in_group("enemies") or body is Enemy or body.has_method("hit_by_attack"):
+		_done = true
+		_spawn_impact_fx()
+		body.hit_by_attack(global_position)
+		queue_free()
+		return
+
+	# 3. Obstáculos sólidos o paredes del escenario
 	if body is StaticBody2D or body.is_in_group("obstacles") or (body.collision_layer & 1) != 0:
 		_done = true
 		_spawn_impact_fx(Color(0.85, 0.88, 0.95), 6, 90.0)
 		queue_free()
 		return
-	# Si impacta directamente contra el CharacterBody2D del enemigo
-	if body.has_method("hit_by_attack") and body.is_in_group("enemies"):
-		_done = true
-		_spawn_impact_fx()
-		body.hit_by_attack(global_position)
-		queue_free()
 
 func _on_area_entered(area: Area2D) -> void:
-	if _done or not area.is_in_group("enemies"):
+	if _done:
 		return
-	var enemy = area.get_parent()
-	if enemy and enemy.has_method("hit_by_attack"):
-		_done = true
-		_spawn_impact_fx()
-		enemy.hit_by_attack(global_position)
-		queue_free()
+	if is_enemy_projectile:
+		return
+
+	if area.is_in_group("enemies"):
+		var enemy = area.get_parent()
+		if enemy and enemy.has_method("hit_by_attack"):
+			_done = true
+			_spawn_impact_fx()
+			enemy.hit_by_attack(global_position)
+			queue_free()

@@ -19,6 +19,13 @@ static func get_default_levels() -> Array[Dictionary]:
 			"player_spawn": Vector2(280, 720),
 			"goal_position": Vector2(120, 330),
 			"goal_label": "Edificio A ->",
+			"quota_to_boss": 3,
+			"boss_type": 0, # Boss.BossType.APATIA
+			"boss_spawn": Vector2(240, 360),
+			"students": [
+				{ "name": "Mateo", "gender": 0, "pos": Vector2(340, 320), "initial_state": 0 },
+				{ "name": "Lupita", "gender": 1, "pos": Vector2(500, 680), "initial_state": 0 },
+			],
 			"enemies": [
 				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(450, 700) },
 				{ "type": Enemy.Type.ACOSO, "pos": Vector2(880, 660) },
@@ -51,8 +58,15 @@ static func get_default_levels() -> Array[Dictionary]:
 			"real_dimensions_m": Vector2(40.0, 20.0),
 			"map_size": Vector2(1600, 800),
 			"player_spawn": Vector2(1480, 290),
-			"goal_position": Vector2(140, 260),
+			"goal_position": Vector2(140, 280),
 			"goal_label": "Plaza Cívica ->",
+			"quota_to_boss": 4,
+			"boss_type": 1, # Boss.BossType.DESPERDICIO
+			"boss_spawn": Vector2(320, 300),
+			"students": [
+				{ "name": "Carlos", "gender": 0, "pos": Vector2(1350, 320), "initial_state": 0 },
+				{ "name": "Valeria", "gender": 1, "pos": Vector2(250, 530), "initial_state": 0 },
+			],
 			"enemies": [
 				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(1220, 295) },
 				{ "type": Enemy.Type.ACOSO, "pos": Vector2(920, 295) },
@@ -79,6 +93,13 @@ static func get_default_levels() -> Array[Dictionary]:
 			"player_spawn": Vector2(1440, 760),
 			"goal_position": Vector2(126, 108),
 			"goal_label": "Edificio B (+4m) ->",
+			"quota_to_boss": 4,
+			"boss_type": 2, # Boss.BossType.INTOLERANCIA
+			"boss_spawn": Vector2(300, 240),
+			"students": [
+				{ "name": "Xóchitl", "gender": 1, "pos": Vector2(260, 260), "initial_state": 0 },
+				{ "name": "Rodrigo", "gender": 0, "pos": Vector2(800, 600), "initial_state": 0 },
+			],
 			"enemies": [
 				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(1180, 560) },
 				{ "type": Enemy.Type.ACOSO, "pos": Vector2(880, 380) },
@@ -104,6 +125,13 @@ static func get_default_levels() -> Array[Dictionary]:
 			"player_spawn": Vector2(110, 490),
 			"goal_position": Vector2(1350, 490),
 			"goal_label": "Edificio C ->",
+			"quota_to_boss": 4,
+			"boss_type": 3, # Boss.BossType.CIBERACOSO
+			"boss_spawn": Vector2(1100, 500),
+			"students": [
+				{ "name": "Fernanda", "gender": 1, "pos": Vector2(200, 480), "initial_state": 0 },
+				{ "name": "Javier", "gender": 0, "pos": Vector2(1200, 520), "initial_state": 0 },
+			],
 			"enemies": [
 				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(380, 495) },
 				{ "type": Enemy.Type.ACOSO, "pos": Vector2(680, 495) },
@@ -126,6 +154,13 @@ static func get_default_levels() -> Array[Dictionary]:
 			"player_spawn": Vector2(100, 560),
 			"goal_position": Vector2(1356, 588),
 			"goal_label": "Cancha Deportiva ->",
+			"quota_to_boss": 4,
+			"boss_type": 4, # Boss.BossType.PLAGIO
+			"boss_spawn": Vector2(1150, 580),
+			"students": [
+				{ "name": "Sofía", "gender": 1, "pos": Vector2(200, 580), "initial_state": 0 },
+				{ "name": "Diego", "gender": 0, "pos": Vector2(1000, 560), "initial_state": 0 },
+			],
 			"enemies": [
 				{ "type": Enemy.Type.ACOSO, "pos": Vector2(360, 575) },
 				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(620, 575) },
@@ -150,6 +185,13 @@ static func get_default_levels() -> Array[Dictionary]:
 			"player_spawn": Vector2(100, 360),
 			"goal_position": Vector2(1180, 368),
 			"goal_label": "¡GRAN COPA CEMSaD 22!",
+			"quota_to_boss": 5,
+			"boss_type": 5, # Boss.BossType.BULLYING
+			"boss_spawn": Vector2(736, 368),
+			"students": [
+				{ "name": "Emiliano", "gender": 0, "pos": Vector2(260, 340), "initial_state": 0 },
+				{ "name": "Brenda", "gender": 1, "pos": Vector2(1050, 650), "initial_state": 0 },
+			],
 			"enemies": [
 				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(420, 240) },
 				{ "type": Enemy.Type.ACOSO, "pos": Vector2(460, 500) },

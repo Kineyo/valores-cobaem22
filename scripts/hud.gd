@@ -16,12 +16,17 @@ const HEART_EMPTY := preload("res://assets/sprites/corazon_vacio.png")
 @onready var progress_bar: ProgressBar = %ProgressBar
 @onready var runner_icon: TextureRect = %RunnerIcon
 @onready var difficulty_label: Label = %DifficultyLabel
+@onready var quota_label: Label = get_node_or_null("%QuotaLabel")
 @onready var controls_label: Label = %ControlsLabel
 @onready var intro_banner: Label = %IntroBanner
 @onready var overlay: ColorRect = %Overlay
 @onready var pause_panel: PanelContainer = %PausePanel
 @onready var game_over_panel: PanelContainer = %GameOverPanel
 @onready var victory_panel: PanelContainer = %VictoryPanel
+@onready var boss_bar_container: PanelContainer = get_node_or_null("%BossBarContainer")
+@onready var boss_name_label: Label = get_node_or_null("%BossNameLabel")
+@onready var boss_hp_label: Label = get_node_or_null("%BossHpLabel")
+@onready var boss_progress_bar: ProgressBar = get_node_or_null("%BossProgressBar")
 @onready var game_over_stats: Label = %GameOverStats
 @onready var victory_stats: Label = %VictoryStats
 @onready var btn_resume: Button = %BtnResume
@@ -45,6 +50,7 @@ var _target_progress: float = 0.0
 var _overlay_alpha: float = 0.6
 var _panel_tweens: Dictionary = {}
 var _overlay_tween: Tween
+var _adapted_touch: bool = false
 
 func _ensure_nodes() -> void:
 	if hearts_container == null:
@@ -61,6 +67,16 @@ func _ensure_nodes() -> void:
 		controls_label = get_node_or_null("%ControlsLabel")
 	if intro_banner == null:
 		intro_banner = get_node_or_null("%IntroBanner")
+	if quota_label == null:
+		quota_label = get_node_or_null("%QuotaLabel")
+	if boss_bar_container == null:
+		boss_bar_container = get_node_or_null("%BossBarContainer")
+	if boss_name_label == null:
+		boss_name_label = get_node_or_null("%BossNameLabel")
+	if boss_hp_label == null:
+		boss_hp_label = get_node_or_null("%BossHpLabel")
+	if boss_progress_bar == null:
+		boss_progress_bar = get_node_or_null("%BossProgressBar")
 	if overlay == null:
 		overlay = get_node_or_null("%Overlay")
 	if pause_panel == null:
@@ -73,6 +89,20 @@ func _ensure_nodes() -> void:
 		btn_pause_hud = get_node_or_null("%BtnPauseHud")
 	if btn_pause_retry == null:
 		btn_pause_retry = get_node_or_null("%BtnPauseRetry")
+	if btn_resume == null:
+		btn_resume = get_node_or_null("%BtnResume")
+	if btn_pause_menu == null:
+		btn_pause_menu = get_node_or_null("%BtnPauseMenu")
+	if btn_retry == null:
+		btn_retry = get_node_or_null("%BtnRetry")
+	if btn_menu_go == null:
+		btn_menu_go = get_node_or_null("%BtnGameOverMenu")
+	if btn_play_again == null:
+		btn_play_again = get_node_or_null("%BtnPlayAgain")
+	if btn_menu_vic == null:
+		btn_menu_vic = get_node_or_null("%BtnVictoryMenu")
+	if not _adapted_touch:
+		_adapt_for_touch()
 
 func _ready() -> void:
 	_ensure_nodes()
@@ -101,7 +131,15 @@ func _ready() -> void:
 	if mobile_controls:
 		mobile_controls.pause_requested.connect(func(): set_paused(not is_paused))
 
+	_adapt_for_touch()
+	_update_safe_area()
+	get_viewport().size_changed.connect(_update_safe_area)
+
 func _process(delta: float) -> void:
+	if progress_bar == null or runner_icon == null:
+		_ensure_nodes()
+	if progress_bar == null or runner_icon == null:
+		return
 	# La barra avanza con suavidad en vez de saltar
 	if absf(progress_bar.value - _target_progress) > 0.05:
 		progress_bar.value = lerpf(progress_bar.value, _target_progress, 1.0 - exp(-10.0 * delta))
@@ -109,7 +147,7 @@ func _process(delta: float) -> void:
 		progress_bar.value = _target_progress
 	var ratio := progress_bar.value / 100.0
 	runner_icon.position.x = roundf(progress_bar.size.x * ratio - runner_icon.size.x * 0.5)
-	if not get_tree().paused:
+	if is_inside_tree() and get_tree() and not get_tree().paused:
 		runner_icon.position.y = -9.0 - roundf(absf(sin(Time.get_ticks_msec() * 0.012)) * 2.0)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -144,15 +182,20 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _notification(what: int) -> void:
-	if not is_inside_tree():
-		return
-	var st = get_node_or_null("/root/SceneTransition")
-	var is_transitioning: bool = st.is_busy if st else false
+	var is_transitioning := false
+	if is_inside_tree():
+		var st = get_node_or_null("/root/SceneTransition")
+		is_transitioning = st.is_busy if st else false
 	match what:
 		NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED:
 			if not is_game_finished and not is_paused and not is_transitioning:
 				set_paused(true)
 		NOTIFICATION_WM_GO_BACK_REQUEST:
+			# Si hay una cinemática de historia activa como hijo del HUD, delegar a ella
+			for child in get_children():
+				if child is StoryCutscene or (child.has_method("has_method") and child.has_method("_skip_cutscene")):
+					child._skip_cutscene()
+					return
 			if is_game_finished:
 				_on_menu_pressed()
 			elif is_paused:
@@ -160,11 +203,70 @@ func _notification(what: int) -> void:
 			else:
 				set_paused(true)
 
+## Ajusta posiciones y márgenes del HUD para respetar muescas (notches) y Safe Areas de Android
+func _update_safe_area() -> void:
+	if not is_inside_tree():
+		return
+	_ensure_nodes()
+	var insets := MobileControls.get_safe_insets_for_viewport(get_viewport(), 6.0)
+
+	# 1. Botón de Pausa / Menú: respetar muesca derecha y margen superior
+	if btn_pause_hud:
+		var btn_w := btn_pause_hud.custom_minimum_size.x if btn_pause_hud.custom_minimum_size.x > 0 else 88.0
+		var btn_h := btn_pause_hud.custom_minimum_size.y if btn_pause_hud.custom_minimum_size.y > 0 else 44.0
+		btn_pause_hud.offset_right = -insets.size.x
+		btn_pause_hud.offset_left = -insets.size.x - btn_w
+		btn_pause_hud.offset_top = insets.position.y
+		btn_pause_hud.offset_bottom = insets.position.y + btn_h
+
+	# 2. Panel Superior del HUD: respetar muesca izquierda y no traslapar con BtnPauseHud
+	var top_panel: Control = get_node_or_null("%TopPanel")
+	if top_panel:
+		top_panel.offset_left = insets.position.x
+		top_panel.offset_top = insets.position.y
+		var btn_w := btn_pause_hud.custom_minimum_size.x if btn_pause_hud else 88.0
+		top_panel.offset_right = -(insets.size.x + btn_w + 8.0)
+		top_panel.offset_bottom = insets.position.y + 44.0
+
+	# 3. Barra de Jefe: centrada pero respetando el margen superior de la muesca
+	if boss_bar_container:
+		boss_bar_container.offset_top = insets.position.y + 46.0
+		boss_bar_container.offset_bottom = insets.position.y + 80.0
+
+	# 4. Texto de controles / pie de pantalla: respetar barra de gestos inferior
+	if controls_label:
+		controls_label.offset_bottom = -maxf(6.0, insets.size.y)
+
+## Adapta los textos de los botones modales e instrucciones para pantallas táctiles
+func _adapt_for_touch() -> void:
+	if _adapted_touch:
+		return
+	_adapted_touch = true
+	if not MobileControls.is_touch_device():
+		return
+	if btn_resume:
+		btn_resume.text = "Continuar ▶"
+	if btn_pause_retry:
+		btn_pause_retry.text = "Reiniciar nivel ↺"
+	if btn_pause_menu:
+		btn_pause_menu.text = "Menú principal ⌂"
+	if btn_retry:
+		btn_retry.text = "Reintentar ↺"
+	if btn_menu_go:
+		btn_menu_go.text = "Menú principal ⌂"
+	if btn_play_again:
+		btn_play_again.text = "Jugar de nuevo ▶"
+	if btn_menu_vic:
+		btn_menu_vic.text = "Menú principal ⌂"
+	if controls_label:
+		controls_label.text = "Joystick Izq: mover (3/4) · Joystick Der: virtud · ❚❚ MENÚ: pausa"
+
 func set_paused(paused: bool) -> void:
 	if paused == is_paused or is_game_finished:
 		return
 	is_paused = paused
-	get_tree().paused = paused
+	if is_inside_tree() and get_tree():
+		get_tree().paused = paused
 	var gs = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
 	if gs and gs.has_method("duck_music"):
 		gs.duck_music(paused)
@@ -198,8 +300,54 @@ func reset_state() -> void:
 			panel.visible = false
 	if overlay:
 		overlay.visible = false
+	if boss_bar_container:
+		boss_bar_container.visible = false
+	if quota_label:
+		quota_label.text = ""
 	if mobile_controls:
 		mobile_controls.activate()
+
+func update_quota(defeated: int, quota: int) -> void:
+	_ensure_nodes()
+	if quota_label:
+		if defeated >= quota:
+			quota_label.text = "⚡ ¡Jefe Activo!"
+			quota_label.modulate = Color(1.0, 0.45, 0.55)
+		else:
+			quota_label.text = "Antivalores: %d/%d" % [defeated, quota]
+			quota_label.modulate = Color(1.0, 0.95, 0.75)
+
+func show_boss_bar(boss_name: String, current_hp: int, max_hp: int) -> void:
+	_ensure_nodes()
+	if boss_bar_container:
+		boss_bar_container.visible = true
+		boss_bar_container.modulate.a = 0.0
+		var tw := create_tween()
+		tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		tw.tween_property(boss_bar_container, "modulate:a", 1.0, 0.3)
+	if boss_name_label:
+		boss_name_label.text = "JEFE: %s" % boss_name
+	update_boss_bar(current_hp, max_hp)
+
+func update_boss_bar(current_hp: int, max_hp: int) -> void:
+	_ensure_nodes()
+	if boss_progress_bar:
+		boss_progress_bar.max_value = max_hp
+		boss_progress_bar.value = current_hp
+	if boss_hp_label:
+		boss_hp_label.text = "%d / %d" % [maxi(0, current_hp), max_hp]
+
+func hide_boss_bar(immediate: bool = false) -> void:
+	_ensure_nodes()
+	if boss_bar_container and boss_bar_container.visible:
+		if immediate:
+			boss_bar_container.modulate.a = 0.0
+			boss_bar_container.visible = false
+			return
+		var tw := create_tween()
+		tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		tw.tween_property(boss_bar_container, "modulate:a", 0.0, 0.3)
+		tw.tween_callback(func(): boss_bar_container.visible = false)
 
 ## Reutiliza los nodos de corazones (antes se destruían y creaban en cada golpe)
 ## y anima los que cambian.
@@ -271,6 +419,7 @@ func show_intro(level_title: String, diff_name: String = "") -> void:
 	intro_banner.pivot_offset = intro_banner.size * 0.5
 	intro_banner.scale = Vector2(0.5, 0.5)
 	var tw := create_tween()
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tw.tween_interval(0.35)
 	tw.set_parallel(true)
 	tw.tween_property(intro_banner, "modulate:a", 1.0, 0.2)
@@ -342,6 +491,7 @@ func show_victory(stats: Dictionary = {}) -> void:
 			_format_time(time_s * t), roundi(total_defeated * t), hp, max_hp]
 	update.call(0.0)
 	var tw := create_tween()
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tw.tween_interval(0.35)
 	tw.tween_method(update, 0.0, 1.0, 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_callback(_pop.bind(victory_stats, 1.15))
@@ -356,24 +506,25 @@ func _show_panel(panel: Control, focus_button: Button = null) -> void:
 	_kill_panel_tween(panel)
 	panel.visible = true
 	panel.pivot_offset = panel.size * 0.5
-	panel.scale = Vector2(0.75, 0.75)
-	panel.modulate.a = 0.0
+	panel.scale = Vector2.ONE
+	panel.modulate.a = 1.0
 
 	var tw := panel.create_tween().set_parallel(true)
-	tw.tween_property(panel, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_property(panel, "modulate:a", 1.0, 0.18)
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tw.tween_property(panel, "scale", Vector2.ONE, 0.28).from(Vector2(0.85, 0.85)).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(panel, "modulate:a", 1.0, 0.16).from(0.0)
 	_panel_tweens[panel] = tw
 
-	# Contenido entrando uno tras otro
+	# Contenido con entrada suave pero visible de inmediato
 	var box := panel.get_child(0)
 	var i := 0
 	for child in box.get_children():
 		if child is Control:
-			child.modulate.a = 0.0
-			tw.tween_property(child, "modulate:a", 1.0, 0.2).set_delay(0.08 + i * 0.05)
+			child.modulate.a = 1.0
+			tw.tween_property(child, "modulate:a", 1.0, 0.18).from(0.0).set_delay(0.04 + i * 0.03)
 			i += 1
 
-	if focus_button:
+	if focus_button and is_inside_tree():
 		focus_button.grab_focus()
 
 func _hide_panel(panel: Control) -> void:
@@ -381,6 +532,7 @@ func _hide_panel(panel: Control) -> void:
 	_kill_panel_tween(panel)
 	panel.pivot_offset = panel.size * 0.5
 	var tw := panel.create_tween().set_parallel(true)
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tw.tween_property(panel, "scale", Vector2(0.85, 0.85), 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_property(panel, "modulate:a", 0.0, 0.12)
 	tw.chain().tween_callback(panel.hide)
@@ -395,17 +547,22 @@ func _fade_overlay(show: bool) -> void:
 	if _overlay_tween and _overlay_tween.is_valid():
 		_overlay_tween.kill()
 	_overlay_tween = create_tween()
+	_overlay_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	if show:
 		if not overlay.visible:
 			overlay.color.a = 0.0
 			overlay.visible = true
-		_overlay_tween.tween_property(overlay, "color:a", _overlay_alpha, 0.3)
+		_overlay_tween.tween_property(overlay, "color:a", _overlay_alpha, 0.2)
 	else:
-		_overlay_tween.tween_property(overlay, "color:a", 0.0, 0.15)
+		_overlay_tween.tween_property(overlay, "color:a", 0.0, 0.12)
 		_overlay_tween.tween_callback(overlay.hide)
 
 func _on_retry_pressed() -> void:
+	set_paused(false)
+	get_tree().paused = false
 	restart_game.emit()
 
 func _on_menu_pressed() -> void:
+	set_paused(false)
+	get_tree().paused = false
 	go_to_menu.emit()

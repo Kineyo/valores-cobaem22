@@ -44,6 +44,7 @@ static func _scale_to(control: Control, target: Vector2, duration: float) -> voi
 			old_tw.kill()
 	control.pivot_offset = control.size * 0.5
 	var tw := control.create_tween()
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	control.set_meta("_juice_tw", tw)
 	tw.tween_property(control, "scale", target, duration) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
