@@ -16,7 +16,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="Campeones de los valores"
 config/description="Juego en perspectiva 3/4 de buenos valores vs antivalores en Godot."
-config/version="1.4.0"
+config/version="1.4.1"
 run/main_scene="res://scenes/menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.png"

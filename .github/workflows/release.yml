@@ -155,7 +155,7 @@ jobs:
             echo "tag=${{ inputs.tag_name }}" >> $GITHUB_OUTPUT
           else
             VER=$(grep 'config/version=' project.godot | cut -d'"' -f2)
-            echo "tag=v${VER:-1.4.0}" >> $GITHUB_OUTPUT
+            echo "tag=v${VER:-1.4.1}" >> $GITHUB_OUTPUT
           fi
 
       - name: Create or Update GitHub Release
@@ -186,16 +186,15 @@ jobs:
             
             ---
             
-            ### ✨ Novedades Principales de la Versión v1.4.0:
-            1. **🏫 Puertas de Acceso a Salones y Bloqueo Progresivo de Meta:**
-               - Cada escenario exterior cuenta con la entrada interactiva a su salón de clases correspondiente.
-               - Si el jugador intenta cruzar la meta exterior sin limpiar antes el salón, aparece la advertencia **`"Debemos limpiar los salones de antivalores antes de continuar"`**.
-            2. **🌫️ Niebla del Desinterés y 6 Ataques Únicos por Maestro:**
-               - Cada **Maestro Desinterés** posee un estilo de combate único según su salón: frascos químicos autodirigidos (Laboratorio), exámenes rebotantes (Aula 1), ondas expansivas cívicas (Sala Cívica), ráfagas de libros (Biblioteca), glitch digital en cruz (Taller de Cómputo) y balones deportivos con embestida (Aula Magna).
-               - **Modo Fácil / Normal:** Si la batalla dura 1 minuto (60s) o más, la **Niebla del Desinterés** cubre el aula dejando luz únicamente alrededor del alumno y revelando al Maestro por sus **ojos rojos ardientes y corazón negro palpitante**.
-               - **Modo Difícil:** La niebla está activa desde el inicio y aparecen **10 antivalores en oleadas de 3 en 3** antes del jefe final; al redimirlos a todos, la niebla se disipa.
-            3. **🎨 Escenarios y Salones Enriquecidos con Sombras 3D e Iluminación:**
-               - Rediseño visual de los 6 mapas exteriores y 6 salones interiores con sombras proyectadas, oclusión ambiental, haces de luz solar en ventanas y mobiliario detallado a escala real ($1\text{ m} = 40\text{ px}$).
-            4. **🧑‍🎓 Selección de Protagonista (Masculino / Femenino 512×512) y Retratos HD:**
-               - Menú principal a pantalla completa con logos institucionales COBAEM renovados y selector intermedio de aspecto (`Masculino` y `Femenino`).
-               - Nuevos diseños y retratos de alta resolución para el **Guardián de los Valores** y los alumnos secundarios (**Mateo, María, Valeria, Fernanda, Sofía, Diego y Alejandro**).
+            ### ✨ Novedades Principales de la Versión v1.4.1:
+            1. **📱 Corrección de Pantalla de Carga en Teléfonos Móviles:**
+               - Solución al bloqueo en 0% durante la carga de infraestructura escolar en navegadores móviles y Android.
+               - Precarga reactiva inmediata compatible con entornos de un solo hilo (sin depender de `WorkerThreadPool`).
+               - Avance fluido de la barra de progreso garantizando la lectura de las frases formativas de valores cívicos y cultura otomí.
+            2. **🌫️ Sistema de Neblina Realista y Ocultación Total de Antivalores en Modo Difícil:**
+               - Nuevo shader GLSL (`shaders/fog_of_war.gdshader`) con simulación de vapor y bruma fría del valle de Temoaya.
+               - Dispersión natural de luz suave (`smoothstep`) y halo cálido perimetral alrededor del héroe y los estudiantes protegidos.
+               - Ocultación total (`modulate.a = 0.0`) de enemigos y sus etiquetas fuera del radio de virtud; los antivalores emergen de la bruma al acercarse.
+               - El Maestro Desinterés preserva sus ojos ardientes y corazón oscuro palpitante visibles en la niebla.
+            3. **🏫 Puertas de Salones, 12 Fases y Suite Automatizada:**
+               - Mantenimiento pleno de la campaña de 12 fases escolares (6 edificios + 6 salones interiores) y 100% de tests headless aprobados.

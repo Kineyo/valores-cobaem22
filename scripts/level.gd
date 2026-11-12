@@ -180,6 +180,7 @@ func setup_level(data: Dictionary) -> void:
 		for s in students:
 			if is_instance_valid(s):
 				fog_overlay.light_sources.append(s)
+		fog_overlay.enemies_container = enemies_container
 		add_child(fog_overlay)
 		if is_hard_mode:
 			fog_overlay.set_fog(true, true)
@@ -255,6 +256,7 @@ func _physics_process(delta: float) -> void:
 				for s in students:
 					if is_instance_valid(s):
 						fog_overlay.light_sources.append(s)
+				fog_overlay.enemies_container = enemies_container
 				add_child(fog_overlay)
 			fog_overlay.boss_node = boss
 			fog_overlay.set_fog(true)

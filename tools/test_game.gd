@@ -138,10 +138,17 @@ func _init() -> void:
 	root.add_child(load_node)
 	assert(load_node != null, "Fallo al instanciar escena de LoadingScreen")
 	load_node._ensure_nodes()
-	load_node._process(0.1)
 	assert(load_node.logo_rect != null, "Logo institucional debe existir en LoadingScreen")
 	assert(load_node.progress_bar != null, "ProgressBar debe existir en LoadingScreen")
 	assert(load_node.tip_label != null, "TipLabel con carrusel de valores debe existir en LoadingScreen")
+	# Simular avance de frames en móviles/web y verificar que no se quede estancado en 0%
+	load_node._process(0.5)
+	assert(load_node._current_progress > 0.0, "La barra de progreso debe avanzar de inmediato y no quedarse en 0%")
+	assert(load_node.progress_bar.value > 0.0, "El valor de ProgressBar debe ser mayor a 0%")
+	# Simular transcurso completo del tiempo mínimo de pantalla de carga
+	load_node._process(2.0)
+	assert(load_node._current_progress >= 99.0, "Debe alcanzar el 100% al completarse el tiempo de carga")
+	assert(load_node._can_proceed == true, "Debe habilitar el avance a la partida tras cargar")
 	root.remove_child(load_node)
 	load_node.free()
 	print("Pantalla de Carga Institucional (COBAEM CEMSaD 22) verificada con éxito.")
@@ -563,6 +570,17 @@ func _init() -> void:
 	assert(hard_class_inst.quota_to_boss == 10, "En Modo Difícil la cuota debe ser de 10 enemigos")
 	assert(hard_class_inst.fog_overlay.is_fog_active == true, "En Modo Difícil la niebla debe estar activa desde el inicio")
 	assert(hard_class_inst._hard_enemies_spawned == 3, "Primera oleada debe spawnear 3 enemigos")
+
+	# Probar ocultación realista de antivalores en la niebla fuera del radio de luz
+	var p_pos: Vector2 = hard_class_inst.player.global_position
+	var near_enemy: Enemy = hard_class_inst.enemies_container.get_child(0) as Enemy
+	var far_enemy: Enemy = hard_class_inst.enemies_container.get_child(1) as Enemy
+	near_enemy.global_position = p_pos + Vector2(30, 0) # Dentro de la luz de virtud (dist 30 < 123)
+	far_enemy.global_position = Vector2(250, 150) # En la niebla profunda, lejos del héroe y del alumno
+	hard_class_inst.fog_overlay._process(0.1)
+	assert(far_enemy.modulate.a == 0.0, "Los antivalores inmersos en la niebla profunda deben estar 100% invisibles")
+	assert(near_enemy.modulate.a == 1.0, "Los antivalores dentro del radio de luz deben ser plenamente visibles")
+
 	# Derrotar los 10 enemigos en oleadas de 3 en 3 (3 + 3 + 3 + 1)
 	var dummy_enemy: Enemy = load("res://scenes/enemy.tscn").instantiate()
 	root.add_child(dummy_enemy)
