@@ -14,6 +14,7 @@ signal player_reached_goal
 
 var already_reached: bool = false
 var is_locked: bool = false
+var level_ref: Node2D = null
 var _time: float = 0.0
 
 func _ready() -> void:
@@ -49,6 +50,17 @@ func _process(delta: float) -> void:
 
 func _on_body_entered(body: Node2D) -> void:
 	if body is Player:
+		if level_ref != null and "has_classroom" in level_ref and level_ref.has_classroom and not level_ref.is_classroom_cleared:
+			var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+			if fx:
+				fx.shake(2.5, 0.2)
+				fx.floating_text(get_parent() if get_parent() else self, body.global_position + Vector2(0, -32), "Debemos limpiar los salones de antivalores antes de continuar", Color(1.0, 0.35, 0.35), 13)
+			var push_dir: Vector2 = (body.global_position - global_position).normalized()
+			if push_dir == Vector2.ZERO:
+				push_dir = Vector2.LEFT
+			body.position += push_dir * 32.0
+			return
+
 		if is_locked:
 			var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
 			if fx:
@@ -67,11 +79,12 @@ func trigger(body: Node2D) -> void:
 		particles.restart()
 		particles.emitting = true
 
-	sprite.modulate = Color(2.2, 2.2, 1.6)
-	sprite.scale = Vector2(1.35, 1.35)
-	var tw := create_tween().set_parallel(true)
-	tw.tween_property(sprite, "modulate", Color.WHITE, 0.6)
-	tw.tween_property(sprite, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	if sprite:
+		sprite.modulate = Color(2.2, 2.2, 1.6)
+		sprite.scale = Vector2(1.35, 1.35)
+		var tw := create_tween().set_parallel(true)
+		tw.tween_property(sprite, "modulate", Color.WHITE, 0.6)
+		tw.tween_property(sprite, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
 	if fx:
 		fx.shake(4.0, 0.3)

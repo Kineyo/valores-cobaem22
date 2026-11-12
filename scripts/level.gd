@@ -12,6 +12,7 @@ signal boss_spawned(boss: CharacterBody2D)
 signal boss_health_changed(current: int, max_hp: int)
 signal boss_redeemed(boss: CharacterBody2D)
 signal quota_updated(defeated: int, quota: int)
+signal enter_classroom_requested(classroom_idx: int)
 signal level_completed
 
 const PLAYER_SCENE := preload("res://scenes/player.tscn")
@@ -19,6 +20,8 @@ const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
 const GOAL_SCENE := preload("res://scenes/goal.tscn")
 const BossClass := preload("res://scripts/boss.gd")
 const StudentClass := preload("res://scripts/student.gd")
+const ClassroomDoorClass := preload("res://scripts/classroom_door.gd")
+const FogOverlayClass := preload("res://scripts/fog_overlay.gd")
 
 @onready var background: Sprite2D = $Background
 @onready var world_boundaries: StaticBody2D = $WorldBoundaries
@@ -29,6 +32,8 @@ const StudentClass := preload("res://scripts/student.gd")
 var player: Player = null
 var goal: Goal = null
 var boss: CharacterBody2D = null
+var classroom_door: Area2D = null
+var fog_overlay: Node2D = null
 var students: Array = []
 var map_size: Vector2 = Vector2(800, 450)
 var level_data: Dictionary = {}
@@ -36,6 +41,15 @@ var level_data: Dictionary = {}
 var quota_to_boss: int = 3
 var defeated_in_level: int = 0
 var boss_defeated: bool = false
+var has_classroom: bool = false
+var is_classroom_cleared: bool = false
+var is_hard_mode: bool = false
+
+var _hard_enemy_templates: Array = []
+var _hard_enemies_spawned: int = 0
+var _hard_wave_active_count: int = 0
+var _boss_battle_timer: float = 0.0
+var _fog_triggered_by_timeout: bool = false
 
 func _ensure_nodes() -> void:
 	if background == null:
@@ -104,11 +118,25 @@ func setup_level(data: Dictionary) -> void:
 	# 5. Instanciar la meta de salida (inicia bloqueada hasta vencer al jefe)
 	goal = GOAL_SCENE.instantiate()
 	goal.position = data.get("goal_position", Vector2(map_size.x - 90.0, map_size.y * 0.5))
+	goal.level_ref = self
 	if entities:
 		entities.add_child(goal)
 	goal.set_goal_text(data.get("goal_label", "META"))
 	goal.set_locked(true)
 	goal.player_reached_goal.connect(_on_goal_reached)
+
+	# 5.5. Instanciar entrada al salón de clases en el exterior si aplica
+	has_classroom = data.has("classroom_entrance_pos") and not data.get("is_classroom", false)
+	is_classroom_cleared = data.get("is_classroom_cleared", false)
+	if has_classroom:
+		classroom_door = ClassroomDoorClass.new()
+		classroom_door.position = data.get("classroom_entrance_pos")
+		classroom_door.classroom_index = int(data.get("classroom_index", 0))
+		classroom_door.classroom_name = str(data.get("classroom_name", "Salón de Clases"))
+		classroom_door.is_cleared = is_classroom_cleared
+		classroom_door.player_entered_classroom.connect(func(idx: int): enter_classroom_requested.emit(idx))
+		if entities:
+			entities.add_child(classroom_door)
 
 	# 6. Instanciar estudiantes secundarios (alumnos del CEMSaD 22)
 	students.clear()
@@ -124,22 +152,123 @@ func setup_level(data: Dictionary) -> void:
 			entities.add_child(student)
 		students.append(student)
 
-	# 7. Configuración de cuota de antivalores y jefe
-	quota_to_boss = data.get("quota_to_boss", 3)
+	# 7. Configuración de dificultad, niebla y cuota de antivalores
+	var gs: Node = null
+	if is_inside_tree():
+		gs = get_node_or_null("/root/GameSettings")
+	if gs == null:
+		var p := get_parent()
+		while p != null and gs == null:
+			gs = p.get_node_or_null("GameSettings")
+			p = p.get_parent()
+	is_hard_mode = (gs != null and gs.get("difficulty") == 2)
+	var is_classroom: bool = data.get("is_classroom", false)
+
 	defeated_in_level = 0
 	boss_defeated = false
 	boss = null
+	_boss_battle_timer = 0.0
+	_fog_triggered_by_timeout = false
+	_hard_enemies_spawned = 0
+	_hard_wave_active_count = 0
+
+	# Instanciar Niebla del Desinterés (activa en salones o en modo difícil)
+	if is_classroom or is_hard_mode:
+		fog_overlay = FogOverlayClass.new()
+		fog_overlay.map_size = map_size
+		fog_overlay.light_sources = [player]
+		for s in students:
+			if is_instance_valid(s):
+				fog_overlay.light_sources.append(s)
+		add_child(fog_overlay)
+		if is_hard_mode:
+			fog_overlay.set_fog(true, true)
+		else:
+			fog_overlay.set_fog(false, true)
 
 	# 8. Instanciar grupo de enemigos
 	var enemy_list: Array = data.get("enemies", [])
-	for e_info in enemy_list:
+	if is_hard_mode:
+		# En Modo Difícil: 10 enemigos que aparecen de 3 en 3 con niebla inicial
+		quota_to_boss = 10
+		_hard_enemy_templates = enemy_list.duplicate()
+		if _hard_enemy_templates.is_empty():
+			_hard_enemy_templates = [
+				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(map_size.x * 0.5, map_size.y * 0.4) },
+				{ "type": Enemy.Type.BULLYING, "pos": Vector2(map_size.x * 0.6, map_size.y * 0.55) },
+				{ "type": Enemy.Type.ACOSO, "pos": Vector2(map_size.x * 0.4, map_size.y * 0.55) },
+			]
+		_spawn_hard_wave(3)
+	else:
+		quota_to_boss = data.get("quota_to_boss", 3)
+		for e_info in enemy_list:
+			var enemy: Enemy = ENEMY_SCENE.instantiate()
+			enemy.enemy_type = e_info.get("type", Enemy.Type.GROSERIA)
+			enemy.position = e_info.get("pos", Vector2(map_size.x * 0.5, map_size.y * 0.5))
+			enemy.player = player
+			if is_classroom:
+				# En el salón de clases, rodean al alumno y atacan de inmediato al ver al héroe
+				enemy.wander_radius = 25.0
+				enemy.detection_range = 360.0
+			enemy.defeated.connect(_on_enemy_defeated)
+			if enemies_container:
+				enemies_container.add_child(enemy)
+
+func _spawn_hard_wave(count: int) -> void:
+	if _hard_enemy_templates.is_empty():
+		return
+	var is_classroom: bool = level_data.get("is_classroom", false)
+	var to_spawn := mini(count, 10 - _hard_enemies_spawned)
+	for i in range(to_spawn):
+		var tpl: Dictionary = _hard_enemy_templates[_hard_enemies_spawned % _hard_enemy_templates.size()]
 		var enemy: Enemy = ENEMY_SCENE.instantiate()
-		enemy.enemy_type = e_info.get("type", Enemy.Type.GROSERIA)
-		enemy.position = e_info.get("pos", Vector2(map_size.x * 0.5, map_size.y * 0.5))
+		enemy.enemy_type = tpl.get("type", Enemy.Type.GROSERIA)
+		var base_pos: Vector2 = tpl.get("pos", Vector2(map_size.x * 0.5, map_size.y * 0.5))
+		var offset := Vector2.ZERO
+		if _hard_enemies_spawned >= _hard_enemy_templates.size():
+			offset = Vector2(float((i - 1) * 26), float(((i % 2) * 2 - 1) * 18))
+		enemy.position = Vector2(
+			clampf(base_pos.x + offset.x, 60.0, map_size.x - 60.0),
+			clampf(base_pos.y + offset.y, 95.0, map_size.y - 60.0)
+		)
 		enemy.player = player
+		enemy.allow_respawn = false
+		if is_classroom:
+			enemy.wander_radius = 25.0
+			enemy.detection_range = 380.0
 		enemy.defeated.connect(_on_enemy_defeated)
 		if enemies_container:
 			enemies_container.add_child(enemy)
+		_hard_enemies_spawned += 1
+		_hard_wave_active_count += 1
+
+func _physics_process(delta: float) -> void:
+	# En Fácil/Normal: si la batalla contra el Maestro tarda 1 minuto (60s) o más, aparece la Niebla del Desinterés
+	if not is_hard_mode and boss != null and is_instance_valid(boss) and not boss_defeated:
+		_boss_battle_timer += delta
+		if _boss_battle_timer >= 60.0 and not _fog_triggered_by_timeout:
+			_fog_triggered_by_timeout = true
+			if fog_overlay == null:
+				fog_overlay = FogOverlayClass.new()
+				fog_overlay.map_size = map_size
+				fog_overlay.light_sources = [player]
+				for s in students:
+					if is_instance_valid(s):
+						fog_overlay.light_sources.append(s)
+				add_child(fog_overlay)
+			fog_overlay.boss_node = boss
+			fog_overlay.set_fog(true)
+			if boss.has_method("set_fog_active"):
+				boss.set_fog_active(true)
+			var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+			if fx:
+				fx.shake(4.0, 0.35)
+				fx.floating_text(self, boss.global_position + Vector2(0, -65), "¡LA NIEBLA DEL DESINTERÉS CUBRE EL SALÓN!", Color(1.0, 0.25, 0.35), 14)
+
+func set_classroom_cleared(cleared: bool) -> void:
+	is_classroom_cleared = cleared
+	if classroom_door and is_instance_valid(classroom_door):
+		classroom_door.update_state(cleared)
 
 func _on_enemy_defeated(enemy: Node2D) -> void:
 	defeated_in_level += 1
@@ -151,6 +280,32 @@ func _on_enemy_defeated(enemy: Node2D) -> void:
 	for s in students:
 		if is_instance_valid(s):
 			s.cheer_up_area(enemy.global_position, 280.0)
+
+	# Control de oleadas de 3 en 3 y disipación de niebla en Modo Difícil
+	if is_hard_mode:
+		_hard_wave_active_count = maxi(0, _hard_wave_active_count - 1)
+		if defeated_in_level < quota_to_boss:
+			if _hard_wave_active_count == 0 and _hard_enemies_spawned < 10:
+				var next_batch := mini(3, 10 - _hard_enemies_spawned)
+				_spawn_hard_wave(next_batch)
+				var fx_w = get_node_or_null("/root/Fx") if is_inside_tree() else null
+				if fx_w and player and is_instance_valid(player):
+					fx_w.floating_text(self, player.global_position + Vector2(0, -48), "¡Oleada de antivalores (%d/10)!" % _hard_enemies_spawned, Color(1.0, 0.55, 0.3), 13)
+		elif defeated_in_level >= quota_to_boss:
+			if fog_overlay and is_instance_valid(fog_overlay):
+				fog_overlay.set_fog(false)
+			var fx_f = get_node_or_null("/root/Fx") if is_inside_tree() else null
+			if fx_f and player and is_instance_valid(player):
+				fx_f.floating_text(self, player.global_position + Vector2(0, -55), "¡La niebla del desinterés desaparece!", Color(0.45, 1.0, 0.7), 15)
+
+	# Si es un salón de clases y se liberó al alumno acorralado
+	if level_data.get("is_classroom", false) and defeated_in_level >= quota_to_boss:
+		for s in students:
+			if is_instance_valid(s):
+				s.cheer_up()
+				var fx_s = get_node_or_null("/root/Fx") if is_inside_tree() else null
+				if fx_s:
+					fx_s.floating_text(self, s.global_position + Vector2(0, -55), "¡Gracias por defenderme!", Color(1.0, 0.95, 0.4), 14)
 
 	# Si se cumple la cuota requerida y aún no hay jefe, invocar al Jefe de Escenario
 	if defeated_in_level >= quota_to_boss and boss == null and not boss_defeated:
@@ -165,21 +320,31 @@ func _spawn_boss() -> void:
 
 	boss = BossClass.new()
 	boss.boss_type = level_data.get("boss_type", 0)
+	boss.classroom_index = int(level_data.get("classroom_index", 0))
 	boss.position = level_data.get("boss_spawn", level_data.get("goal_position", Vector2(500, 400)))
 	boss.player = player
 	boss.health_changed.connect(func(c, m): boss_health_changed.emit(c, m))
 	boss.redeemed.connect(_on_boss_redeemed)
 	if entities:
 		entities.add_child(boss)
+	if fog_overlay and is_instance_valid(fog_overlay):
+		fog_overlay.boss_node = boss
 	boss_spawned.emit(boss)
 
 	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
 	if fx:
+		var boss_title := "¡APARECIÓ EL JEFE!"
+		if level_data.get("boss_type", 0) == 6: # Boss.BossType.DESINTERES
+			boss_title = "¡MAESTRO DESINTERÉS CONFRONTADO!"
 		fx.shake(5.0, 0.45)
-		fx.floating_text(self, boss.position + Vector2(0, -50), "¡APARECIÓ EL JEFE!", Color(1.0, 0.35, 0.45), 16)
+		fx.floating_text(self, boss.position + Vector2(0, -50), boss_title, Color(1.0, 0.35, 0.45), 16)
 
 func _on_boss_redeemed(b: CharacterBody2D) -> void:
 	boss_defeated = true
+	if fog_overlay and is_instance_valid(fog_overlay):
+		fog_overlay.set_fog(false)
+	if b and b.has_method("set_fog_active"):
+		b.set_fog_active(false)
 	boss_redeemed.emit(b)
 
 	# Desbloquear meta de salida
@@ -196,7 +361,10 @@ func _on_boss_redeemed(b: CharacterBody2D) -> void:
 
 	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
 	if fx:
-		fx.floating_text(self, b.position + Vector2(0, -60), "¡ANTIVALOR MAYOR REDIMIDO!", Color(1.0, 0.95, 0.40), 16)
+		var banner_text := "¡ANTIVALOR MAYOR REDIMIDO!"
+		if level_data.get("boss_type", 0) == 6:
+			banner_text = "¡MAESTRO DESINTERÉS REDIMIDO!"
+		fx.floating_text(self, b.position + Vector2(0, -60), banner_text, Color(1.0, 0.95, 0.40), 16)
 		fx.shake(4.0, 0.3)
 
 func _on_goal_reached() -> void:

@@ -20,6 +20,8 @@ dist/
 # Heavy local reference photographs (200MB raw camera photos)
 /assets/planos/
 assets/planos/
+assets/plantillas/
+assets/Protagonista_femenino_falda/
 
 # Mono / C#
 .mono/
@@ -39,6 +41,10 @@ mono_crash.*.json
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Local trash and obsolete files
+.trash/
+/.trash/
 
 # Python temporary files and environments
 __pycache__/

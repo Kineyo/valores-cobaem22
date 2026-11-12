@@ -37,6 +37,8 @@ func _process(delta: float) -> void:
 
 ## Aplica sacudida sísmica a la cámara 2D activa
 func shake(strength: float = 4.0, duration: float = 0.25) -> void:
+	if not is_inside_tree() or get_viewport() == null:
+		return
 	_camera = get_viewport().get_camera_2d()
 	if _camera == null:
 		return
@@ -46,6 +48,8 @@ func shake(strength: float = 4.0, duration: float = 0.25) -> void:
 
 ## Pausa brevemente la escala de tiempo para acentuar el impacto de un golpe
 func hitstop(duration: float = 0.06, time_scale: float = 0.05) -> void:
+	if not is_inside_tree() or get_tree() == null:
+		return
 	_hitstop_id += 1
 	var current_id := _hitstop_id
 	Engine.time_scale = time_scale

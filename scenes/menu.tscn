@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/menu.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/background/fondo.png" id="2_bg"]
@@ -8,21 +8,32 @@
 [ext_resource type="Texture2D" path="res://assets/logos/cobaem-logo.png" id="6_cobaem"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-content_margin_left = 32.0
-content_margin_top = 12.0
-content_margin_right = 32.0
-content_margin_bottom = 12.0
-bg_color = Color(0.1, 0.05, 0.07, 0.96)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 5
+content_margin_left = 28.0
+content_margin_top = 10.0
+content_margin_right = 28.0
+content_margin_bottom = 10.0
+bg_color = Color(0.08, 0.04, 0.06, 0.94)
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 0
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_char_white"]
+content_margin_left = 3.0
+content_margin_top = 3.0
+content_margin_right = 3.0
+content_margin_bottom = 3.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
 border_color = Color(0.77, 0.63, 0.35, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
-corner_detail = 1
 anti_aliasing = false
 
 [sub_resource type="Gradient" id="Gradient_sparkles"]
@@ -58,7 +69,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.04, 0.02, 0.05, 0.5)
+color = Color(0.04, 0.02, 0.05, 0.65)
 
 [node name="AmbientParticles" type="CPUParticles2D" parent="."]
 position = Vector2(400, 440)
@@ -76,185 +87,383 @@ scale_amount_min = 2.0
 scale_amount_max = 4.0
 color_ramp = SubResource("Gradient_sparkles")
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="Panel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="Panel" type="PanelContainer" parent="Center"]
-unique_name_in_owner = true
-layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="VBox" type="VBoxContainer" parent="Center/Panel"]
+[node name="VBox" type="VBoxContainer" parent="Panel"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 3
 alignment = 1
 
-[node name="HeaderHBox" type="HBoxContainer" parent="Center/Panel/VBox"]
+[node name="HeaderHBox" type="HBoxContainer" parent="Panel/VBox"]
 layout_mode = 2
 theme_override_constants/separation = 12
 alignment = 1
 
-[node name="CobaemLogo" type="TextureRect" parent="Center/Panel/VBox/HeaderHBox"]
-custom_minimum_size = Vector2(56, 56)
+[node name="CobaemLogo" type="TextureRect" parent="Panel/VBox/HeaderHBox"]
+custom_minimum_size = Vector2(52, 52)
 layout_mode = 2
 size_flags_vertical = 4
 texture = ExtResource("6_cobaem")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="HeaderTexts" type="VBoxContainer" parent="Center/Panel/VBox/HeaderHBox"]
+[node name="HeaderTexts" type="VBoxContainer" parent="Panel/VBox/HeaderHBox"]
 layout_mode = 2
 theme_override_constants/separation = 1
 alignment = 1
 
-[node name="InstSub" type="Label" parent="Center/Panel/VBox/HeaderHBox/HeaderTexts"]
+[node name="InstSub" type="Label" parent="Panel/VBox/HeaderHBox/HeaderTexts"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.77, 0.63, 0.35, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 11
 text = "COLEGIO DE BACHILLERES DEL ESTADO DE MÉXICO"
 horizontal_alignment = 1
 
-[node name="InstTitle" type="Label" parent="Center/Panel/VBox/HeaderHBox/HeaderTexts"]
+[node name="InstTitle" type="Label" parent="Panel/VBox/HeaderHBox/HeaderTexts"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 14
 text = "PLANTEL CEMSaD 22 ENTHAVI"
 horizontal_alignment = 1
 
-[node name="GameIcon" type="TextureRect" parent="Center/Panel/VBox/HeaderHBox"]
+[node name="GameIcon" type="TextureRect" parent="Panel/VBox/HeaderHBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(56, 56)
+custom_minimum_size = Vector2(52, 52)
 layout_mode = 2
 size_flags_vertical = 4
 texture = ExtResource("3_icon")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="RichTextLabel" parent="Center/Panel/VBox"]
-custom_minimum_size = Vector2(520, 36)
+[node name="Title" type="RichTextLabel" parent="Panel/VBox"]
+custom_minimum_size = Vector2(600, 32)
 layout_mode = 2
 mouse_filter = 2
 theme_override_colors/default_color = Color(1, 0.88, 0.35, 1)
 theme_override_colors/font_shadow_color = Color(0.24, 0.03, 0.08, 1)
-theme_override_constants/shadow_offset_x = 3
-theme_override_constants/shadow_offset_y = 3
-theme_override_font_sizes/normal_font_size = 26
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/normal_font_size = 24
 bbcode_enabled = true
-text = "[center][wave amp=16.0 freq=3.0]CAMPEONES DE LOS VALORES[/wave][/center]"
+text = "[center][wave amp=14.0 freq=3.0]CAMPEONES DE LOS VALORES[/wave][/center]"
 fit_content = true
 scroll_active = false
 autowrap_mode = 0
 
-[node name="Subtitle" type="Label" parent="Center/Panel/VBox"]
+[node name="Subtitle" type="Label" parent="Panel/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.88, 0.75, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 10
 text = "Edición Arquitectónica CAD a Escala Real (1 metro = 40 px)"
 horizontal_alignment = 1
 
-[node name="ModeRow" type="HBoxContainer" parent="Center/Panel/VBox"]
+[node name="MainView" type="VBoxContainer" parent="Panel/VBox"]
+unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 5
 alignment = 1
 
-[node name="BtnModeArcade" type="Button" parent="Center/Panel/VBox/ModeRow"]
+[node name="ModeSectionTitle" type="Label" parent="Panel/VBox/MainView"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.77, 0.63, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "SELECCIONA EL MODO DE JUEGO (↑ / ↓)"
+horizontal_alignment = 1
+
+[node name="ModeRow" type="HBoxContainer" parent="Panel/VBox/MainView"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="BtnModeArcade" type="Button" parent="Panel/VBox/MainView/ModeRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(175, 44)
+custom_minimum_size = Vector2(190, 36)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
 text = "Modo Arcade"
 
-[node name="BtnModeStory" type="Button" parent="Center/Panel/VBox/ModeRow"]
+[node name="BtnModeStory" type="Button" parent="Panel/VBox/MainView/ModeRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(175, 44)
+custom_minimum_size = Vector2(190, 36)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
 text = "📖 Modo Historia"
 
-[node name="ModeInfo" type="Label" parent="Center/Panel/VBox"]
+[node name="ModeInfo" type="Label" parent="Panel/VBox/MainView"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.88, 0.60, 1)
+theme_override_font_sizes/font_size = 10
+text = "📖 Modo Historia: Cinemáticas, diálogos escolares y trasfondo narrativo en CEMSaD 22."
+horizontal_alignment = 1
+
+[node name="DifficultyTitle" type="Label" parent="Panel/VBox/MainView"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.77, 0.63, 0.35, 1)
 theme_override_font_sizes/font_size = 11
-text = "📖 Modo Historia: Cinemáticas, diálogos escolares y trasfondo del CEMSaD 22"
+text = "SELECCIONA LA DIFICULTAD (← / →)"
 horizontal_alignment = 1
 
-[node name="DifficultyTitle" type="Label" parent="Center/Panel/VBox"]
+[node name="DifficultyRow" type="HBoxContainer" parent="Panel/VBox/MainView"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 13
-text = "Dificultad (← / →)"
-horizontal_alignment = 1
-
-[node name="DifficultyRow" type="HBoxContainer" parent="Center/Panel/VBox"]
-layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 alignment = 1
 
-[node name="BtnEasy" type="Button" parent="Center/Panel/VBox/DifficultyRow"]
+[node name="BtnEasy" type="Button" parent="Panel/VBox/MainView/DifficultyRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(116, 44)
+custom_minimum_size = Vector2(120, 36)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
 text = "Fácil"
 
-[node name="BtnNormal" type="Button" parent="Center/Panel/VBox/DifficultyRow"]
+[node name="BtnNormal" type="Button" parent="Panel/VBox/MainView/DifficultyRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(116, 44)
+custom_minimum_size = Vector2(120, 36)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
 text = "Normal"
 
-[node name="BtnHard" type="Button" parent="Center/Panel/VBox/DifficultyRow"]
+[node name="BtnHard" type="Button" parent="Panel/VBox/MainView/DifficultyRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(116, 44)
+custom_minimum_size = Vector2(120, 36)
 layout_mode = 2
 focus_mode = 0
 toggle_mode = true
 text = "Difícil"
 
-[node name="DifficultyInfo" type="Label" parent="Center/Panel/VBox"]
+[node name="DifficultyInfo" type="Label" parent="Panel/VBox/MainView"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
-text = "3 corazones · enemigos normales · disparo mediano"
+theme_override_font_sizes/font_size = 10
+text = "♥ 3 corazones · enemigos normales · disparo mediano"
 horizontal_alignment = 1
 
-[node name="Spacer" type="Control" parent="Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 2)
+[node name="Spacer" type="Control" parent="Panel/VBox/MainView"]
+custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
 
-[node name="BtnPlay" type="Button" parent="Center/Panel/VBox"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(260, 48)
+[node name="ActionRow" type="HBoxContainer" parent="Panel/VBox/MainView"]
 layout_mode = 2
-size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 16
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="BtnPlay" type="Button" parent="Panel/VBox/MainView/ActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 42)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
 text = "▶ INICIAR PARTIDA (Enter)"
 
-[node name="BtnQuit" type="Button" parent="Center/Panel/VBox"]
+[node name="BtnQuit" type="Button" parent="Panel/VBox/MainView/ActionRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(260, 44)
+custom_minimum_size = Vector2(120, 42)
 layout_mode = 2
-size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 13
 text = "Salir (Esc)"
 
-[node name="Controls" type="Label" parent="Center/Panel/VBox"]
+[node name="Controls" type="Label" parent="Panel/VBox/MainView"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.72, 0.65, 1)
-theme_override_font_sizes/font_size = 11
-text = "WASD/↑↓/Táctil: modo · ←→: dificultad · ENTER/Toque: jugar · ESC: salir"
+theme_override_font_sizes/font_size = 10
+text = "WASD/↑↓: modo · ←→: dificultad · ENTER/Toque: iniciar partida · ESC: salir"
+horizontal_alignment = 1
+
+[node name="CharSelectView" type="VBoxContainer" parent="Panel/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 5
+alignment = 1
+
+[node name="CharSelectTitle" type="Label" parent="Panel/VBox/CharSelectView"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 15
+text = "SELECCIONA TU PERSONAJE"
+horizontal_alignment = 1
+
+[node name="CharSelectSub" type="Label" parent="Panel/VBox/CharSelectView"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.88, 0.75, 1)
+theme_override_font_sizes/font_size = 10
+text = "Elige entre las 2 opciones oficiales: Masculino o Femenino"
+horizontal_alignment = 1
+
+[node name="CharacterRow" type="HBoxContainer" parent="Panel/VBox/CharSelectView"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="BtnCharPantalon" type="Button" parent="Panel/VBox/CharSelectView/CharacterRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 184)
+layout_mode = 2
+focus_mode = 0
+toggle_mode = true
+
+[node name="VBoxP" type="VBoxContainer" parent="Panel/VBox/CharSelectView/CharacterRow/BtnCharPantalon"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+alignment = 1
+
+[node name="FrameP" type="PanelContainer" parent="Panel/VBox/CharSelectView/CharacterRow/BtnCharPantalon/VBoxP"]
+custom_minimum_size = Vector2(104, 104)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_char_white")
+
+[node name="CharIconPantalon" type="TextureRect" parent="Panel/VBox/CharSelectView/CharacterRow/BtnCharPantalon/VBoxP/FrameP"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(98, 98)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="LblNameP" type="Label" parent="Panel/VBox/CharSelectView/CharacterRow/BtnCharPantalon/VBoxP"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 13
+text = "Masculino"
+horizontal_alignment = 1
+
+[node name="LblDescP" type="Label" parent="Panel/VBox/CharSelectView/CharacterRow/BtnCharPantalon/VBoxP"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.85, 0.82, 0.75, 1)
+theme_override_font_sizes/font_size = 9
+; text = "assets/characters/Masculino"
+horizontal_alignment = 1
+
+[node name="LblStatusP" type="Label" parent="Panel/VBox/CharSelectView/CharacterRow/BtnCharPantalon/VBoxP"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.90, 0.40, 1)
+theme_override_font_sizes/font_size = 10
+text = "► ELEGIDO ◄"
+horizontal_alignment = 1
+
+[node name="BtnCharFalda" type="Button" parent="Panel/VBox/CharSelectView/CharacterRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 184)
+layout_mode = 2
+focus_mode = 0
+toggle_mode = true
+
+[node name="VBoxF" type="VBoxContainer" parent="Panel/VBox/CharSelectView/CharacterRow/BtnCharFalda"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+alignment = 1
+
+[node name="FrameF" type="PanelContainer" parent="Panel/VBox/CharSelectView/CharacterRow/BtnCharFalda/VBoxF"]
+custom_minimum_size = Vector2(104, 104)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_char_white")
+
+[node name="CharIconFalda" type="TextureRect" parent="Panel/VBox/CharSelectView/CharacterRow/BtnCharFalda/VBoxF/FrameF"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(98, 98)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="LblNameF" type="Label" parent="Panel/VBox/CharSelectView/CharacterRow/BtnCharFalda/VBoxF"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 13
+text = "Femenino"
+horizontal_alignment = 1
+
+[node name="LblDescF" type="Label" parent="Panel/VBox/CharSelectView/CharacterRow/BtnCharFalda/VBoxF"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.85, 0.82, 0.75, 1)
+theme_override_font_sizes/font_size = 9
+; text = "assets/characters/Femenino"
+horizontal_alignment = 1
+
+[node name="LblStatusF" type="Label" parent="Panel/VBox/CharSelectView/CharacterRow/BtnCharFalda/VBoxF"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.90, 0.40, 1)
+theme_override_font_sizes/font_size = 10
+text = "► ELEGIDA ◄"
+horizontal_alignment = 1
+
+[node name="CharacterInfo" type="Label" parent="Panel/VBox/CharSelectView"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.55, 1)
+theme_override_font_sizes/font_size = 10
+text = "Aspecto Principal: Uniforme Escolar COBAEM con Pantalón Gris"
+horizontal_alignment = 1
+
+[node name="CharActionRow" type="HBoxContainer" parent="Panel/VBox/CharSelectView"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="BtnConfirmChar" type="Button" parent="Panel/VBox/CharSelectView/CharActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 42)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "▶ COMENZAR AVENTURA (Enter)"
+
+[node name="BtnBackToMenu" type="Button" parent="Panel/VBox/CharSelectView/CharActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 42)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "← Volver (Esc)"
+
+[node name="CharControls" type="Label" parent="Panel/VBox/CharSelectView"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.72, 0.65, 1)
+theme_override_font_sizes/font_size = 10
+text = "←→ / A-D / Táctil: cambiar personaje · ENTER / Toque: comenzar partida · ESC: volver"
 horizontal_alignment = 1
 
 [node name="SFXSelect" type="AudioStreamPlayer" parent="."]

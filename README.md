@@ -16,7 +16,7 @@
 [![GL Compatibility](https://img.shields.io/badge/Renderer-GL%20Compatibility-5272F2?style=for-the-badge&logo=opengl&logoColor=white)](https://docs.godotengine.org/en/stable/tutorials/rendering/)
 [![Perspective](https://img.shields.io/badge/Perspectiva-3%2F4%20RPG%20Retro-9C27B0?style=for-the-badge)](https://github.com/Kineyo/valores-cobaem22)
 [![Escala Arquitectónica](https://img.shields.io/badge/Escala%20Real-1%20m%20%3D%2040%20px-2EA043?style=for-the-badge)](https://github.com/Kineyo/valores-cobaem22)
-[![BIM CAD 3D](https://img.shields.io/badge/Planimetr%C3%ADa-BIM%20%2F%20CAD%203D-FF7043?style=for-the-badge&logo=three.js&logoColor=white)](plano_3d.html)
+[![BIM CAD 3D](https://img.shields.io/badge/Planimetr%C3%ADa-BIM%20%2F%20CAD%203D-FF7043?style=for-the-badge&logo=three.js&logoColor=white)](planos/plano_3d.html)
 [![Plantel](https://img.shields.io/badge/Plantel-CEMSaD%2022%20ENTHAVI-7A1C3C?style=for-the-badge)](https://cobaem.edomex.gob.mx/)
 [![Licencia](https://img.shields.io/badge/Licencia-MIT-00B4D8?style=for-the-badge)](LICENSE)
 
@@ -110,9 +110,9 @@ https://github.com/user-attachments/assets/75b3ccd4-ab32-4d3e-8b7b-bba197a8a0dc
 
 El repositorio incluye una presentación audiovisual oficial que resume la misión educativa, los 6 escenarios reales y los nuevos controles táctiles:
 
-* 🌐 **Reproductor Web Interactivo Remotion:** [`video_presentacion.html`](video_presentacion.html)  
+* 🌐 **Reproductor Web Interactivo Remotion:** [`assets/video/video_presentacion.html`](assets/video/video_presentacion.html)  
   *Abre este archivo en tu navegador web para ver la animación interactiva con el reproductor oficial de Remotion (play, pausa, barra de tiempo y pantalla completa).*
-* 📹 **Archivo de Video Físico MP4:** [`video_presentacion.mp4`](video_presentacion.mp4)  
+* 📹 **Archivo de Video Físico MP4:** [`assets/video/video_presentacion.mp4`](assets/video/video_presentacion.mp4)  
   *Video Full HD (1920×1080 @ 30 FPS, 1.4 MB) con banda sonora chiptune sincronizada (`music_game.wav`). Compatible con reproductores de video locales y dispositivos móviles.*
 * 🛠️ **Scripts de Generación:**
   * [`tools/build_video.py`](tools/build_video.py): Generador de código Remotion y llamada al servidor MCP.
@@ -148,12 +148,14 @@ El juego cuenta con un esquema de control arcade responsivo diseñado para tecla
 | Acción | Tecla Principal (PC) | Ratón & Gamepad | Control Móvil (Android / Táctil v2.0) | Descripción |
 | :--- | :---: | :---: | :---: | :--- |
 | **Moverse (8 Direcciones)** | <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> / <kbd>Flechas</kbd> | Stick Izquierdo / D-Pad | **Joystick Dinámico Izquierdo** | Desplazamiento analógico fluido 8D con muescas cardinales y guías en reposo. |
+| **Modo Enfoque (Focus Mode)** | <kbd>Shift</kbd> (Izquierdo/Derecho) | Gatillo <kbd>L1</kbd> / <kbd>LB</kbd> | Arrastre preciso en joystick | Reduce velocidad al 52% para micro-esquivas e ilumina el núcleo vital Touhou de 5.5 px. |
 | **Disparo de Virtud** | <kbd>Espacio</kbd> | Clic Izquierdo / Botón <kbd>A</kbd> / <kbd>R1</kbd> | **Joystick Dinámico Derecho "VIRTUD"** | Emite haces de luz en 360° con halo guinda/oro y flecha de puntería. |
 | **Apuntado Cardinal / 360°** | <kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> | Cursor del Ratón / Stick Der. | Arrastre de Joystick Derecho | Orienta la dirección del proyectil de virtud hacia los antivalores. |
 | **Pausar / Reanudar** | <kbd>Escape</kbd> / <kbd>P</kbd> | Botón <kbd>Start</kbd> | **Botón `⏸`** (Superior Derecho) | Abre el modal de pausa institucional sin interrumpir la música de fondo. |
 | **Pantalla Completa (Toggle)** | <kbd>F11</kbd> / <kbd>Alt + Enter</kbd> | — | Automático en Móviles | Alterna instantáneamente entre modo ventana y pantalla completa en PC. |
 | **Reiniciar Nivel** | <kbd>R</kbd> | Botón en Modal | Botón en Pantalla Modal | Reinicia la posición y estado del nivel en curso. |
 | **Alternar Controles Táctiles** | <kbd>F1</kbd> | — | Automático por hardware | Muestra u oculta manualmente la superposición de controles táctiles en PC. |
+| **Selección de Personaje** | <kbd>Q</kbd> / <kbd>E</kbd> / <kbd>C</kbd> / <kbd>Tab</kbd> | Botón <kbd>X</kbd> / <kbd>LB</kbd> / <kbd>RB</kbd> | Toque en tarjeta de personaje | Elige entre el aspecto con Pantalón Escolar o Falda Escolar COBAEM en el menú. |
 | **Selección de Dificultad** | <kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> | D-Pad <kbd>←</kbd> / <kbd>→</kbd> | Toque en botones de dificultad | Configura el balance de juego directamente desde el menú principal. |
 
 ---
@@ -278,17 +280,86 @@ El juego cuenta con dos modos principales seleccionables desde la pantalla de in
 
 Cada edificio del plantel está custodiado por una manifestación mayor que desafía al jugador con patrones de ataque telegrafiados en perspectiva 3/4 y barra de vida en el HUD:
 
-| Nivel | Jefe Final | Ubicación Escolar | Salud (HP) | Ataques Telegrafiados | Virtud de Redención |
+| Nivel | Jefe Final | Ubicación Escolar | Salud (Fácil / Normal / Difícil) | Ataques y Patrones | Virtud de Redención |
 | :---: | :--- | :--- | :---: | :--- | :--- |
-| **1** | **Sombra de la Apatía** (*Apatyx*) | Acceso y Edificio D (Laboratorios) | **6 ♥** | Charco de Desgano, Orbe Apático | **¡Entusiasmo y Curiosidad!** |
-| **2** | **Troll del Desperdicio** (*Desperdicius*) | Edificio A — Cafetería y Desayunador | **8 ♥** | Lluvia de Desechos, Pisotón de Basura | **¡Responsabilidad y Cuidado Ambiental!** |
-| **3** | **Sombra de la Intolerancia** (*Superbus*) | Plaza Cívica y Escalinata Sur (+4m) | **9 ♥** | Onda de Rechazo, Ráfaga de Prejuicios | **¡Tolerancia y Dignidad Otomí!** |
-| **4** | **Espectro del Ciberacoso** (*Murmullus*) | Edificio B — Aulas 3-4 y Biblioteca | **10 ♥** | Cadenas de Rumores, Falla Espectral | **¡Empatía Digital y Honestidad!** |
-| **5** | **Titán del Plagio** (*Plagiatrix*) | Edificio C — Dirección y Cómputo | **12 ♥** | Copia Espejo, Barrera de Atajos | **¡Autenticidad e Integridad Académica!** |
-| **6** | **Coloso del Bullying** (*Titanor*) | Cancha de Usos Múltiples y Gradas | **15 ♥** | Golpe Terrestre, Embestida Ciclónica | **¡Fraternidad, Solidaridad y Fair Play!** |
+| **1** | **Sombra de la Apatía** (*Apatyx*) | Acceso y Edificio D (Laboratorios) | **16 / 32 / 65 ♥** | Vórtice Espiral de Desgano, Ráfaga Ciclónica, Miasma Apatético | **¡Entusiasmo y Curiosidad!** |
+| **2** | **Troll del Desperdicio** (*Desperdicius*) | Edificio A — Cafetería y Desayunador | **20 / 40 / 80 ♥** | Lluvia de Desechos, Pisotón de Basura | **¡Responsabilidad y Cuidado Ambiental!** |
+| **3** | **Sombra de la Intolerancia** (*Superbus*) | Plaza Cívica y Escalinata Sur (+4m) | **24 / 48 / 100 ♥** | Onda de Rechazo, Ráfaga de Prejuicios | **¡Tolerancia y Dignidad Otomí!** |
+| **4** | **Espectro del Ciberacoso** (*Murmullus*) | Edificio B — Aulas 3-4 y Biblioteca | **28 / 56 / 120 ♥** | Cadenas de Rumores, Falla Espectral | **¡Empatía Digital y Honestidad!** |
+| **5** | **Titán del Plagio** (*Plagiatrix*) | Edificio C — Dirección y Cómputo | **32 / 64 / 140 ♥** | Copia Espejo, Barrera de Atajos | **¡Autenticidad e Integridad Académica!** |
+| **6** | **Coloso del Bullying** (*Titanor*) | Cancha de Usos Múltiples y Gradas | **75 / 180 / 450 ♥** | **Danmaku Touhou en 4 Fases (Ruleta de Balas, Espirales Curvas)** | **¡Fraternidad, Solidaridad y Fair Play!** |
+| **Aula** | **Maestro Desinterés** *(Inacción ante Bullying)* | Salones de Clases Interiores (1 a 6) | **25 / 55 / 120 ♥** | Mirada Indiferente, Burocracia Inmóvil | **¡Compromiso, Escucha y Empatía Docente!** |
+
+---
+
+### 🌸 Sistema Danmaku Touhou: Ruletas de Balas, Micro-Hitbox y Cartas de Hechizo
+
+Para elevar el clímax del enfrentamiento contra el **Coloso del Bullying (Titanor)** y responder a la demanda de un combate exigente, justo y 100% táctico:
+
+1. **Patrones Danmaku de Ruleta de Balas (Bullet Roulette):**
+   - **Ruleta Danmaku Giratoria:** Anillos concéntricos giratorios con velocidades angulares opuestas que abren corredores simétricos de escape cada 30°-40°.
+   - **Doble Espiral de Opresión:** Dos corrientes simultáneas de balas con curvatura angular continua (`curve_speed`), cuyas trayectorias se entrelazan creando rombos de seguridad (*nodos diamante*) donde el jugador puede permanecer a salvo.
+   - **Ruleta Kaleidoscópica Cruzada:** Tres anillos concéntricos a velocidades alternadas que forman un laberinto cinemático en movimiento.
+   - **Último Hechizo (Clímax):** La gran rueda final de 20 proyectiles radiantes con corredores cardinales abiertos y arcos exteriores.
+
+2. **Micro-Hitbox Touhou (Punto Vital Central de 5.5 px):**
+   - A diferencia de los juegos 2D tradicionales donde todo el cuerpo (`22×14 px`) recibe daño, en las cortinas de balas el área de vulnerabilidad se reduce a un **núcleo microscópico de 5.5 px de radio** ubicado en el pecho (`Vector2(0, -10)`).
+   - **Modo Enfoque (<kbd>Shift</kbd> / Gatillo / Desplazamiento Preciso):** Reduce la velocidad al 52% (de 230 a 120 px/s) para desplazamientos milimétricos entre proyectiles e ilumina el núcleo rojo y la retícula de mira Touhou.
+
+3. **Mecánica de Rozadura (Graze):**
+   - Si un proyectil hostil atraviesa el cuerpo o la ropa del personaje pero no toca el micro-núcleo vital de 5.5 px, se produce una **Rozadura (*Graze*)**: destellos de chispas turquesa, sonido sutil y suma al contador de rozaduras sin infligir daño alguno.
+   - Cada **35 rozaduras**, el jugador recupera un corazón de vida (`+1 ♥`), premiando la maestría táctica del esquive ceñido.
+
+4. **Cartas de Hechizo y Duración Matemática en Modo Difícil ($\ge$ 3 minutos):**
+   - En **Modo Difícil**, Titanor posee **450 puntos de salud**.
+   - Con la cadencia de disparo del jugador en Difícil fijada en **0.40s** (2.5 ataques/s):
+     $$\text{Tiempo de Disparo Continuo Perfecto} = 450 \times 0.40\text{ s} = \mathbf{180.0\text{ segundos (3 minutos exactos)}}$$
+   - Sumando las **3 transiciones cinemáticas de Cartas de Hechizo** (4.0s cada una con ondas de choque que limpian proyectiles del mapa y otorgan un corazón de recompensa), la batalla tiene una duración mínima estricta de **192 segundos (> 3 minutos y 12 segundos)** bajo una ejecución de ataque perfecta continua.
 
 > [!NOTE]
 > **Filosofía de Redención Educativa (Cero Violencia):** Al reducir los puntos de vida de un jefe o enemigo, nunca hay destrucción violenta ni muertes. El jefe sufre una transformación luminosa ascendente, proclama su virtud redentora (*¡El respeto nos une a todos!*) y se reconcilia con la comunidad escolar.
+
+---
+
+## 🏫 Salones de Clases Interiores y el Desafío del "Maestro Desinterés"
+
+Cada uno de los 6 edificios escolares cuenta con su **Salón de Clases Interior** donde se desarrollan confrontaciones pedagógicas de alto impacto:
+
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│  PIZARRÓN ESCOLAR: Fórmulas / Valores COBAEM                           │
+│  [ MAESTRO DESINTERÉS: Piel gris cenizo, ojos blancos, de espaldas ]  │
+│                                                                        │
+│   Pupitres               [ 😈 MONSTRUOS EN CÍRCULO ]                   │
+│   Escolares                     ▼    ▼                                 │
+│                          ◄  😢 ALUMNO ACORRALADO  ►                    │
+│                                 ▲    ▲                                 │
+│  [ PUERTA ] ──► [ HÉROE ] (Alerta en enjambre al ser descubiertos)     │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **El Acoso Oculto:** Al ingresar al salón, varios antivalores (Grosería, Acoso, Bullying) se encuentran rodeando en círculo a un alumno de la institución (Mateo, María, Xóchitl, Fernanda, Diego o Alejandro), intimidándolo.
+2. **Reacción Agresiva en Enjambre:** En cuanto los monstruos detectan al protagonista, rompen formación inmediatamente y arremeten en ataque coordinado.
+3. **El Jefe de Salón — Maestro Desinterés:** Representa la peligrosa **inacción de los adultos y docentes** que deciden no intervenir o mirar hacia otro lado ante el acoso escolar. Posee piel gris ceniza, ojos blancos vacíos y un traje desgastado con corbata torcida. Sus ataques incluyen la *Mirada Indiferente* (abanico de orbes fríos) y la *Burocracia Inmóvil* (barrera de trámites y exámenes).
+4. **Redención y Compromiso:** Al redimir a los agresores y al Maestro Desinterés con virtudes, el docente recupera su calidez humana, sus ojos cobran vida y jura comprometerse activamente en la protección, escucha y bienestar de sus alumnos.
+
+---
+
+## 🎨 Catálogo de Renders y Retratos Pixel-Art en `assets/`
+
+Para permitir a la comunidad escolar, docentes y alumnos personalizar o crear sus propios personajes manteniendo la estética del protagonista, todos los renders y sprites han sido generados como archivos PNG estándar editables dentro de `assets/`:
+
+| Archivo PNG | Rol y Ubicación Escolar | Formato & Dimensiones |
+| :--- | :--- | :--- |
+| [`assets/mateo_laboratorio.png`](assets/mateo_laboratorio.png) | Mateo — Laboratorio Edificio D (Ciencia y Respeto) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/maria_cafeteria.png`](assets/maria_cafeteria.png) | María — Cafetería y Aulas Edif. A (Empatía y Solidaridad) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/valeria_plaza.png`](assets/valeria_plaza.png) | Valeria — Plaza Cívica (Liderazgo Cívico y Valores) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/fernanda_biblioteca.png`](assets/fernanda_biblioteca.png) | Fernanda — Biblioteca Edificio B (Lectura y Honestidad) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/diego_computo.png`](assets/diego_computo.png) | Diego — Cómputo Edificio C (Tecnología y Trabajo en Equipo) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/sofia_direccion.png`](assets/sofia_direccion.png) | Sofía — Dirección Edificio C (Liderazgo Estudiantil) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/alejandro_cancha.png`](assets/alejandro_cancha.png) | Alejandro — Cancha Deportiva (Compañerismo y Fair Play) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/maestro_desinteres.png`](assets/maestro_desinteres.png) | Maestro Desinterés — Jefe de Salón (Inacción ante Bullying) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/portraits/*.png`](assets/portraits/) | Retratos de primer plano para cinemáticas del Modo Historia | Retratos 256×256 (Grilla 32×32) |
 
 ---
 
@@ -376,8 +447,8 @@ Además del videojuego en Godot 4, el repositorio incluye un **sistema de docume
 
 | Recurso | Archivo | Tecnologías | Características Principales |
 | :--- | :--- | :--- | :--- |
-| **Maqueta 3D Interactiva** | [`plano_3d.html`](plano_3d.html) | `Three.js`, `OrbitControls`, `Tween.js` | Visualizador BIM/CAD 3D con 3 poses de cámara cinemáticas (RPG 3/4 isométrica, Peatonal baja y Aérea/Dron), aristas vectoriales nítidas, mobiliario tridimensional y etiquetas flotantes de cada aula. |
-| **Planos CAD Vectoriales 2D** | [`planos_interactivos.html`](planos_interactivos.html) | `HTML5 Canvas`, `SVG`, `JetBrains Mono` | Planimetría interactiva con cotas precisas en centímetros y metros, cálculo automático de perímetro, diagonal y áreas en $\text{m}^2$ y $\text{cm}^2$, capas de dibujo y galería fotográfica de campo. |
+| **Maqueta 3D Interactiva** | [`planos/plano_3d.html`](planos/plano_3d.html) | `Three.js`, `OrbitControls`, `Tween.js` | Visualizador BIM/CAD 3D con 3 poses de cámara cinemáticas (RPG 3/4 isométrica, Peatonal baja y Aérea/Dron), aristas vectoriales nítidas, mobiliario tridimensional y etiquetas flotantes de cada aula. |
+| **Planos CAD Vectoriales 2D** | [`planos/planos_interactivos.html`](planos/planos_interactivos.html) | `HTML5 Canvas`, `SVG`, `JetBrains Mono` | Planimetría interactiva con cotas precisas en centímetros y metros, cálculo automático de perímetro, diagonal y áreas en $\text{m}^2$ y $\text{cm}^2$, capas de dibujo y galería fotográfica de campo. |
 
 ### 🌐 Cómo visualizar los planos y la maqueta 3D
 
@@ -388,26 +459,15 @@ Para una experiencia óptima con texturas e interactividad, inicia un servidor H
 python3 -m http.server 8000
 
 # Abrir en el navegador:
-# -> Maqueta 3D:     http://localhost:8000/plano_3d.html
-# -> Planos CAD 2D:  http://localhost:8000/planos_interactivos.html
+# -> Maqueta 3D:     http://localhost:8000/planos/plano_3d.html
+# -> Planos CAD 2D:  http://localhost:8000/planos/planos_interactivos.html
 ```
 
 ---
 
 ## 📚 Informes Especializados de Auditoría y Dictamen v2
 
-El proyecto cuenta con una batería de dictámenes exhaustivos elaborados por 7 agentes y especialistas técnicos, pedagógicos y arquitectónicos en noviembre de 2026, alojados en la carpeta [`reports/`](reports/):
-
-| Documento de Auditoría | Especialista / Área | Enfoque Principal y Contenido |
-| :--- | :--- | :--- |
-| 📁 [`reports/multiplatform_architecture_report.md`](reports/multiplatform_architecture_report.md) | **Arquitecto Multiplataforma** | Matriz de resoluciones (18:9, 19.5:9, 20:9 móvil vs 16:9, 16:10 ultrawide PC), Safe Area insets, perfiles de exportación APK/AAB/Linux/Web y DisplayServer. |
-| 📁 [`reports/plans_and_scenarios_audit.md`](reports/plans_and_scenarios_audit.md) | **Perito en BIM / CAD Escolar** | Auditoría pericial 1m = 40px, cálculo de áreas de envolvente (Edif. A, B, C, D: $1,460.81\text{ m}^2$, Predio: $4,462\text{ m}^2$) y cotejo con el plano oficial. |
-| 📁 [`reports/pedagogical_impact_and_values_audit.md`](reports/pedagogical_impact_and_values_audit.md) | **Doctor en Pedagogía y Ética** | Análisis de impacto en bachillerato (COBAEM / NEM), no violencia activa, recepción con padres de familia, y banco de 25 frases formativas y sabiduría Otomí de Temoaya. |
-| 📁 [`reports/mobile_touch_system_report.md`](reports/mobile_touch_system_report.md) | **Especialista en Controles Móviles** | Diagnóstico del bug de doble toque (`emulate_mouse_from_touch`), aislamiento multitáctil, compensación radial continua y guías en reposo. |
-| 📁 [`reports/desktop_experience_report.md`](reports/desktop_experience_report.md) | **Especialista en PC de Escritorio** | Mapeo de gamepad D-Pad, apuntado con ratón, atajos F11/Alt+Enter, optimización en gráficos integrados Intel HD y prevención de interferencias touch en laptops. |
-| 📁 [`reports/godot_engine_audit.md`](reports/godot_engine_audit.md) | **Auditor de Motor Godot 4 (Core)** | Resolución de fugas ObjectDB en AudioStreamWAV al salir, coherencia de capas de colisión 2D, condición de carrera en hitstop y suite de pruebas físicas. |
-| 📁 [`reports/frontend_ui_ux_report.md`](reports/frontend_ui_ux_report.md) | **Diseñador Líder UI/UX** | Diseño de la nueva Pantalla de Carga, integración de logos institucionales (`assets/logos/`), telemetría de carga y carrusel de valores. |
-| 📁 [`reformas_v2.md`](reformas_v2.md) | **Dictamen General de Reformas** | Hoja de ruta completa de los 20 hallazgos resueltos y verificados de Nivel Rojo a Verde. |
+El proyecto cuenta con un historial de dictámenes exhaustivos elaborados por 7 especialistas técnicos, pedagógicos y arquitectónicos (Arquitectura Multiplataforma, Peritaje BIM/CAD Escolar, Pedagogía y Ética, Controles Móviles, Experiencia de Escritorio, Auditoría de Motor Godot 4 y Diseño UI/UX), cuyos hallazgos fueron completamente implementados y verificados en código. Los informes originales se encuentran archivados en `.trash/reports/`.
 
 ---
 
@@ -579,17 +639,18 @@ campeones-de-los-valores/
 ├── tools/                      # Herramientas de automatización en Python y GDScript
 │   ├── generate_music.py       # Sintetizador procedural de temas chiptune
 │   ├── generate_scenarios.py   # Generador procedural de los 6 mapas a escala real
-│   ├── test_boss_student.gd    # Test automatizado de jefes y estudiantes
-│   ├── test_full_gameplay.gd   # Test automatizado integral de jugabilidad y redención
-│   ├── test_game.gd            # Script de pruebas automatizadas en modo headless
-│   ├── test_qa_diagnostics.gd  # Diagnóstico exhaustivo de colisiones, modales y toques
-│   └── test_story_data.gd      # Test de integridad del guion del Modo Historia
-├── plano_3d.html               # Maqueta arquitectónica interactiva 3D (Three.js BIM/CAD)
-├── planos_interactivos.html    # Sistema CAD 2D de planos interactivos vectoriales
+│   ├── generate_classroom_scenarios.py # Generador de mapas interiores de salones
+│   ├── generate_secondary_characters.py # Generador de sprites de estudiantes
+│   ├── generate_character_assets.py    # Generador de retratos y assets
+│   ├── requirements.txt        # Dependencias Python (Pillow) para herramientas
+│   └── test_game.gd            # Suite completa de pruebas automatizadas en modo headless
+├── planos/                     # Visores arquitectónicos BIM/CAD y planimetría
+│   ├── plano_3d.html           # Maqueta arquitectónica interactiva 3D (Three.js BIM/CAD)
+│   ├── planos_interactivos.html # Sistema CAD 2D de planos interactivos vectoriales
+│   └── CEMSaD 22 ENTHAVI...pdf # Planos arquitectónicos vectoriales en PDF
 ├── icon.svg                    # Emblema heráldico vectorial del juego
 ├── icon.png                    # Icono rasterizado para el lanzador
 ├── project.godot               # Archivo maestro de configuración de Godot Engine 4
-├── requirements.txt            # Dependencias Python (Pillow) para herramientas
 ├── LICENSE                     # Licencia de código abierto MIT
 ├── AGENTS.md                   # Guía técnica para agentes de IA y resolución de errores
 └── README.md                   # Esta guía integral del proyecto

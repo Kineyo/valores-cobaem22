@@ -11,35 +11,36 @@ enum Type { GROSERIA, ACOSO, BULLYING }
 const TYPE_DATA := {
 	Type.GROSERIA: {
 		"texture": preload("res://assets/sprites/enemigo_groseria.png"),
-		"speed": 95.0, "name": "Grosería",
+		"speed": 125.0, "name": "Grosería",
 		"color": Color(1.0, 0.35, 0.35), "value": "¡Amabilidad!",
-		"detection_range": 220.0,
+		"detection_range": 280.0,
 	},
 	Type.ACOSO: {
 		"texture": preload("res://assets/sprites/enemigo_acoso.png"),
-		"speed": 80.0, "name": "Acoso",
+		"speed": 110.0, "name": "Acoso",
 		"color": Color(1.0, 0.65, 0.25), "value": "¡Respeto!",
-		"detection_range": 260.0,
+		"detection_range": 320.0,
 	},
 	Type.BULLYING: {
 		"texture": preload("res://assets/sprites/enemigo_bullying.png"),
-		"speed": 70.0, "name": "Bullying",
+		"speed": 95.0, "name": "Bullying",
 		"color": Color(0.85, 0.45, 0.95), "value": "¡Empatía!",
-		"detection_range": 180.0,
+		"detection_range": 240.0,
 	},
 }
 
 signal defeated(enemy: Enemy)
 
 @export var enemy_type: Type = Type.GROSERIA
-@export var speed: float = 85.0
+@export var speed: float = 110.0
 @export var wander_radius: float = 140.0
-@export var detection_range: float = 220.0
+@export var detection_range: float = 280.0
 @export var respawn_delay: float = 3.2
 @export var max_respawns: int = 2 ## Límite de reapariciones por nivel antes de descansar
 
 var player: CharacterBody2D = null
 var is_active: bool = true
+var is_alerted: bool = false
 var spawn_position: Vector2 = Vector2.ZERO
 var current_respawns: int = 0
 var allow_respawn: bool = true
@@ -113,27 +114,47 @@ func _physics_process(delta: float) -> void:
 	_update_ai(delta)
 	move_and_slide()
 
+## Alerta a otros enemigos aliados cercanos para coordinar el ataque
+func alert_allies(range_px: float = 340.0) -> void:
+	is_alerted = true
+	if not is_inside_tree():
+		return
+	var r_sq := range_px * range_px
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e != self and e is Enemy and is_instance_valid(e) and e.is_inside_tree() and e.is_active:
+			if global_position.distance_squared_to(e.global_position) <= r_sq:
+				e.is_alerted = true
+
 ## Inteligencia artificial: persigue si el héroe está en rango; si no, patrulla
 func _update_ai(delta: float) -> void:
 	var move_dir := Vector2.ZERO
 
-	# Persecución directa si el jugador entra al radio de detección (optimizado con dist_sq)
+	# Persecución directa si el jugador entra al radio de detección o hay alerta de grupo
 	if player and is_instance_valid(player) and player.can_control:
 		var dist_sq := global_position.distance_squared_to(player.global_position)
-		if dist_sq <= _detection_range_sq:
-			move_dir = (player.global_position - global_position).normalized()
-			# Evasión inteligente de paredes y esquinas (context-steering antienquistes)
-			if is_on_wall():
-				var wall_n := get_wall_normal()
-				var tangent := Vector2(-wall_n.y, wall_n.x)
-				if tangent.dot(move_dir) < 0.0:
-					tangent = -tangent
-				move_dir = (move_dir * 0.3 + tangent * 0.85).normalized()
+		var should_chase := is_alerted or (dist_sq <= _detection_range_sq)
 
-			velocity = velocity.move_toward(move_dir * speed, 600.0 * delta)
-			if move_dir.x != 0.0:
-				sprite.flip_h = move_dir.x < 0.0
-			return
+		if should_chase:
+			if not is_alerted and dist_sq <= _detection_range_sq:
+				alert_allies(340.0)
+
+			# Desactivar alerta si el héroe escapó muy lejos (más del doble del rango)
+			if dist_sq > _detection_range_sq * 2.25:
+				is_alerted = false
+			else:
+				move_dir = (player.global_position - global_position).normalized()
+				# Evasión inteligente de paredes y esquinas (context-steering antienquistes)
+				if is_on_wall():
+					var wall_n := get_wall_normal()
+					var tangent := Vector2(-wall_n.y, wall_n.x)
+					if tangent.dot(move_dir) < 0.0:
+						tangent = -tangent
+					move_dir = (move_dir * 0.3 + tangent * 0.85).normalized()
+
+				velocity = velocity.move_toward(move_dir * speed, 600.0 * delta)
+				if move_dir.x != 0.0:
+					sprite.flip_h = move_dir.x < 0.0
+				return
 
 	# Patrullaje errante alrededor de la posición de spawn
 	_wander_timer -= delta
@@ -180,6 +201,7 @@ func _animate(delta: float) -> void:
 func hit_by_attack(attacker_pos: Variant = null) -> void:
 	if not is_active:
 		return
+	alert_allies(400.0)
 	if sfx_hit:
 		sfx_hit.pitch_scale = randf_range(0.9, 1.1)
 		sfx_hit.play()

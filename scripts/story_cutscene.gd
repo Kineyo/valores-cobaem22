@@ -272,7 +272,43 @@ func _finish() -> void:
 	cutscene_finished.emit()
 	queue_free()
 
-## Renderizado pixel-art procedural de los retratos de personajes y antivalores
+func _get_portrait_texture(p: String) -> Texture2D:
+	var path := ""
+	if "guardian" in p or "player" in p or "heroe" in p or "protagonista" in p:
+		var is_fem: bool = false
+		if _game_settings and _game_settings.get("selected_character") == 1:
+			is_fem = true
+		path = "res://assets/portraits/player_femenino.png" if is_fem else "res://assets/portraits/player_masculino.png"
+	elif "mateo" in p:
+		path = "res://assets/portraits/mateo_laboratorio.png"
+	elif "maria" in p:
+		path = "res://assets/portraits/maria_cafeteria.png"
+	elif "valeria" in p:
+		path = "res://assets/portraits/valeria_plaza.png"
+	elif "fernanda" in p:
+		path = "res://assets/portraits/fernanda_biblioteca.png"
+	elif "diego" in p:
+		path = "res://assets/portraits/diego_computo.png"
+	elif "sofia" in p:
+		path = "res://assets/portraits/sofia_direccion.png"
+	elif "alejandro" in p or "emiliano" in p:
+		path = "res://assets/portraits/alejandro_cancha.png"
+	elif "desinteres" in p or "maestro" in p:
+		if "redeem" in p:
+			path = "res://assets/portraits/maestro_desinteres_redeemed.png"
+		else:
+			path = "res://assets/portraits/maestro_desinteres.png"
+
+	if path != "":
+		if ResourceLoader.exists(path):
+			return load(path)
+		elif FileAccess.file_exists(path):
+			var img := Image.load_from_file(ProjectSettings.globalize_path(path))
+			if img:
+				return ImageTexture.create_from_image(img)
+	return null
+
+## Renderizado pixel-art de los retratos de personajes y antivalores
 func _on_portrait_draw() -> void:
 	if portrait_canvas == null:
 		return
@@ -285,6 +321,22 @@ func _on_portrait_draw() -> void:
 	portrait_canvas.draw_rect(Rect2(Vector2(2, 2), size - Vector2(4, 4)), Color(0.77, 0.63, 0.35), false, 2.0)
 
 	var p := _current_portrait_id.to_lower()
+
+	# 0. Si existe un archivo PNG de retrato pixel art en assets/portraits/, dibujarlo directamente
+	var portrait_png := _get_portrait_texture(p)
+	if portrait_png == null:
+		# Respaldo por defecto a retrato de alta resolución del guardián
+		var fallback_path: String = "res://assets/portraits/guardian.png"
+		if ResourceLoader.exists(fallback_path):
+			portrait_png = load(fallback_path)
+		elif FileAccess.file_exists(fallback_path):
+			var img := Image.load_from_file(ProjectSettings.globalize_path(fallback_path))
+			if img:
+				portrait_png = ImageTexture.create_from_image(img)
+
+	if portrait_png:
+		portrait_canvas.draw_texture_rect(portrait_png, Rect2(4, 4, size.x - 8, size.y - 8), false)
+		return
 
 	# -------------------------------------------------------------------------
 	# 1. HÉROE COBAEM (Guardián de los Valores)
@@ -345,26 +397,22 @@ func _on_portrait_draw() -> void:
 			portrait_canvas.draw_rect(Rect2(cx + 8, cy + 2, 4, 2), Color(0.95, 0.60, 0.65, 0.8))
 
 	# -------------------------------------------------------------------------
-	# 3. XÓCHITL MORALES PEÑA (Tercer Semestre — Cultura Otomí)
+	# 3. VALERIA MORALES PEÑA (Tercer Semestre — Plaza Cívica)
 	# -------------------------------------------------------------------------
-	elif "xochitl" in p:
-		portrait_canvas.draw_rect(Rect2(cx - 30, size.y - 30, 60, 28), Color(0.55, 0.15, 0.25))
-		portrait_canvas.draw_rect(Rect2(cx - 20, size.y - 12, 40, 6), Color(0.95, 0.35, 0.55)) # Faja otomí
-		portrait_canvas.draw_rect(Rect2(cx - 18, cy - 22, 36, 36), Color(0.85, 0.65, 0.50))
-		# Trenzas oscuras con listones de colores
-		portrait_canvas.draw_rect(Rect2(cx - 22, cy - 34, 44, 16), Color(0.12, 0.08, 0.08))
-		portrait_canvas.draw_rect(Rect2(cx - 24, cy - 18, 6, 32), Color(0.12, 0.08, 0.08))
-		portrait_canvas.draw_rect(Rect2(cx + 18, cy - 18, 6, 32), Color(0.12, 0.08, 0.08))
-		portrait_canvas.draw_rect(Rect2(cx - 24, cy + 6, 6, 4), Color(1.0, 0.85, 0.30)) # Listón oro
-		portrait_canvas.draw_rect(Rect2(cx + 18, cy + 6, 6, 4), Color(0.95, 0.35, 0.55)) # Listón rosa mexicano
+	elif "valeria" in p:
+		portrait_canvas.draw_rect(Rect2(cx - 30, size.y - 30, 60, 28), Color(0.20, 0.55, 0.35))
+		portrait_canvas.draw_rect(Rect2(cx - 18, cy - 22, 36, 36), Color(0.95, 0.80, 0.65))
+		# Cabello castaño oscuro con broche esmeralda
+		portrait_canvas.draw_rect(Rect2(cx - 22, cy - 34, 44, 16), Color(0.18, 0.12, 0.10))
+		portrait_canvas.draw_rect(Rect2(cx - 24, cy - 18, 6, 26), Color(0.18, 0.12, 0.10))
+		portrait_canvas.draw_rect(Rect2(cx + 18, cy - 18, 6, 26), Color(0.18, 0.12, 0.10))
+		portrait_canvas.draw_rect(Rect2(cx - 24, cy - 26, 6, 6), Color(0.15, 0.75, 0.40)) # Broche esmeralda
 		portrait_canvas.draw_rect(Rect2(cx - 10, cy - 8, 5, 5), Color(0.10, 0.08, 0.08))
 		portrait_canvas.draw_rect(Rect2(cx + 5, cy - 8, 5, 5), Color(0.10, 0.08, 0.08))
 		if "sad" in p:
 			portrait_canvas.draw_line(Vector2(cx - 6, cy + 8), Vector2(cx + 6, cy + 8), Color(0.5, 0.3, 0.3), 2.0)
 		elif "brave" in p:
 			portrait_canvas.draw_line(Vector2(cx - 8, cy + 5), Vector2(cx + 8, cy + 5), Color(0.70, 0.25, 0.25), 2.5)
-			# Broche de flor artesanal
-			portrait_canvas.draw_rect(Rect2(cx + 14, cy - 26, 6, 6), Color(1.0, 0.85, 0.30))
 		else:
 			portrait_canvas.draw_line(Vector2(cx - 7, cy + 6), Vector2(cx + 7, cy + 6), Color(0.75, 0.25, 0.25), 2.0)
 			portrait_canvas.draw_rect(Rect2(cx - 12, cy + 2, 4, 2), Color(0.95, 0.55, 0.60, 0.7))
@@ -410,7 +458,7 @@ func _on_portrait_draw() -> void:
 			portrait_canvas.draw_rect(Rect2(cx + 6, cy - 10, 3, 3), Color(0.85, 0.95, 1.0))
 
 	# -------------------------------------------------------------------------
-	# 6. ALIANZA ESTUDIANTIL UNIDA (Acto VI: Mateo & Xóchitl & Sofía)
+	# 6. ALIANZA ESTUDIANTIL UNIDA (Acto VI: Mateo & Valeria & Sofía)
 	# -------------------------------------------------------------------------
 	elif "allies" in p or "united" in p:
 		# Fondo resplandeciente dorado de unión
@@ -420,10 +468,10 @@ func _on_portrait_draw() -> void:
 		portrait_canvas.draw_rect(Rect2(cx - 32, cy - 20, 16, 16), Color(0.92, 0.75, 0.60))
 		portrait_canvas.draw_rect(Rect2(cx - 34, cy - 26, 18, 8), Color(0.20, 0.15, 0.12))
 		portrait_canvas.draw_rect(Rect2(cx - 28, cy - 13, 3, 3), Color(0.1, 0.1, 0.1))
-		# Silueta 2 (Centro: Xóchitl)
-		portrait_canvas.draw_rect(Rect2(cx - 14, cy - 10, 28, 32), Color(0.55, 0.15, 0.25))
-		portrait_canvas.draw_rect(Rect2(cx - 11, cy - 24, 22, 20), Color(0.85, 0.65, 0.50))
-		portrait_canvas.draw_rect(Rect2(cx - 13, cy - 30, 26, 8), Color(0.12, 0.08, 0.08))
+		# Silueta 2 (Centro: Valeria)
+		portrait_canvas.draw_rect(Rect2(cx - 14, cy - 10, 28, 32), Color(0.20, 0.55, 0.35))
+		portrait_canvas.draw_rect(Rect2(cx - 11, cy - 24, 22, 20), Color(0.95, 0.80, 0.65))
+		portrait_canvas.draw_rect(Rect2(cx - 13, cy - 30, 26, 8), Color(0.18, 0.12, 0.10))
 		portrait_canvas.draw_rect(Rect2(cx - 15, cy - 18, 4, 18), Color(0.95, 0.35, 0.55)) # Listón
 		portrait_canvas.draw_rect(Rect2(cx + 11, cy - 18, 4, 18), Color(1.0, 0.85, 0.30))
 		portrait_canvas.draw_rect(Rect2(cx - 6, cy - 16, 3, 3), Color(0.1, 0.1, 0.1))

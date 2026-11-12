@@ -68,11 +68,11 @@ const EPILOGUE: Dictionary = {
 			"sfx": "bell"
 		},
 		{
-			"speaker": "Xóchitl",
-			"portrait": "xochitl_happy",
-			"text": "Häxäje, ma zi kuya. En nuestra lengua otomí no existe una palabra para descartar al otro; somos ramas de un mismo ahuehuete. Hoy nuestras raíces se entrelazan con orgullo mexiquense.",
+			"speaker": "Valeria",
+			"portrait": "valeria_happy",
+			"text": "Miren la Plaza Cívica llena de vida y respeto. En nuestro plantel todos somos iguales; somos ramas de un mismo árbol de valores. Hoy marchamos hombro a hombro con orgullo mexiquense.",
 			"emotion": "serene_proud",
-			"sfx": "flute_harmonic"
+			"sfx": "bell"
 		},
 		{
 			"speaker": "Emiliano",
@@ -133,30 +133,30 @@ const SECONDARY_CHARACTERS: Dictionary = {
 			]
 		}
 	},
-	"xochitl": {
-		"id": "xochitl",
-		"name": "Xóchitl Morales Peña",
-		"role": "Alumna de Tercer Semestre (Excelencia Académica y Cultura Otomí)",
-		"archetype": "La guardiana de las raíces y la dignidad comunitaria",
+	"valeria": {
+		"id": "valeria",
+		"name": "Valeria Morales Peña",
+		"role": "Alumna de Tercer Semestre (Excelencia Cívica y Liderazgo Estudiantil)",
+		"archetype": "La guardiana de la fraternidad cívica y la igualdad",
 		"location_appearance": "Escenario 3 (Plaza Cívica y Escalinata Sur)",
-		"bio": "Habitante de la comunidad otomí de San Pedro Arriba / Enthavi. Es la primera de su familia en cursar el bachillerato con promedio perfecto. Teje tenangos y fajas tradicionales con su abuela y lidera el grupo de debate estudiantil. Sufre en silencio cuando algunos compañeros se avergüenzan de las raíces originarias.",
-		"color_theme": Color(0.85, 0.35, 0.55),
+		"bio": "Estudiante ejemplar de tercer semestre y presidenta del comité cívico estudiantil. Lidera las asambleas y actos cívicos con convicción y fraternidad. Sufre al ver cómo la soberbia y la división se apoderan de la plaza cívica.",
+		"color_theme": Color(0.20, 0.65, 0.45),
 		"state_afflicted": {
-			"visual": "Junto a la alfarda de la escalinata sur (+4m), ocultando su bolso de telar otomí detrás de su chamarra escolar.",
+			"visual": "Junto a la alfarda de la escalinata sur (+4m), con la mirada baja por las actitudes hostiles en la plaza.",
 			"emotion_label": "Herida / Desalentada",
 			"quotes": [
-				"Murmuraron que mi acento y los bordados de mi madre son 'anticuados'...",
-				"¿Por qué en la plaza cívica se ríen de las ceremonias que nos dieron identidad?",
-				"Duele ver a compañeros de nuestra propia tierra renegar de quienes somos."
+				"Murmuraron que nadie debería subir a la terraza superior sin su permiso...",
+				"¿Por qué en la plaza cívica se ríen y excluyen a los demás en vez de unirnos?",
+				"Duele ver a compañeros de nuestra propia escuela tratarse con tanto desprecio."
 			]
 		},
 		"state_redeemed": {
-			"visual": "Brillante, portando con elegancia su reboso artesanal sobre el uniforme guinda, con paso firme sobre la escalinata.",
+			"visual": "Brillante, con porte digno y broche esmeralda sobre el uniforme guinda, con paso firme sobre la escalinata.",
 			"emotion_label": "Orgullosa / Fraterna",
 			"quotes": [
-				"¡Di jamädi! (¡Mil gracias de corazón!). Me devolviste la fuerza para cantar en nuestra lengua.",
-				"Nuestra herencia otomí no es el pasado; es la raíz firme que sostiene nuestros sueños de bachilleres.",
-				"¡Mira cómo retumba el eco en la sierra! La verdadera identidad es fuente inagotable de paz y dignidad."
+				"¡Muchas gracias de corazón! Me devolviste la esperanza de una escuela fraterna y unida.",
+				"El respeto no es un privilegio de pocos; es la base firme que sostiene nuestros sueños de bachilleres.",
+				"¡Mira cómo retumba el eco en la explanada! La verdadera grandeza reside en la humildad y la empatía."
 			]
 		}
 	},
@@ -381,21 +381,21 @@ const SCENARIO_CUTSCENES: Dictionary = {
 				"emotion": "reverent"
 			},
 			{
-				"speaker": "Xóchitl",
-				"portrait": "xochitl_sad",
-				"text": "Ese gigante púrpura se ha adueñado de la escalinata sur. Dice que quienes venimos de comunidades hablantes de hñähñu no tenemos derecho a subir al Edificio B.",
+				"speaker": "Valeria",
+				"portrait": "valeria_sad",
+				"text": "Ese gigante púrpura se ha adueñado de la escalinata sur. Dice que quienes no cumplan sus exigencias no tienen derecho a subir al Edificio B.",
 				"emotion": "deep_hurt"
 			},
 			{
 				"speaker": "Superbus",
 				"portrait": "boss_superbus",
-				"text": "¡Exacto! El desnivel de cuatro metros separa a los 'elegantes' de los rústicos. ¡Esta alfarda solo la pisan los que tienen estatus!",
+				"text": "¡Exacto! El desnivel de cuatro metros separa a los 'superiores' de los demás. ¡Esta alfarda solo la pisan los que tienen estatus!",
 				"emotion": "condescending"
 			},
 			{
-				"speaker": "Xóchitl",
-				"portrait": "xochitl_brave",
-				"text": "¡Te equivocas! El muro de contención de piedra braza lo levantaron los albañiles de Temoaya. La sangre otomí corre con dignidad por nuestras venas.",
+				"speaker": "Valeria",
+				"portrait": "valeria_brave",
+				"text": "¡Te equivocas! El muro de contención de piedra braza lo levantamos con esfuerzo común. En esta escuela todos somos dignos e iguales.",
 				"emotion": "proud_firm"
 			},
 			{

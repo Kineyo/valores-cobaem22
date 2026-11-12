@@ -5,35 +5,38 @@ extends Node
 
 enum Difficulty { FACIL, NORMAL, DIFICIL }
 enum GameMode { ARCADE, STORY }
+enum CharacterSkin { MASCULINO = 0, FEMENINO = 1, PANTALON = 0, FALDA = 1 }
 
 const DIFFICULTY_NAMES := ["Fácil", "Normal", "Difícil"]
 const GAME_MODE_NAMES := ["Arcade", "Historia"]
+const CHARACTER_NAMES := ["Masculino", "Femenino"]
+const CHARACTER_FOLDERS := ["res://assets/characters/Masculino/", "res://assets/characters/Femenino/"]
 
 ## Parámetros de balance según el nivel de dificultad
 const PRESETS := {
 	Difficulty.FACIL: {
 		"max_health": 5,
-		"enemy_speed_mult": 0.75,
-		"shot_cooldown": 0.22,
-		"shot_scale": 1.6,
-		"shot_speed": 560.0,
-		"invulnerable_time": 1.5,
+		"enemy_speed_mult": 0.85,
+		"shot_cooldown": 0.28,
+		"shot_scale": 1.4,
+		"shot_speed": 540.0,
+		"invulnerable_time": 1.3,
 	},
 	Difficulty.NORMAL: {
 		"max_health": 3,
-		"enemy_speed_mult": 1.0,
-		"shot_cooldown": 0.35,
-		"shot_scale": 1.3,
-		"shot_speed": 520.0,
-		"invulnerable_time": 1.0,
+		"enemy_speed_mult": 1.25,
+		"shot_cooldown": 0.32,
+		"shot_scale": 1.15,
+		"shot_speed": 500.0,
+		"invulnerable_time": 0.85,
 	},
 	Difficulty.DIFICIL: {
 		"max_health": 2,
-		"enemy_speed_mult": 1.4,
-		"shot_cooldown": 0.55,
+		"enemy_speed_mult": 1.55,
+		"shot_cooldown": 0.40,
 		"shot_scale": 1.0,
-		"shot_speed": 480.0,
-		"invulnerable_time": 0.7,
+		"shot_speed": 460.0,
+		"invulnerable_time": 0.6,
 	},
 }
 
@@ -45,6 +48,7 @@ const FADE_TIME := 0.6
 
 var difficulty: int = Difficulty.NORMAL
 var game_mode: int = GameMode.ARCADE
+var selected_character: int = CharacterSkin.MASCULINO
 var music_volume_db: float = -8.0
 
 var _music: AudioStreamPlayer
@@ -96,6 +100,7 @@ func save_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("game", "difficulty", difficulty)
 	cfg.set_value("game", "game_mode", game_mode)
+	cfg.set_value("game", "selected_character", selected_character)
 	cfg.set_value("audio", "music_volume_db", music_volume_db)
 	cfg.save(SETTINGS_PATH)
 
@@ -104,6 +109,7 @@ func load_settings() -> void:
 	if cfg.load(SETTINGS_PATH) == OK:
 		difficulty = cfg.get_value("game", "difficulty", Difficulty.NORMAL)
 		game_mode = cfg.get_value("game", "game_mode", GameMode.ARCADE)
+		selected_character = cfg.get_value("game", "selected_character", CharacterSkin.PANTALON)
 		music_volume_db = cfg.get_value("audio", "music_volume_db", -8.0)
 		if _music:
 			_music.volume_db = music_volume_db
@@ -123,6 +129,14 @@ func difficulty_name() -> String:
 ## Retorna el nombre legible del modo de juego activo
 func game_mode_name() -> String:
 	return GAME_MODE_NAMES[game_mode]
+
+## Retorna el nombre legible del personaje/aspecto seleccionado
+func character_name() -> String:
+	return CHARACTER_NAMES[selected_character]
+
+## Retorna la ruta de la carpeta del personaje seleccionado
+func character_folder() -> String:
+	return CHARACTER_FOLDERS[selected_character]
 
 func play_menu_music() -> void:
 	_play(MUSIC_MENU)

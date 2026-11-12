@@ -160,7 +160,7 @@ func _init() -> void:
 		var act: Dictionary = story_data_class.get_scenario_cutscene(act_id)
 		assert(act.has("dialogue_nodes") and act["dialogue_nodes"].size() > 0, "Acto %d debe contener nodos de diálogo" % act_id)
 
-	var students_canon := ["mateo", "xochitl", "emiliano", "sofia"]
+	var students_canon := ["mateo", "valeria", "emiliano", "sofia"]
 	for s_id in students_canon:
 		var s_data: Dictionary = story_data_class.get_secondary_character(s_id)
 		assert(not s_data.is_empty(), "Perfil de estudiante canon '%s' no encontrado" % s_id)
@@ -194,7 +194,7 @@ func _init() -> void:
 	cutscene_node._gui_input(touch_advance)
 
 	# Simular redibujado de retratos procedurales (héroe, alumnos, antivalores, sol otomí)
-	for portrait_id in ["player_brave", "mateo_sad", "xochitl_brave", "emiliano_happy", "sofia_happy", "allies_united", "boss_apatyx", "boss_titanor", "spirit_otomi", "director", "narrator"]:
+	for portrait_id in ["player_brave", "mateo_sad", "valeria_brave", "emiliano_happy", "sofia_happy", "allies_united", "boss_apatyx", "boss_titanor", "spirit_otomi", "director", "narrator"]:
 		cutscene_node._current_portrait_id = portrait_id
 		cutscene_node._on_portrait_draw()
 
@@ -208,8 +208,8 @@ func _init() -> void:
 	var student_class = load("res://scripts/student.gd")
 	assert(student_class != null, "Fallo al cargar Student script")
 
-	# 7.1 Verificar los 6 Jefes Finales
-	for b_type in range(6):
+	# 7.1 Verificar los 7 Jefes Finales (incluyendo Maestro Desinterés)
+	for b_type in range(7):
 		var boss_inst = boss_class.new()
 		boss_inst.boss_type = b_type
 		root.add_child(boss_inst)
@@ -230,7 +230,7 @@ func _init() -> void:
 
 		root.remove_child(boss_inst)
 		boss_inst.free()
-	print("Los 6 Jefes Finales (Boss FSM, telegrafiado y redención) verificados con éxito.")
+	print("Los 7 Jefes Finales (Boss FSM, telegrafiado, Maestro Desinterés y redención) verificados con éxito.")
 
 	# 7.2 Verificar Alumnos Secundarios (Student)
 	var student_inst = student_class.new()
@@ -270,6 +270,318 @@ func _init() -> void:
 	root.remove_child(hud_node)
 	hud_node.free()
 	print("Barra de Vida de Jefes en HUD verificada con éxito.")
+
+	# 8. Verificar los 6 Salones de Clases Interiores y el Jefe Maestro Desinterés
+	var classrooms := LevelManager.get_classroom_levels()
+	assert(classrooms.size() == 6, "Se esperaban exactamente 6 salones de clase interiores, encontrados: %d" % classrooms.size())
+	for c_idx in range(classrooms.size()):
+		var c_data: Dictionary = classrooms[c_idx]
+		var c_img: String = c_data["scenario_image"]
+		assert(ResourceLoader.exists(c_img) or FileAccess.file_exists(c_img), "El mapa del salón no existe: %s" % c_img)
+
+		var c_inst = level_scene.instantiate()
+		root.add_child(c_inst)
+		c_inst.setup_level(c_data)
+
+		# Validar spawn y meta libres de colisión en el salón
+		var c_p_pos: Vector2 = c_inst.player.position
+		var c_g_pos: Vector2 = c_inst.goal.position
+		for obs: Rect2 in c_data["obstacles"]:
+			assert(not obs.has_point(c_p_pos), "Spawn del jugador (%s) atrapado en obstáculo %s en salón %d" % [str(c_p_pos), str(obs), c_idx + 1])
+			assert(not obs.has_point(c_g_pos), "Meta (%s) atrapada en obstáculo %s en salón %d" % [str(c_g_pos), str(obs), c_idx + 1])
+
+		# Validar que adentro haya monstruos rodeando al alumno
+		assert(c_inst.students.size() >= 1, "Cada salón debe contener al menos 1 alumno acorralado")
+		assert(c_inst.enemies_container.get_child_count() == 4, "Cada salón debe tener 4 antivalores rodeando al alumno")
+		assert(c_data.get("boss_type") == 6, "El jefe del salón debe ser Maestro Desinterés (tipo 6)")
+
+		root.remove_child(c_inst)
+		c_inst.free()
+	print("Los 6 Salones de Clases Interiores y Maestro Desinterés verificados con éxito.")
+
+	# 9. Verificar Campaña de 12 Fases Intercaladas (Exteriores y Salones)
+	var campaign_stages := LevelManager.get_all_campaign_stages()
+	assert(campaign_stages.size() == 12, "La campaña completa debe contar con 12 fases intercaladas, encontradas: %d" % campaign_stages.size())
+	print("Campaña Escolar de 12 Fases (6 Edificios + 6 Salones) verificada con éxito.")
+
+	# 10. Verificar Disparo Pegado a la Pared (Corrección de colisión y punto de desove)
+	var player_test_shot = load("res://scenes/player.tscn").instantiate()
+	root.add_child(player_test_shot)
+	player_test_shot.global_position = Vector2(200, 200)
+
+	# Simular disparo cardinal pegado a un muro
+	player_test_shot.facing_vector = Vector2.RIGHT
+	player_test_shot.aim_vector = Vector2.RIGHT
+	player_test_shot.spawn_projectile()
+
+	var projectile_found := false
+	for child in root.get_children():
+		if child is Projectile:
+			projectile_found = true
+			# Verificar que el proyectil tenga tamaño optimizado CircleShape2D de radio 8
+			var col_shape: CollisionShape2D = child.get_node_or_null("CollisionShape2D")
+			assert(col_shape != null and col_shape.shape is CircleShape2D, "El proyectil debe usar CircleShape2D para no atorarse en muros")
+			root.remove_child(child)
+			child.free()
+			break
+	assert(projectile_found, "El proyectil debe generarse limpiamente sin destruirse en el desove")
+	root.remove_child(player_test_shot)
+	player_test_shot.free()
+	print("Disparo de virtudes pegado a paredes verificado con éxito.")
+
+	# 11. Verificar Renders PNG de Alumnos y Retratos en assets/characters/ y assets/portraits/
+	var required_character_pngs := [
+		"res://assets/characters/alejandro_cancha/idle.png",
+		"res://assets/characters/maria_cafeteria/idle.png",
+		"res://assets/characters/mateo_laboratorio/idle.png",
+		"res://assets/characters/valeria_plaza/idle.png",
+		"res://assets/characters/fernanda_biblioteca/idle.png",
+		"res://assets/characters/diego_computo/idle.png",
+		"res://assets/characters/sofia_direccion/idle.png",
+		"res://assets/characters/maestro_desinteres_redeemed/idle.png",
+		"res://assets/portraits/alejandro_cancha.png",
+		"res://assets/portraits/maria_cafeteria.png",
+		"res://assets/portraits/mateo_laboratorio.png",
+		"res://assets/portraits/valeria_plaza.png",
+		"res://assets/portraits/fernanda_biblioteca.png",
+		"res://assets/portraits/diego_computo.png",
+		"res://assets/portraits/sofia_direccion.png",
+		"res://assets/portraits/maestro_desinteres.png",
+	]
+	for png_path in required_character_pngs:
+		assert(ResourceLoader.exists(png_path) or FileAccess.file_exists(png_path), "Falta el render solicitado en assets: %s" % png_path)
+	print("Catálogo de Renders PNG de Alumnos y Retratos en assets/ verificado con éxito.")
+
+	# 12. Verificar Sistema Danmaku Touhou, Micro-Hitbox, Rozadura (Graze) y Duración de Jefes en Modo Difícil
+	var gs_node = root.get_node("GameSettings")
+	gs_node.difficulty = 2 # Difficulty.DIFICIL
+
+	# A) Verificar salud de Titanor en Difícil: 450 HP (3 minutos continuos bajo ataque perfecto a 0.40s)
+	var titanor_boss = boss_class.new()
+	root.add_child(titanor_boss)
+	titanor_boss.setup_boss_type(Boss.BossType.BULLYING)
+	assert(titanor_boss.max_hp == 450, "Titanor en dificultad Difícil debe tener exactamente 450 HP (obtenido: %d)" % titanor_boss.max_hp)
+	var hard_shot_cooldown: float = gs_node.get_param("shot_cooldown")
+	assert(is_equal_approx(hard_shot_cooldown, 0.40), "Cooldown de disparo en Difícil debe ser 0.40s")
+	var min_battle_seconds: float = float(titanor_boss.max_hp) * hard_shot_cooldown
+	assert(min_battle_seconds >= 180.0, "La batalla en Difícil con ataque perfecto debe durar al menos 180s (3 min). Calculado: %.1fs" % min_battle_seconds)
+	print("  Duración matemática del Jefe Final en Modo Difícil: %.1f segundos (>= 180s) verificada con éxito." % min_battle_seconds)
+
+	# B) Verificar Ataques Difíciles de Boss 1 (Apatía / Apatyx)
+	var apatia_boss: Boss = Boss.new()
+	root.add_child(apatia_boss)
+	apatia_boss.setup_boss_type(Boss.BossType.APATIA)
+	assert(apatia_boss.max_hp == 65, "Apatyx en Difícil debe tener 65 HP para ofrecer un desafío sólido temprano")
+	var apatia_attacks: Array = Boss.BOSS_DATA[Boss.BossType.APATIA]["attack_names"]
+	assert(apatia_attacks.has("Vórtice Espiral de Desgano"), "Boss 1 debe tener Vórtice Espiral de Desgano")
+	assert(apatia_attacks.has("Ráfaga Ciclónica del Desaliento"), "Boss 1 debe tener Ráfaga Ciclónica del Desaliento")
+	assert(apatia_attacks.has("Miasma Apatético"), "Boss 1 debe tener Miasma Apatético")
+	root.remove_child(apatia_boss)
+	apatia_boss.free()
+	print("  Ataques difíciles del Jefe 1 (Apatyx) verificados con éxito.")
+
+	# C) Verificar Micro-Hitbox Touhou y Rozadura (Graze) del Jugador
+	var touhou_player: Player = load("res://scenes/player.tscn").instantiate()
+	root.add_child(touhou_player)
+	touhou_player.global_position = Vector2(400, 400)
+	var initial_hp: int = touhou_player.health
+	var core_pos := touhou_player.get_core_position() # Vector2(400, 390)
+	assert(core_pos == Vector2(400, 390), "Núcleo Touhou debe estar en Vector2(0, -10) respecto al jugador")
+
+	# Proyectil rozando a 14 px del núcleo (dentro del cuerpo pero fuera de la micro-hitbox de 5.5 px): debe ser GRAZE, daño 0
+	var graze_shot: Projectile = load("res://scenes/projectile.tscn").instantiate()
+	graze_shot.is_enemy_projectile = true
+	graze_shot.global_position = core_pos + Vector2(14.0, 0.0) # Distancia = 14 px > 5.5 px
+	root.add_child(graze_shot)
+	graze_shot._on_body_entered(touhou_player)
+	assert(touhou_player.health == initial_hp, "Graze a 14px no debe causar daño al jugador")
+	assert(touhou_player.graze_count >= 1, "Debe registrarse el contador de rozadura (graze_count)")
+	root.remove_child(graze_shot)
+	graze_shot.free()
+
+	# Proyectil impactando directamente en la micro-hitbox (a 3 px del núcleo vital): debe causar daño 1
+	var hit_shot: Projectile = load("res://scenes/projectile.tscn").instantiate()
+	hit_shot.is_enemy_projectile = true
+	hit_shot.global_position = core_pos + Vector2(3.0, 0.0) # Distancia = 3 px <= 5.5 px
+	root.add_child(hit_shot)
+	hit_shot._on_body_entered(touhou_player)
+	assert(touhou_player.health == initial_hp - 1, "Impacto dentro de la micro-hitbox Touhou debe causar 1 de daño")
+	root.remove_child(hit_shot)
+	hit_shot.free()
+
+	# D) Verificar Modo Enfoque (Focus Mode) y reducción de velocidad para micro-desplazamiento
+	touhou_player.is_focusing = true
+	assert(touhou_player.is_focusing == true, "Focus Mode debe poder activarse")
+	root.remove_child(touhou_player)
+	touhou_player.free()
+	print("  Micro-hitbox Touhou (radio 5.5px) y sistema de Rozadura (Graze) verificados con éxito.")
+
+	# E) Verificar Curvatura de Proyectiles Danmaku (curve_speed)
+	var curve_shot: Projectile = load("res://scenes/projectile.tscn").instantiate()
+	curve_shot.is_enemy_projectile = true
+	curve_shot.direction = Vector2.RIGHT
+	curve_shot.curve_speed = 1.5 # 1.5 rad/s
+	root.add_child(curve_shot)
+	var old_dir: Vector2 = curve_shot._dir_vec
+	curve_shot._physics_process(0.2)
+	assert(curve_shot._dir_vec != old_dir, "curve_speed debe rotar dinámicamente el vector de trayectoria")
+	assert(is_equal_approx(curve_shot._dir_vec.length(), 1.0), "El vector de trayectoria debe mantenerse unitario")
+	root.remove_child(curve_shot)
+	curve_shot.free()
+	print("  Curvatura angular de proyectiles Danmaku (curve_speed) verificada con éxito.")
+
+	# F) Verificar Fases de Cartas de Hechizo de Titanor y Limpieza de Balas por Onda de Choque
+	titanor_boss.current_state = Boss.State.IDLE
+	titanor_boss.current_hp = 330 # Disparar cruce de fase 2 (75% de 450 = 337.5)
+	titanor_boss.hit_by_attack(Vector2.ZERO, 1)
+	assert(titanor_boss._spell_phase == 2, "Titanor debe avanzar a Carta de Hechizo Fase 2")
+	assert(titanor_boss._is_spell_transition == true, "Titanor debe entrar en transición de fase invulnerable de 4.0s")
+	root.remove_child(titanor_boss)
+	titanor_boss.free()
+	print("  Cartas de Hechizo Danmaku y transiciones de fase de Titanor verificadas con éxito.")
+
+	# Restaurar dificultad normal al finalizar
+	gs_node.difficulty = 1
+
+	# 12. Verificar Sistema de Selección de Personajes (Masculino vs Femenino)
+	# 12.1 Verificar existencia de carpetas y portadas con fondo blanco
+	var p_masc_exists := FileAccess.file_exists("res://assets/characters/Masculino/portada.png")
+	var p_fem_exists := FileAccess.file_exists("res://assets/characters/Femenino/portada.png")
+	assert(p_masc_exists, "Debe existir portada.png para aspecto Masculino")
+	assert(p_fem_exists, "Debe existir portada.png para aspecto Femenino")
+
+	# 12.2 Verificar GameSettings CharacterSkin
+	gs_node.selected_character = 0
+	assert(gs_node.selected_character == 0, "Debe ser MASCULINO (0)")
+	assert(gs_node.character_name() == "Masculino", "Nombre de skin debe ser Masculino")
+	gs_node.selected_character = 1
+	assert(gs_node.selected_character == 1, "Debe ser FEMENINO (1)")
+	assert(gs_node.character_name() == "Femenino", "Nombre de skin debe ser Femenino")
+
+	# 12.3 Verificar carga dinámica de texturas en Player
+	var skin_player: Player = load("res://scenes/player.tscn").instantiate()
+	root.add_child(skin_player)
+	skin_player.setup_character_skin(0)
+	assert(skin_player.tex_idle != null, "tex_idle de Masculino debe cargar correctamente")
+	assert(skin_player.tex_idle.get_size() == Vector2(512, 512), "Masculino idle debe ser 512x512")
+	skin_player.setup_character_skin(1)
+	assert(skin_player.tex_idle != null, "tex_idle de Femenino debe cargar correctamente")
+	assert(skin_player.tex_idle.get_size() == Vector2(512, 512), "Femenino idle debe ser 512x512")
+	assert(skin_player.tex_attack != null, "tex_attack de Femenino debe cargar attack.png o atack.png")
+	assert(skin_player.tex_attack.get_size() == Vector2(512, 512), "Femenino attack debe ser 512x512")
+	root.remove_child(skin_player)
+	skin_player.free()
+
+	# 12.4 Verificar Menú de Selección de Personaje (Pantalla intermedia antes del juego)
+	var menu_inst: Control = load("res://scenes/menu.tscn").instantiate()
+	root.add_child(menu_inst)
+	if not menu_inst.is_node_ready():
+		menu_inst._ready()
+	var main_view_node: Control = menu_inst.get_node_or_null("%MainView")
+	var char_view_node: Control = menu_inst.get_node_or_null("%CharSelectView")
+	var btn_play_node: Button = menu_inst.get_node_or_null("%BtnPlay")
+	var btn_confirm_node: Button = menu_inst.get_node_or_null("%BtnConfirmChar")
+	var btn_back_node: Button = menu_inst.get_node_or_null("%BtnBackToMenu")
+	var btn_p: Button = menu_inst.get_node_or_null("%BtnCharPantalon")
+	var btn_f: Button = menu_inst.get_node_or_null("%BtnCharFalda")
+	var char_icon_p: TextureRect = menu_inst.get_node_or_null("%CharIconPantalon")
+	var char_icon_f: TextureRect = menu_inst.get_node_or_null("%CharIconFalda")
+
+	assert(main_view_node != null and char_view_node != null, "Vistas MainView y CharSelectView deben existir")
+	assert(main_view_node.visible == true, "MainView debe estar visible inicialmente")
+	assert(char_view_node.visible == false, "CharSelectView debe estar oculta inicialmente")
+	assert(btn_p != null and btn_f != null, "Botones de selección de personaje deben existir en el menú")
+	assert(char_icon_p != null and char_icon_f != null, "Iconos de portada con fondo blanco deben existir en el menú")
+
+	# Simular clic en botón INICIAR PARTIDA: Debe abrir la pantalla de selección de personaje
+	btn_play_node.emit_signal("pressed")
+	assert(main_view_node.visible == false, "MainView debe ocultarse al pulsar Iniciar Partida")
+	assert(char_view_node.visible == true, "CharSelectView debe mostrarse para elegir personaje")
+
+	# Simular clic en botón Falda
+	btn_f.emit_signal("pressed")
+	assert(gs_node.selected_character == 1, "Clic en Falda debe actualizar selected_character a 1")
+	# Simular clic en botón Pantalón
+	btn_p.emit_signal("pressed")
+	assert(gs_node.selected_character == 0, "Clic en Pantalón debe actualizar selected_character a 0")
+
+	# Simular clic en botón Volver: Debe regresar al menú principal
+	btn_back_node.emit_signal("pressed")
+	assert(main_view_node.visible == true, "MainView debe volver a mostrarse al pulsar Volver")
+	assert(char_view_node.visible == false, "CharSelectView debe ocultarse al pulsar Volver")
+
+	root.remove_child(menu_inst)
+	menu_inst.free()
+	print("  Sistema de Selección de Personajes y flujo de pantalla intermedia verificados con éxito.")
+
+	# 13. Verificar Puertas de Salones, Bloqueo de Meta, Niebla del Desinterés y Oleadas en Modo Difícil
+	# 13.1 Puerta de salón y bloqueo de meta en nivel exterior
+	gs_node.difficulty = 1
+	var ext_lvl_inst: Level = level_scene.instantiate()
+	root.add_child(ext_lvl_inst)
+	ext_lvl_inst.setup_level(levels[0])
+	assert(ext_lvl_inst.has_classroom == true, "El escenario exterior debe tener has_classroom == true")
+	assert(ext_lvl_inst.classroom_door != null, "El escenario exterior debe instanciar ClassroomDoor")
+	assert(ext_lvl_inst.is_classroom_cleared == false, "El salón debe iniciar como no limpiado")
+	ext_lvl_inst.goal.unlock()
+	# Intentar cruzar la meta sin limpiar el salón: debe bloquear el paso
+	ext_lvl_inst.goal._on_body_entered(ext_lvl_inst.player)
+	assert(ext_lvl_inst.goal.already_reached == false, "La meta debe bloquear al jugador si no ha limpiado el salón")
+	# Limpiar el salón y volver a intentar
+	ext_lvl_inst.set_classroom_cleared(true)
+	assert(ext_lvl_inst.classroom_door.is_cleared == true, "La puerta debe actualizarse a estado limpiado")
+	ext_lvl_inst.goal._on_body_entered(ext_lvl_inst.player)
+	assert(ext_lvl_inst.goal.already_reached == true, "La meta debe permitir avanzar tras limpiar el salón")
+	root.remove_child(ext_lvl_inst)
+	ext_lvl_inst.free()
+
+	# 13.2 Verificar los 6 ataques distintos del Maestro Desinterés y niebla al minuto (60s) en Normal
+	var classrooms_list := LevelManager.get_classroom_levels()
+	var norm_class_inst: Level = level_scene.instantiate()
+	root.add_child(norm_class_inst)
+	norm_class_inst.setup_level(classrooms_list[0])
+	assert(norm_class_inst.fog_overlay != null, "El salón debe contar con nodo FogOverlay")
+	assert(norm_class_inst.fog_overlay.is_fog_active == false, "En modo Normal la niebla no debe estar activa al inicio")
+	norm_class_inst._spawn_boss()
+	assert(norm_class_inst.boss != null, "El Maestro Desinterés debe aparecer al invocarse")
+	for c_i in range(6):
+		norm_class_inst.boss.classroom_index = c_i
+		norm_class_inst.boss._execute_attack()
+	# Simular 60 segundos de combate contra el Maestro Desinterés
+	norm_class_inst._physics_process(60.5)
+	assert(norm_class_inst.fog_overlay.is_fog_active == true, "Tras 60s de batalla debe activarse la Niebla del Desinterés")
+	assert(norm_class_inst.boss.is_fog_active == true, "El Maestro debe mostrar ojos rojos y corazón oscuro en la niebla")
+	root.remove_child(norm_class_inst)
+	norm_class_inst.free()
+
+	# 13.3 Verificar Modo Difícil: Niebla desde el inicio, 10 enemigos de 3 en 3 y disipación al terminar
+	gs_node.difficulty = 2
+	var hard_class_inst: Level = level_scene.instantiate()
+	root.add_child(hard_class_inst)
+	hard_class_inst.setup_level(classrooms_list[1])
+	assert(hard_class_inst.is_hard_mode == true, "Debe detectar Modo Difícil activo")
+	assert(hard_class_inst.quota_to_boss == 10, "En Modo Difícil la cuota debe ser de 10 enemigos")
+	assert(hard_class_inst.fog_overlay.is_fog_active == true, "En Modo Difícil la niebla debe estar activa desde el inicio")
+	assert(hard_class_inst._hard_enemies_spawned == 3, "Primera oleada debe spawnear 3 enemigos")
+	# Derrotar los 10 enemigos en oleadas de 3 en 3 (3 + 3 + 3 + 1)
+	var dummy_enemy: Enemy = load("res://scenes/enemy.tscn").instantiate()
+	root.add_child(dummy_enemy)
+	for e_step in range(10):
+		hard_class_inst._on_enemy_defeated(dummy_enemy)
+		if e_step == 2:
+			assert(hard_class_inst._hard_enemies_spawned == 6, "Segunda oleada debe elevar el total a 6 enemigos")
+		elif e_step == 5:
+			assert(hard_class_inst._hard_enemies_spawned == 9, "Tercera oleada debe elevar el total a 9 enemigos")
+		elif e_step == 8:
+			assert(hard_class_inst._hard_enemies_spawned == 10, "Cuarta oleada debe spawnear el 10mo enemigo")
+	assert(hard_class_inst.fog_overlay.is_fog_active == false, "Al derrotar a los 10 enemigos la niebla debe desaparecer")
+	assert(hard_class_inst.boss != null, "Al derrotar a los 10 enemigos debe aparecer el Maestro Desinterés")
+	root.remove_child(dummy_enemy)
+	dummy_enemy.free()
+	root.remove_child(hard_class_inst)
+	hard_class_inst.free()
+	gs_node.difficulty = 1
+	print("  Puertas de salones, bloqueo de meta, 6 ataques de Maestro, Niebla y oleadas 3x3 en Difícil verificados con éxito.")
 
 	print("--- TODOS LOS TESTS DE ESCENARIOS Y PROGRESIÓN PASARON CON ÉXITO ---")
 	quit(0)

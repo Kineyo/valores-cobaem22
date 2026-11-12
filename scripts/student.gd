@@ -57,6 +57,7 @@ var _heart_timer: float = 0.0
 var _squash_stretch: Vector2 = Vector2.ONE
 var _speech_label: Label = null
 var collision_shape: CollisionShape2D = null
+var sprite: Sprite2D = null
 
 func _ready() -> void:
 	y_sort_enabled = true
@@ -66,8 +67,86 @@ func _ready() -> void:
 	_anim_time = randf() * TAU
 
 	_setup_collision()
+	_setup_sprite()
 	_setup_speech_label()
 	queue_redraw()
+
+func _setup_sprite() -> void:
+	var s_canon := student_name.to_lower().strip_edges()
+	var candidates: Array[String] = [
+		"res://assets/characters/%s/idle.png" % s_canon,
+		"res://assets/sprites/students/%s.png" % s_canon,
+		"res://assets/%s.png" % s_canon,
+	]
+	if "mateo" in s_canon:
+		candidates.append("res://assets/characters/mateo_laboratorio/idle.png")
+		candidates.append("res://assets/mateo_laboratorio.png")
+		candidates.append("res://assets/sprites/students/mateo_laboratorio.png")
+	elif "maria" in s_canon:
+		candidates.append("res://assets/characters/maria_cafeteria/idle.png")
+		candidates.append("res://assets/maria_cafeteria.png")
+		candidates.append("res://assets/sprites/students/maria_cafeteria.png")
+	elif "valeria" in s_canon:
+		candidates.append("res://assets/characters/valeria_plaza/idle.png")
+		candidates.append("res://assets/valeria_plaza.png")
+		candidates.append("res://assets/sprites/students/valeria_plaza.png")
+	elif "fernanda" in s_canon:
+		candidates.append("res://assets/characters/fernanda_biblioteca/idle.png")
+		candidates.append("res://assets/fernanda_biblioteca.png")
+		candidates.append("res://assets/sprites/students/fernanda_biblioteca.png")
+	elif "diego" in s_canon:
+		candidates.append("res://assets/characters/diego_computo/idle.png")
+		candidates.append("res://assets/diego_computo.png")
+		candidates.append("res://assets/sprites/students/diego_computo.png")
+	elif "sofia" in s_canon:
+		candidates.append("res://assets/characters/sofia_direccion/idle.png")
+		candidates.append("res://assets/sofia_direccion.png")
+		candidates.append("res://assets/sprites/students/sofia_direccion.png")
+	elif "alejandro" in s_canon or "emiliano" in s_canon:
+		candidates.append("res://assets/characters/alejandro_cancha/idle.png")
+		candidates.append("res://assets/alejandro_cancha.png")
+		candidates.append("res://assets/sprites/students/alejandro_cancha.png")
+	elif "maestro" in s_canon or "desinteres" in s_canon:
+		candidates.append("res://assets/characters/maestro_desinteres_redeemed/idle.png")
+		candidates.append("res://assets/maestro_desinteres_redeemed.png")
+		candidates.append("res://assets/sprites/students/maestro_desinteres_redeemed.png")
+
+	# Respaldo por género si el nombre es genérico (Lupita, Brenda, Carlos, etc.)
+	var name_hash := absi(s_canon.hash())
+	if gender == Gender.STUDENT_F:
+		var female_pool := [
+			"res://assets/characters/valeria_plaza/idle.png",
+			"res://assets/characters/maria_cafeteria/idle.png",
+			"res://assets/characters/fernanda_biblioteca/idle.png",
+			"res://assets/characters/sofia_direccion/idle.png"
+		]
+		candidates.append(female_pool[name_hash % female_pool.size()])
+	else:
+		var male_pool := [
+			"res://assets/characters/mateo_laboratorio/idle.png",
+			"res://assets/characters/alejandro_cancha/idle.png",
+			"res://assets/characters/diego_computo/idle.png"
+		]
+		candidates.append(male_pool[name_hash % male_pool.size()])
+
+	var tex: Texture2D = null
+	for path in candidates:
+		if ResourceLoader.exists(path):
+			tex = load(path)
+			break
+		elif FileAccess.file_exists(path):
+			var img := Image.load_from_file(ProjectSettings.globalize_path(path))
+			if img:
+				tex = ImageTexture.create_from_image(img)
+				break
+
+	if tex:
+		sprite = Sprite2D.new()
+		sprite.texture = tex
+		sprite.scale = Vector2(0.1, 0.1) # Grilla estricta alineada a player_idle.png (512x512)
+		sprite.position = Vector2(0, -22)
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		add_child(sprite)
 
 func _setup_collision() -> void:
 	if get_node_or_null("CollisionShape2D") == null:
@@ -109,6 +188,17 @@ func _physics_process(delta: float) -> void:
 
 	# Suavizar retorno de squash & stretch
 	_squash_stretch = _squash_stretch.lerp(Vector2.ONE, 10.0 * delta)
+
+	if sprite:
+		if current_state == State.SAD:
+			sprite.modulate = Color(0.78, 0.78, 0.85)
+			sprite.position.y = -18.0 + sin(_anim_time * 2.5) * 1.5
+		elif current_state == State.HAPPY:
+			sprite.modulate = Color.WHITE
+			sprite.position.y = -20.0 - absf(sin(_anim_time * 5.0)) * 4.0
+		else:
+			sprite.position.y = -20.0
+
 	queue_redraw()
 
 func _process_sad_state(delta: float) -> void:
@@ -257,99 +347,11 @@ func _spawn_happy_particle() -> void:
 		fx.burst(parent, global_position + Vector2(0, -32), Color(1.0, 0.45, 0.65), 5, 80.0)
 
 # -----------------------------------------------------------------------------
-# DIBUJO PROCEDURAL PIXEL-ART (UNIFORME OFICIAL COBAEM CEMSaD 22)
+# SOMBRA EN PERSPECTIVA 3/4 Y EFECTOS
 # -----------------------------------------------------------------------------
 
 func _draw() -> void:
-	# 1. Sombra elíptica en perspectiva 3/4
-	var shadow_col := Color(0.06, 0.08, 0.12, 0.30)
-	draw_rect(Rect2(-10, -4, 20, 6), shadow_col)
-	draw_rect(Rect2(-8, -6, 16, 10), shadow_col)
-
-	# 2. Paleta institucional COBAEM
-	var col_vino := Color(0.45, 0.08, 0.16)     # Guinda institucional
-	var col_blanco := Color(0.95, 0.95, 0.92)   # Camisa escolar
-	var col_pantalon := Color(0.25, 0.25, 0.28) # Gris carbón
-	var col_piel := Color(0.92, 0.75, 0.58)     # Tono de piel cálido
-	var col_cabello := Color(0.18, 0.12, 0.10)  # Castaño / oscuro
-
-	# Desaturación si está triste
-	if current_state == State.SAD:
-		col_vino = col_vino.lerp(Color(0.25, 0.22, 0.28), 0.45)
-		col_piel = col_piel.lerp(Color(0.60, 0.65, 0.70), 0.35)
-
-	# 3. Animación procedural según estado
-	var bob_y := 0.0
-	var head_tilt := 0.0
-	var tremor_x := 0.0
-	if current_state == State.SAD:
-		# Postura encorvada, balanceo lento y decaído
-		bob_y = sin(_anim_time * 2.0) * 1.0 + 2.0
-		head_tilt = 2.0
-		if _has_threat:
-			tremor_x = sin(_anim_time * 22.0) * 1.4
-	else:
-		# Saltitos rítmicos y jubilosos
-		bob_y = -absf(sin(_anim_time * 5.0)) * 3.5
-
-	# Aplicar squash & stretch
-	var base_y := -18.0 + bob_y
-
-	# Piernas / Pantalón o Falda escolar
-	if gender == Gender.STUDENT_M:
-		draw_rect(Rect2(-6 + tremor_x, -8, 5, 8), col_pantalon)
-		draw_rect(Rect2(1 + tremor_x, -8, 5, 8), col_pantalon)
-	else:
-		draw_rect(Rect2(-7 + tremor_x, -10, 14, 7), col_vino.darkened(0.2)) # Falda tableada
-		draw_rect(Rect2(-5 + tremor_x, -3, 4, 4), col_piel)
-		draw_rect(Rect2(1 + tremor_x, -3, 4, 4), col_piel)
-
-	# Zapatos escolares negros
-	draw_rect(Rect2(-7 + tremor_x, 0, 6, 2), Color(0.1, 0.1, 0.12))
-	draw_rect(Rect2(1 + tremor_x, 0, 6, 2), Color(0.1, 0.1, 0.12))
-
-	# Torso: Suéter guinda institucional COBAEM con cuello de camisa blanca
-	var torso_rect := Rect2((-8 * _squash_stretch.x) + tremor_x, base_y, 16 * _squash_stretch.x, 14 * _squash_stretch.y)
-	draw_rect(torso_rect, col_vino)
-	# Cuello blanco escolar
-	draw_rect(Rect2(-3 + tremor_x, base_y, 6, 3), col_blanco)
-	# Escudo escolar COBAEM miniatura (dorado / verde)
-	draw_rect(Rect2(-5 + tremor_x, base_y + 4, 3, 3), Color(0.85, 0.72, 0.25))
-
-	# Cabeza y rostro
-	var head_y := base_y - 12.0 * _squash_stretch.y + head_tilt
-	draw_rect(Rect2(-6 + tremor_x, head_y, 12, 11), col_piel)
-	# Cabello
-	draw_rect(Rect2(-7 + tremor_x, head_y - 2, 14, 5), col_cabello)
-
-	# Distintivos visuales de personajes canon del Modo Historia
-	var s_canon := student_name.to_lower().strip_edges()
-	if s_canon == "xochitl":
-		# Listones otomíes tradicionales a los costados
-		draw_rect(Rect2(-8 + tremor_x, head_y + 1, 2, 6), Color(0.95, 0.35, 0.55)) # Rosa mexicano
-		draw_rect(Rect2(6 + tremor_x, head_y + 1, 2, 6), Color(1.0, 0.85, 0.30))  # Oro
-	elif s_canon == "sofia":
-		# Gafas cyan
-		draw_rect(Rect2(-5 + tremor_x, head_y + 3, 3, 3), Color(0.20, 0.65, 0.85), false, 1.0)
-		draw_rect(Rect2(2 + tremor_x, head_y + 3, 3, 3), Color(0.20, 0.65, 0.85), false, 1.0)
-		draw_line(Vector2(-2 + tremor_x, head_y + 4), Vector2(2 + tremor_x, head_y + 4), Color(0.20, 0.65, 0.85), 1.0)
-	elif s_canon == "emiliano":
-		# Cinta deportiva roja en la frente
-		draw_rect(Rect2(-7 + tremor_x, head_y, 14, 2), Color(0.90, 0.25, 0.25))
-	elif s_canon == "mateo":
-		# Chaleco escolar más azulado y gafete de nuevo ingreso
-		draw_rect(Rect2(-6 + tremor_x, base_y + 2, 3, 4), Color(0.95, 0.95, 0.95))
-
-	# Expresión facial pixel-art
-	if current_state == State.SAD:
-		# Ojos gachos y boca triste
-		draw_rect(Rect2(-4 + tremor_x, head_y + 4, 2, 2), Color(0.15, 0.15, 0.2))
-		draw_rect(Rect2(2 + tremor_x, head_y + 4, 2, 2), Color(0.15, 0.15, 0.2))
-		draw_line(Vector2(-3 + tremor_x, head_y + 8), Vector2(3 + tremor_x, head_y + 8), Color(0.3, 0.2, 0.2), 1.0)
-	else:
-		# Ojos alegres (arcos de sonrisa) y mejillas sonrojadas
-		draw_rect(Rect2(-4 + tremor_x, head_y + 3, 2, 2), Color(0.15, 0.15, 0.2))
-		draw_rect(Rect2(2 + tremor_x, head_y + 3, 2, 2), Color(0.15, 0.15, 0.2))
-		draw_rect(Rect2(-5 + tremor_x, head_y + 5, 2, 1), Color(1.0, 0.4, 0.5, 0.6))
-		draw_rect(Rect2(3 + tremor_x, head_y + 5, 2, 1), Color(1.0, 0.4, 0.5, 0.6))
-		draw_rect(Rect2(-2 + tremor_x, head_y + 7, 4, 2), Color(0.7, 0.1, 0.2))
+	# Sombra elíptica en perspectiva 3/4 en la base de los pies
+	var shadow_col := Color(0.06, 0.08, 0.12, 0.35)
+	draw_rect(Rect2(-11, -4, 22, 6), shadow_col)
+	draw_rect(Rect2(-9, -6, 18, 10), shadow_col)

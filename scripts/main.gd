@@ -24,6 +24,12 @@ var _cached_goal_pos: Vector2 = Vector2.ZERO
 var _cached_total_dist: float = 1.0
 var _max_reached_dist: float = 0.0
 
+var _cleared_classrooms: Dictionary = {}
+var _saved_exterior_boss_defeated: Dictionary = {}
+var _in_classroom_from_door: bool = false
+var _return_exterior_index: int = 0
+var _returning_from_classroom: bool = false
+
 var _game_settings: Node:
 	get:
 		if not is_inside_tree():
@@ -41,7 +47,7 @@ func _ready() -> void:
 	if _game_settings and _game_settings.has_method("play_game_music"):
 		_game_settings.play_game_music()
 
-	levels = LevelManager.get_all_levels()
+	levels = LevelManager.get_all_campaign_stages()
 
 	hud.restart_game.connect(_on_restart_game)
 	hud.go_to_menu.connect(_on_go_to_menu)
@@ -84,7 +90,7 @@ func _ensure_nodes() -> void:
 func load_level(index: int) -> void:
 	_ensure_nodes()
 	if levels.is_empty():
-		levels = LevelManager.get_all_levels()
+		levels = LevelManager.get_all_campaign_stages()
 	if index < 0 or index >= levels.size():
 		return
 
@@ -98,7 +104,22 @@ func load_level(index: int) -> void:
 	# Instanciar el nuevo escenario
 	active_level = LEVEL_SCENE.instantiate()
 	level_container.add_child(active_level)
-	active_level.setup_level(levels[current_level_index])
+
+	var lvl_data: Dictionary = levels[current_level_index].duplicate(true)
+	var c_idx: int = int(lvl_data.get("classroom_index", -1))
+	if not lvl_data.get("is_classroom", false) and c_idx >= 0 and _cleared_classrooms.get(c_idx, false):
+		lvl_data["is_classroom_cleared"] = true
+	if _returning_from_classroom and lvl_data.has("classroom_entrance_pos"):
+		lvl_data["player_spawn"] = lvl_data["classroom_entrance_pos"] + Vector2(0, 42)
+
+	active_level.setup_level(lvl_data)
+
+	if _returning_from_classroom and c_idx >= 0 and _saved_exterior_boss_defeated.get(c_idx, false):
+		active_level.boss_defeated = true
+		active_level.stop_enemies()
+		if active_level.goal and is_instance_valid(active_level.goal):
+			active_level.goal.unlock()
+	_returning_from_classroom = false
 
 	# Conectar señales del nivel activo
 	active_level.player_health_changed.connect(_on_player_health_changed)
@@ -109,9 +130,9 @@ func load_level(index: int) -> void:
 	active_level.boss_spawned.connect(_on_boss_spawned)
 	active_level.boss_health_changed.connect(_on_boss_health_changed)
 	active_level.boss_redeemed.connect(_on_boss_redeemed)
+	active_level.enter_classroom_requested.connect(_on_enter_classroom_requested)
 
 	# Cachear la distancia 2D entre el punto de spawn y la meta para la barra de progreso
-	var lvl_data: Dictionary = levels[current_level_index]
 	var p_spawn: Vector2 = lvl_data.get("player_spawn", Vector2(100, 400))
 	var g_pos: Vector2 = lvl_data.get("goal_position", Vector2(1000, 400))
 	_cached_goal_pos = g_pos
@@ -123,7 +144,7 @@ func load_level(index: int) -> void:
 	hud.reset_state()
 	hud.update_hearts(active_level.player.health, active_level.player.max_health)
 	hud.update_progress(0.0, _cached_total_dist)
-	var quota_val: int = int(lvl_data.get("quota_to_boss", 3))
+	var quota_val: int = active_level.quota_to_boss
 	hud.update_quota(0, quota_val)
 	var diff_intro: String = _game_settings.difficulty_name() if _game_settings and _game_settings.has_method("difficulty_name") and current_level_index == 0 else ""
 	hud.show_intro(title, diff_intro)
@@ -181,21 +202,71 @@ func _on_boss_redeemed(_boss_inst: CharacterBody2D) -> void:
 func _on_player_health_changed(current: int, max_hp: int) -> void:
 	hud.update_hearts(current, max_hp)
 
+func _on_enter_classroom_requested(classroom_idx: int) -> void:
+	if game_finished:
+		return
+	if active_level:
+		_saved_exterior_boss_defeated[classroom_idx] = active_level.boss_defeated
+	_return_exterior_index = current_level_index
+	_in_classroom_from_door = true
+
+	# Buscar el índice del salón correspondiente en la lista de niveles
+	var target_stage_idx := -1
+	for i in range(levels.size()):
+		if levels[i].get("is_classroom", false) and int(levels[i].get("classroom_index", -1)) == classroom_idx:
+			target_stage_idx = i
+			break
+	if target_stage_idx < 0 and current_level_index + 1 < levels.size():
+		target_stage_idx = current_level_index + 1
+	if target_stage_idx >= 0:
+		_transition_to_level(target_stage_idx)
+
 func _on_level_completed() -> void:
 	if game_finished:
 		return
 
+	var cur_data: Dictionary = levels[current_level_index]
+	var is_cur_classroom: bool = cur_data.get("is_classroom", false)
+	var cur_c_idx: int = int(cur_data.get("classroom_index", -1))
+
+	if is_cur_classroom and cur_c_idx >= 0:
+		_cleared_classrooms[cur_c_idx] = true
+		if _return_exterior_index >= 0 and _return_exterior_index < levels.size():
+			levels[_return_exterior_index]["is_classroom_cleared"] = true
+
+	# Si el jugador entró al salón desde la puerta exterior, regresar al exterior con el salón ya limpio
+	if is_cur_classroom and _in_classroom_from_door:
+		_in_classroom_from_door = false
+		hud.show_level_complete("¡Salón Limpiado! Regresando al patio...")
+		await get_tree().create_timer(1.1).timeout
+		if is_inside_tree() and not game_finished:
+			_returning_from_classroom = true
+			_transition_to_level(_return_exterior_index)
+		return
+
+	# Determinar el siguiente índice de nivel (saltando el salón si ya fue limpiado desde la puerta)
+	var next_idx := current_level_index + 1
+	if next_idx < levels.size() and levels[next_idx].get("is_classroom", false):
+		var next_c_idx: int = int(levels[next_idx].get("classroom_index", -1))
+		if _cleared_classrooms.get(next_c_idx, false):
+			next_idx += 1
+
 	# Si aún quedan escenarios pendientes en la campaña
-	if current_level_index < levels.size() - 1:
-		hud.show_level_complete(levels[current_level_index].get("title", ""))
+	if next_idx < levels.size():
+		hud.show_level_complete(cur_data.get("title", ""))
 		await get_tree().create_timer(1.2).timeout
 		if is_inside_tree() and not game_finished:
 			if _is_story_mode():
-				_show_story_act(current_level_index + 2, func():
-					_transition_to_level(current_level_index + 1)
-				)
+				# Si pasamos a un nuevo edificio exterior (índice par), mostrar el Acto de historia
+				if next_idx % 2 == 0:
+					var act_id := (next_idx / 2) + 1
+					_show_story_act(act_id, func():
+						_transition_to_level(next_idx)
+					)
+				else:
+					_transition_to_level(next_idx)
 			else:
-				_transition_to_level(current_level_index + 1)
+				_transition_to_level(next_idx)
 	else:
 		# Campaña de los 6 escenarios completada
 		game_finished = true

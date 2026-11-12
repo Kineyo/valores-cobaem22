@@ -3,8 +3,8 @@
 [ext_resource type="Script" path="res://scripts/projectile.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ataque_fx.png" id="2_fx"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_shot"]
-size = Vector2(40, 44)
+[sub_resource type="CircleShape2D" id="CircleShape2D_shot"]
+radius = 8.0
 
 [sub_resource type="Gradient" id="Gradient_trail"]
 colors = PackedColorArray(1, 0.95, 0.55, 0.9, 1, 0.75, 0.3, 0)
@@ -34,4 +34,4 @@ scale = Vector2(0.8, 0.8)
 texture = ExtResource("2_fx")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("RectangleShape2D_shot")
+shape = SubResource("CircleShape2D_shot")
