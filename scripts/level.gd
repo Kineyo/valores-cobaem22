@@ -54,6 +54,7 @@ var _hard_enemies_spawned: int = 0
 var _hard_wave_active_count: int = 0
 var _boss_battle_timer: float = 0.0
 var _fog_triggered_by_timeout: bool = false
+var _redeemed_count: int = 0
 
 var is_final_boss_celebrating: bool = false
 var final_boss_celebration_completed: bool = false
@@ -79,6 +80,7 @@ func _ensure_nodes() -> void:
 func setup_level(data: Dictionary) -> void:
 	_ensure_nodes()
 	level_data = data
+	_redeemed_count = 0
 
 	if entities:
 		entities.y_sort_enabled = true
@@ -357,9 +359,14 @@ func set_classroom_cleared(cleared: bool) -> void:
 
 func _on_enemy_defeated(enemy: Node2D) -> void:
 	defeated_in_level += 1
+	_redeemed_count += 1
 	if enemy is Enemy:
 		enemy_defeated.emit(enemy)
 	quota_updated.emit(defeated_in_level, quota_to_boss)
+
+	if _redeemed_count % 4 == 0:
+		var drop_pos := enemy.global_position if is_instance_valid(enemy) else (player.global_position + Vector2(32.0, 0.0) if player and is_instance_valid(player) else map_size * 0.5)
+		_spawn_virtue_pickup(drop_pos)
 
 	# Aliviar a alumnos en la zona de influencia del antivalor redimido
 	for s in students:
@@ -395,6 +402,79 @@ func _on_enemy_defeated(enemy: Node2D) -> void:
 	# Si se cumple la cuota requerida y aún no hay jefe, invocar al Jefe de Escenario
 	if defeated_in_level >= quota_to_boss and boss == null and not boss_defeated:
 		_spawn_boss()
+
+## Genera un ítem pacífico de virtud (Corazón de Esperanza o Escudo de Respeto)
+func _spawn_virtue_pickup(pos: Vector2, kind: String = "") -> Area2D:
+	var pickup_kind := kind.strip_edges().to_lower()
+	if pickup_kind.is_empty():
+		if player and is_instance_valid(player) and player.health < player.max_health:
+			pickup_kind = "heart"
+		else:
+			pickup_kind = "shield"
+
+	var pickup := Area2D.new()
+	pickup.name = "VirtuePickup_%s" % pickup_kind
+	pickup.position = pos
+	pickup.collision_layer = 0
+	pickup.collision_mask = 2
+	pickup.add_to_group("virtue_pickups")
+	pickup.set_meta("pickup_kind", pickup_kind)
+	pickup.set_meta("collected", false)
+
+	var shape := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = 14.0
+	shape.shape = circle
+	pickup.add_child(shape)
+
+	var visual := Polygon2D.new()
+	if pickup_kind == "heart":
+		visual.polygon = PackedVector2Array([
+			Vector2(0, 9), Vector2(-9, 0), Vector2(-9, -6), Vector2(-4, -9),
+			Vector2(0, -5), Vector2(4, -9), Vector2(9, -6), Vector2(9, 0)
+		])
+		visual.color = Color(0.98, 0.36, 0.52, 0.96)
+	else:
+		visual.polygon = PackedVector2Array([
+			Vector2(0, -10), Vector2(8, -6), Vector2(7, 4), Vector2(0, 10), Vector2(-7, 4), Vector2(-8, -6)
+		])
+		visual.color = Color(0.38, 0.90, 1.0, 0.96)
+	pickup.add_child(visual)
+
+	var ring := Line2D.new()
+	ring.points = visual.polygon
+	ring.closed = true
+	ring.width = 1.6
+	ring.default_color = Color(1.0, 0.95, 0.65, 0.9)
+	pickup.add_child(ring)
+
+	var parent_node: Node = entities if entities else self
+	parent_node.add_child(pickup)
+
+	var bob_tw := pickup.create_tween().set_loops()
+	bob_tw.tween_property(visual, "position:y", -4.0, 0.65).set_trans(Tween.TRANS_SINE)
+	bob_tw.tween_property(visual, "position:y", 0.0, 0.65).set_trans(Tween.TRANS_SINE)
+
+	pickup.body_entered.connect(func(body: Node2D):
+		if not is_instance_valid(pickup) or pickup.get_meta("collected", false):
+			return
+		if body is Player and body.can_control and body.health > 0:
+			pickup.set_meta("collected", true)
+			var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+			if pickup_kind == "heart":
+				body.health = mini(body.max_health, body.health + 1)
+				body.health_changed.emit(body.health, body.max_health)
+				if fx:
+					fx.burst(parent_node, pickup.global_position, Color(1.0, 0.45, 0.65), 10, 110.0)
+					fx.floating_text(parent_node, pickup.global_position + Vector2(0, -18), "¡+1 Esperanza!", Color(1.0, 0.55, 0.72), 14)
+			else:
+				body.grant_spawn_protection(2.5)
+				if fx:
+					fx.burst(parent_node, pickup.global_position, Color(0.45, 0.95, 1.0), 10, 110.0)
+					fx.floating_text(parent_node, pickup.global_position + Vector2(0, -18), "¡Escudo de Respeto!", Color(0.45, 0.95, 1.0), 14)
+			pickup.queue_free()
+	)
+	return pickup
 
 func set_boss_desperation_fog(active: bool) -> void:
 	if active:

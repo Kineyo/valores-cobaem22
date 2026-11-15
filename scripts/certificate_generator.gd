@@ -55,12 +55,14 @@ const CP1252_EXTRA := {
 	8212: 151, # —
 }
 
-## Construye el texto oficial exacto usando la dificultad inicial (o la provista)
-static func build_certificate_text(difficulty_name: String = "") -> String:
+## Construye el texto oficial exacto usando la dificultad inicial (o la provista) y nombre opcional
+static func build_certificate_text(difficulty_name: String = "", recipient_name: String = "") -> String:
 	var diff := difficulty_name.strip_edges()
 	if diff.is_empty():
 		diff = resolve_initial_difficulty()
-	return "El alumno/Padre de familia/Maestro:_______ ha logrado completar el juego en modo: %s y es reconocido como un asesor de los valores en el Cobaem Cemsad Plantel 22 Enthavi. Felicidades por el logro!" % diff
+	var clean_name := recipient_name.strip_edges()
+	var holder := ":%s" % (" " + clean_name if not clean_name.is_empty() else "_______")
+	return "El alumno/Padre de familia/Maestro%s ha logrado completar el juego en modo: %s y es reconocido como un asesor de los valores en el Cobaem Cemsad Plantel 22 Enthavi. Felicidades por el logro!" % [holder, diff]
 
 ## Extrae la dificultad inicial desde GameSettings cuando está disponible en el árbol de escena
 static func resolve_initial_difficulty() -> String:
@@ -77,12 +79,12 @@ static func resolve_initial_difficulty() -> String:
 	return "Normal"
 
 ## Genera ambos archivos PDF (Tamaño Carta y Tamaño 5x7) y los guarda en almacenamiento / galería
-static func generate_certificates(difficulty_name: String = "", extra_dir: String = "") -> Dictionary:
+static func generate_certificates(difficulty_name: String = "", extra_dir: String = "", recipient_name: String = "") -> Dictionary:
 	var diff := difficulty_name.strip_edges()
 	if diff.is_empty():
 		diff = resolve_initial_difficulty()
 
-	var body_text := build_certificate_text(diff)
+	var body_text := build_certificate_text(diff, recipient_name)
 	var bytes_carta := build_pdf_bytes(LETTER_WIDTH_PT, LETTER_HEIGHT_PT, diff, body_text, "Tamaño Carta (8.5 x 11 in)")
 	var bytes_5x7 := build_pdf_bytes(SIZE_5X7_WIDTH_PT, SIZE_5X7_HEIGHT_PT, diff, body_text, "Tamaño 5x7 (5 x 7 in)")
 

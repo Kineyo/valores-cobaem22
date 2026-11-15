@@ -655,8 +655,10 @@ func _process(_delta: float) -> bool:
 	var main_scene: PackedScene = load("res://scenes/main.tscn")
 
 	# 15. Verificar Escena Final de Ceremonia en la Cancha, Coordinador en el Podio, Discurso, Medalla e Himno
-	assert(FileAccess.file_exists("res://assets/audio/himno.m4a"), "Debe existir res://assets/audio/himno.m4a")
+	assert(not FileAccess.file_exists("res://assets/audio/himno.m4a"), "No debe existir res://assets/audio/himno.m4a redundante")
 	assert(ResourceLoader.exists("res://assets/audio/himno.ogg") or FileAccess.file_exists("res://assets/audio/himno.ogg"), "Debe existir res://assets/audio/himno.ogg")
+	for dup_asset in ["res://assets/mateo_laboratorio.png", "res://assets/alejandro_cancha.png", "res://assets/maestro_desinteres.png"]:
+		assert(not FileAccess.file_exists(dup_asset), "Duplicado eliminado no debe existir en assets/: %s" % dup_asset)
 
 	gs_node.stop_music(0.0)
 	if gs_node._music:
@@ -934,6 +936,65 @@ func _process(_delta: float) -> bool:
 	root.remove_child(edif_b_lvl)
 	edif_b_lvl.free()
 	print("  Salida de salones sin bugs y Jefe del Edificio B (teledirigido + teletransporte 10s) verificados con éxito.")
+
+	# 17. Verificar Pulso de Empatía, Ítems de Virtud, Ajustes de Audio/Récords/Selector y Nombre en Certificado PDF
+	var feat_lvl: Level = level_scene_ref.instantiate()
+	root.add_child(feat_lvl)
+	var feat_data: Dictionary = LevelManager.get_default_levels()[0].duplicate(true)
+	feat_lvl.setup_level(feat_data)
+	assert(feat_lvl.player != null, "Nivel de prueba debe tener jugador")
+
+	var slow_enemy: Enemy = feat_lvl.enemies_container.get_child(0) as Enemy if feat_lvl.enemies_container.get_child_count() > 0 else null
+	if slow_enemy:
+		slow_enemy.global_position = feat_lvl.player.global_position + Vector2(60, 0)
+	var proj_scene: PackedScene = load("res://scenes/projectile.tscn")
+	var near_shot: Projectile = proj_scene.instantiate() as Projectile
+	near_shot.is_enemy_projectile = true
+	near_shot.global_position = feat_lvl.player.global_position + Vector2(40, 0)
+	feat_lvl.add_child(near_shot)
+	near_shot.add_to_group("enemy_projectiles")
+
+	assert(feat_lvl.player.trigger_empathy_pulse() == true, "Pulso de Empatía debe poder activarse con enfriamiento en 0")
+	assert(feat_lvl.player.empathy_cooldown_left > 9.0, "Pulso de Empatía debe iniciar cooldown de 10s")
+	assert(feat_lvl.player.trigger_empathy_pulse() == false, "Pulso de Empatía no debe reactivarse durante cooldown")
+	if slow_enemy:
+		assert(slow_enemy._empathy_slow_timer >= 1.9, "Pulso de Empatía debe ralentizar enemigos cercanos")
+	assert(near_shot.is_queued_for_deletion(), "Pulso de Empatía debe disipar proyectiles enemigos cercanos")
+
+	feat_lvl.player.health = maxi(1, feat_lvl.player.max_health - 1)
+	var heart_pickup := feat_lvl._spawn_virtue_pickup(feat_lvl.player.global_position + Vector2(80, 0), "")
+	assert(heart_pickup != null and heart_pickup.get_meta("pickup_kind") == "heart", "Debe generar Corazón de Esperanza si jugador está herido")
+	feat_lvl.player.health = feat_lvl.player.max_health
+	var shield_pickup := feat_lvl._spawn_virtue_pickup(feat_lvl.player.global_position + Vector2(100, 0), "")
+	assert(shield_pickup != null and shield_pickup.get_meta("pickup_kind") == "shield", "Debe generar Escudo de Respeto si jugador tiene vida completa")
+
+	if feat_lvl.player and feat_lvl.player.sfx_attack:
+		feat_lvl.player.sfx_attack.stop()
+	if gs_node._music:
+		gs_node._music.stop()
+	root.remove_child(feat_lvl)
+	feat_lvl.free()
+
+	# Probar GameSettings: silencio, desbloqueo de escenario y récords locales
+	var prev_muted: bool = bool(gs_node.muted)
+	var toggled_mute: bool = gs_node.toggle_mute()
+	assert(toggled_mute == (not prev_muted), "toggle_mute debe alternar estado de silencio")
+	if not prev_muted:
+		gs_node.toggle_mute()
+	gs_node.unlock_stage(3)
+	assert(gs_node.unlocked_stage_max >= 3, "unlock_stage(3) debe desbloquear hasta escenario 4")
+	gs_node.set_selected_start_stage(2)
+	assert(gs_node.selected_start_stage == 2, "set_selected_start_stage debe guardar escenario inicial válido")
+	var rec_entry: Dictionary = gs_node.record_campaign_completion(1, 95.5, 42)
+	assert(float(rec_entry.get("best_time", 0.0)) > 0.0 and int(rec_entry.get("best_defeated", 0)) >= 42, "record_campaign_completion debe guardar récord")
+	gs_node.set_selected_start_stage(0)
+
+	# Probar nombre opcional en CertificateGenerator preservando compatibilidad con campo en blanco
+	var default_cert_text := CertificateGeneratorScript.build_certificate_text("Normal", "")
+	assert("El alumno/Padre de familia/Maestro:_______" in default_cert_text, "Nombre vacío debe mantener campo _______ por compatibilidad")
+	var named_cert_text := CertificateGeneratorScript.build_certificate_text("Normal", "Juan Pérez")
+	assert("El alumno/Padre de familia/Maestro: Juan Pérez" in named_cert_text, "Nombre provisto debe insertarse en el certificado")
+	print("  Pulso de Empatía, Pickups, Ajustes de Audio/Selector/Récords y Certificado personalizado verificados.")
 
 	print("--- TODOS LOS TESTS DE ESCENARIOS Y PROGRESIÓN PASARON CON ÉXITO ---")
 	quit(0)

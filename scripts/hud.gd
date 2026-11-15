@@ -53,6 +53,7 @@ var _overlay_tween: Tween
 var _adapted_touch: bool = false
 var _input_hint_mode: String = "keyboard"
 var _modal_safe_scale: Vector2 = Vector2.ONE
+var btn_pause_mute: Button = null
 
 func _ensure_nodes() -> void:
 	if hearts_container == null:
@@ -130,6 +131,18 @@ func _ready() -> void:
 	for btn in [btn_resume, btn_pause_menu, btn_retry, btn_menu_go, btn_play_again, btn_menu_vic]:
 		UiJuice.attach_button(btn, sfx_ui)
 
+	if pause_panel:
+		var pause_vbox := pause_panel.get_node_or_null("VBoxContainer")
+		if pause_vbox and pause_vbox.get_node_or_null("BtnPauseMute") == null:
+			btn_pause_mute = Button.new()
+			btn_pause_mute.name = "BtnPauseMute"
+			btn_pause_mute.pressed.connect(_on_mute_toggle_pressed)
+			pause_vbox.add_child(btn_pause_mute)
+			if btn_pause_menu and btn_pause_menu.get_parent() == pause_vbox:
+				pause_vbox.move_child(btn_pause_mute, btn_pause_menu.get_index())
+			UiJuice.attach_button(btn_pause_mute, sfx_ui)
+	_refresh_pause_mute_label()
+
 	if mobile_controls:
 		mobile_controls.pause_requested.connect(func(): set_paused(not is_paused))
 		if mobile_controls.has_signal("touch_mode_changed"):
@@ -200,6 +213,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_on_retry_pressed()
 			elif key == KEY_M:
 				_on_menu_pressed()
+			elif key == KEY_V:
+				_on_mute_toggle_pressed()
 			else:
 				handled = false
 		else:
@@ -362,24 +377,24 @@ func _refresh_controls_footer(avail_w: float = -1.0) -> void:
 		"touch":
 			if avail_w >= 640.0:
 				controls_label.add_theme_font_size_override("font_size", 11)
-				controls_label.text = "Izq: mover · Der: virtud · FOCUS: precisión · Pausa ↗"
+				controls_label.text = "Izq: mover · Der: virtud · PULSO · FOCUS: precisión · Pausa ↗"
 			else:
 				controls_label.add_theme_font_size_override("font_size", 10)
-				controls_label.text = "Izq: mover · Der: virtud · FOCUS"
+				controls_label.text = "Izq: mover · Der: virtud · PULSO · FOCUS"
 		"gamepad":
 			if avail_w >= 640.0:
 				controls_label.add_theme_font_size_override("font_size", 11)
-				controls_label.text = "Stick Izq: mover · Stick Der / A: virtud · LB: enfoque · Start: pausa"
+				controls_label.text = "Stick Izq: mover · Der / A: virtud · X: pulso · LB: enfoque · Start: pausa"
 			else:
 				controls_label.add_theme_font_size_override("font_size", 10)
-				controls_label.text = "Stick Izq: mover · A: virtud · LB: enfoque · Start: pausa"
+				controls_label.text = "Stick Izq: mover · A: virtud · X: pulso · Start: pausa"
 		_:
 			if avail_w >= 680.0:
 				controls_label.add_theme_font_size_override("font_size", 12)
-				controls_label.text = "WASD / Flechas: mover (3/4) · Espacio: virtud · Shift: enfoque · Esc: pausa"
+				controls_label.text = "WASD / Flechas: mover · Espacio: virtud · E: pulso · Shift: enfoque · Esc: pausa"
 			else:
 				controls_label.add_theme_font_size_override("font_size", 10)
-				controls_label.text = "WASD: mover · Espacio: virtud · Shift: enfoque · Esc: pausa"
+				controls_label.text = "WASD: mover · Espacio: virtud · E: pulso · Esc: pausa"
 
 ## Adapta los textos de los botones modales e instrucciones según plataforma/táctil
 func _adapt_for_touch() -> void:
@@ -434,6 +449,7 @@ func set_paused(paused: bool) -> void:
 	if gs and gs.has_method("duck_music"):
 		gs.duck_music(paused)
 	if paused:
+		_refresh_pause_mute_label()
 		if mobile_controls:
 			mobile_controls.deactivate()
 		_show_panel(pause_panel, btn_resume)
@@ -441,6 +457,19 @@ func set_paused(paused: bool) -> void:
 		_hide_panel(pause_panel)
 		if mobile_controls:
 			mobile_controls.activate()
+
+func _on_mute_toggle_pressed() -> void:
+	var gs = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	if gs and gs.has_method("toggle_mute"):
+		gs.toggle_mute()
+	_refresh_pause_mute_label()
+
+func _refresh_pause_mute_label() -> void:
+	if btn_pause_mute == null:
+		return
+	var gs = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	var is_muted := bool(gs.get("muted")) if gs else false
+	btn_pause_mute.text = "Audio: Silencio (V)" if is_muted else "Audio: Activo (V)"
 
 func set_difficulty_text(diff_name: String) -> void:
 	_ensure_nodes()

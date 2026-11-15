@@ -54,6 +54,7 @@ var _target_wander: Vector2 = Vector2.ZERO
 var _wander_timer: float = 0.0
 var _respawn_timer: float = 0.0
 var _detection_range_sq: float = 0.0
+var _empathy_slow_timer: float = 0.0
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var hitbox: Area2D = $Hitbox
@@ -128,9 +129,24 @@ func _physics_process(delta: float) -> void:
 		_animate(delta)
 		return
 
+	if _empathy_slow_timer > 0.0:
+		_empathy_slow_timer = maxf(0.0, _empathy_slow_timer - delta)
+		if _empathy_slow_timer <= 0.0:
+			modulate = Color.WHITE
+
 	_animate(delta)
+	var base_speed := speed
+	if _empathy_slow_timer > 0.0:
+		speed *= 0.45
 	_update_ai(delta)
+	speed = base_speed
 	move_and_slide()
+
+## Ralentiza pacíficamente al antivalor tras recibir un Pulso de Empatía
+func apply_empathy_slow(duration: float = 2.0) -> void:
+	_empathy_slow_timer = maxf(_empathy_slow_timer, duration)
+	if is_active:
+		modulate = Color(0.65, 0.92, 1.0, 1.0)
 
 ## Alerta a otros enemigos aliados cercanos para coordinar el ataque
 func alert_allies(range_px: float = 340.0) -> void:

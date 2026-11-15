@@ -40,7 +40,6 @@ const PRESETS := {
 	},
 }
 
-const HIMNO_M4A_PATH := "res://assets/audio/himno.m4a"
 const HIMNO_OGG_PATH := "res://assets/audio/himno.ogg"
 
 var MUSIC_MENU: AudioStream
@@ -55,6 +54,12 @@ var initial_difficulty: int = Difficulty.NORMAL
 var game_mode: int = GameMode.ARCADE
 var selected_character: int = CharacterSkin.MASCULINO
 var music_volume_db: float = -8.0
+var sfx_volume_db: float = 0.0
+var muted: bool = false
+var unlocked_stage_max: int = 0
+var selected_start_stage: int = 0
+var best_records: Dictionary = {}
+var _sfx_hooked: bool = false
 
 var _music: AudioStreamPlayer
 var _fade_tween: Tween
@@ -107,7 +112,12 @@ func save_settings() -> void:
 	cfg.set_value("game", "difficulty", difficulty)
 	cfg.set_value("game", "game_mode", game_mode)
 	cfg.set_value("game", "selected_character", selected_character)
+	cfg.set_value("game", "unlocked_stage_max", unlocked_stage_max)
+	cfg.set_value("game", "selected_start_stage", selected_start_stage)
 	cfg.set_value("audio", "music_volume_db", music_volume_db)
+	cfg.set_value("audio", "sfx_volume_db", sfx_volume_db)
+	cfg.set_value("audio", "muted", muted)
+	cfg.set_value("records", "best_records", best_records)
 	cfg.save(SETTINGS_PATH)
 
 func load_settings() -> void:
@@ -117,9 +127,15 @@ func load_settings() -> void:
 		initial_difficulty = difficulty
 		game_mode = clampi(int(cfg.get_value("game", "game_mode", GameMode.ARCADE)), 0, GAME_MODE_NAMES.size() - 1)
 		selected_character = clampi(int(cfg.get_value("game", "selected_character", CharacterSkin.PANTALON)), 0, CHARACTER_NAMES.size() - 1)
+		unlocked_stage_max = clampi(int(cfg.get_value("game", "unlocked_stage_max", 0)), 0, 5)
+		selected_start_stage = clampi(int(cfg.get_value("game", "selected_start_stage", 0)), 0, unlocked_stage_max)
 		music_volume_db = clampf(float(cfg.get_value("audio", "music_volume_db", -8.0)), -60.0, 6.0)
-		if _music:
-			_music.volume_db = music_volume_db
+		sfx_volume_db = clampf(float(cfg.get_value("audio", "sfx_volume_db", 0.0)), -60.0, 6.0)
+		muted = bool(cfg.get_value("audio", "muted", false))
+		var loaded_rec = cfg.get_value("records", "best_records", {})
+		if loaded_rec is Dictionary:
+			best_records = loaded_rec
+	apply_audio_settings()
 
 func _on_music_finished() -> void:
 	if _music and _music.stream and not _stopping:
@@ -172,10 +188,6 @@ func play_himno_music() -> void:
 		_play(MUSIC_HIMNO)
 
 func _load_himno_stream() -> AudioStream:
-	if ResourceLoader.exists(HIMNO_M4A_PATH):
-		var m4a_stream := load(HIMNO_M4A_PATH) as AudioStream
-		if m4a_stream != null:
-			return m4a_stream
 	if ResourceLoader.exists(HIMNO_OGG_PATH):
 		var ogg_stream := load(HIMNO_OGG_PATH) as AudioStream
 		if ogg_stream != null:
@@ -185,6 +197,83 @@ func _load_himno_stream() -> AudioStream:
 		if loaded_ogg != null:
 			return loaded_ogg
 	return MUSIC_GAME
+
+func apply_audio_settings() -> void:
+	if AudioServer.get_bus_count() > 0:
+		AudioServer.set_bus_mute(0, muted)
+	if _music:
+		_music.volume_db = SILENT_DB if muted else music_volume_db
+	if is_inside_tree() and get_tree():
+		if not _sfx_hooked:
+			_sfx_hooked = true
+			if not get_tree().node_added.is_connected(_on_tree_node_added):
+				get_tree().node_added.connect(_on_tree_node_added)
+		if get_tree().root:
+			_apply_sfx_volume_recursive(get_tree().root)
+
+func _on_tree_node_added(node: Node) -> void:
+	_apply_sfx_volume_recursive(node)
+
+func _apply_sfx_volume_recursive(node: Node) -> void:
+	if node is AudioStreamPlayer:
+		var asp := node as AudioStreamPlayer
+		if asp != _music and asp.name != "HimnoAudio":
+			if not asp.has_meta("_base_vol_db"):
+				asp.set_meta("_base_vol_db", asp.volume_db)
+			var base_vol := float(asp.get_meta("_base_vol_db", asp.volume_db))
+			asp.volume_db = clampf(base_vol + sfx_volume_db, -80.0, 12.0)
+	for child in node.get_children():
+		_apply_sfx_volume_recursive(child)
+
+func set_music_volume_db(db: float) -> void:
+	music_volume_db = clampf(db, -60.0, 6.0)
+	if _music and not muted:
+		_music.volume_db = music_volume_db
+	save_settings()
+
+func set_sfx_volume_db(db: float) -> void:
+	sfx_volume_db = clampf(db, -60.0, 6.0)
+	apply_audio_settings()
+	save_settings()
+
+func toggle_mute() -> bool:
+	muted = not muted
+	apply_audio_settings()
+	save_settings()
+	return muted
+
+func unlock_stage(stage_idx: int) -> void:
+	var clamped_idx := clampi(stage_idx, 0, 5)
+	if clamped_idx > unlocked_stage_max:
+		unlocked_stage_max = clamped_idx
+		save_settings()
+
+func set_selected_start_stage(stage_idx: int) -> void:
+	selected_start_stage = clampi(stage_idx, 0, unlocked_stage_max)
+	save_settings()
+
+func record_campaign_completion(diff_idx: int, time_sec: float, defeated_count: int) -> Dictionary:
+	var key := str(clampi(diff_idx, 0, DIFFICULTY_NAMES.size() - 1))
+	var prev: Dictionary = {}
+	if best_records.get(key) is Dictionary:
+		prev = best_records[key]
+	var prev_best_time := float(prev.get("best_time", -1.0))
+	var prev_best_defeated := int(prev.get("best_defeated", 0))
+	var new_best_time := time_sec if (prev_best_time < 0.0 or time_sec < prev_best_time) else prev_best_time
+	var new_best_defeated := maxi(prev_best_defeated, defeated_count)
+	var updated := {
+		"best_time": new_best_time,
+		"best_defeated": new_best_defeated,
+		"completions": int(prev.get("completions", 0)) + 1
+	}
+	best_records[key] = updated
+	save_settings()
+	return updated
+
+func get_record_for_difficulty(diff_idx: int) -> Dictionary:
+	var key := str(clampi(diff_idx, 0, DIFFICULTY_NAMES.size() - 1))
+	var rec = best_records.get(key, {})
+	return rec if rec is Dictionary else {}
 
 ## Detiene la música aplicando un fundido suave
 func stop_music(fade: float = FADE_TIME) -> void:

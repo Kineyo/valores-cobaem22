@@ -7,8 +7,13 @@ class_name Player
 signal health_changed(current_health: int, max_health: int)
 signal died
 signal reached_goal
+signal empathy_pulse_triggered(cooldown: float)
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile.tscn")
+const EMPATHY_PULSE_COOLDOWN: float = 10.0
+const EMPATHY_PULSE_RADIUS: float = 140.0
+const EMPATHY_PULSE_RADIUS_SQ: float = 19600.0
+const EMPATHY_SLOW_RADIUS_SQ: float = 32400.0
 
 ## Sprites del personaje según la dirección cardinal y estado
 const DEFAULT_TEX_IDLE := preload("res://assets/sprites/player_idle.png")        # Vista frontal (Sur)
@@ -62,6 +67,9 @@ var _dust_timer: float = 0.0
 var _squash_tween: Tween
 var _flash_tween: Tween
 var _hit_this_attack: Array[int] = []
+var empathy_cooldown_left: float = 0.0
+var _empathy_wave_timer: float = 0.0
+var _empathy_key_was_pressed: bool = false
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var attack_area: Area2D = $AttackArea
@@ -142,6 +150,14 @@ func _draw() -> void:
 		draw_circle(core_center, 3.2, Color(1.0, 0.15, 0.25, 0.95))
 		draw_circle(core_center, 1.5, Color.WHITE)
 
+	# Anillo expansivo del Pulso de Empatía
+	if _empathy_wave_timer > 0.0:
+		var progress := 1.0 - (_empathy_wave_timer / 0.45)
+		var ring_r := lerpf(16.0, EMPATHY_PULSE_RADIUS, progress)
+		var ring_alpha := clampf(1.0 - progress, 0.0, 1.0)
+		draw_arc(Vector2(0, -10.0), ring_r, 0.0, TAU, 36, Color(0.45, 0.95, 1.0, 0.85 * ring_alpha), 3.0)
+		draw_arc(Vector2(0, -10.0), ring_r * 0.72, 0.0, TAU, 28, Color(1.0, 0.92, 0.45, 0.65 * ring_alpha), 1.8)
+
 ## Aplica los parámetros de balance configurados en GameSettings
 func apply_difficulty() -> void:
 	var gs: Node = null
@@ -213,6 +229,15 @@ func _physics_process(delta: float) -> void:
 
 	_shot_cooldown_left = maxf(0.0, _shot_cooldown_left - delta)
 	_knockback_left = maxf(0.0, _knockback_left - delta)
+	empathy_cooldown_left = maxf(0.0, empathy_cooldown_left - delta)
+	if _empathy_wave_timer > 0.0:
+		_empathy_wave_timer = maxf(0.0, _empathy_wave_timer - delta)
+		queue_redraw()
+
+	var empathy_pressed_now: bool = Input.is_physical_key_pressed(KEY_E) or (InputMap.has_action("empathy_pulse") and Input.is_action_pressed("empathy_pulse"))
+	if empathy_pressed_now and not _empathy_key_was_pressed:
+		trigger_empathy_pulse()
+	_empathy_key_was_pressed = empathy_pressed_now
 
 	# Modo Enfoque Touhou (Precisión micrométrica con Shift, acción focus o controles móviles)
 	is_focusing = Input.is_key_pressed(KEY_SHIFT) or (InputMap.has_action("focus") and Input.is_action_pressed("focus"))
@@ -424,6 +449,50 @@ func grant_spawn_protection(duration: float = 2.0) -> void:
 	is_invulnerable = true
 	if invulnerable_timer:
 		invulnerable_timer.start(duration)
+
+## Habilidad activa de apoyo: disipa proyectiles cercanos y ralentiza antivalores sin violencia
+func trigger_empathy_pulse() -> bool:
+	if empathy_cooldown_left > 0.0 or not can_control or health <= 0:
+		return false
+	empathy_cooldown_left = EMPATHY_PULSE_COOLDOWN
+	_empathy_wave_timer = 0.45
+	queue_redraw()
+
+	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+	var parent_node := get_parent()
+
+	if is_inside_tree() and get_tree():
+		for shot in get_tree().get_nodes_in_group("enemy_projectiles"):
+			if is_instance_valid(shot) and shot is Node2D:
+				if global_position.distance_squared_to(shot.global_position) <= EMPATHY_PULSE_RADIUS_SQ:
+					if fx and parent_node:
+						fx.burst(parent_node, shot.global_position, Color(0.55, 0.95, 1.0), 4, 70.0)
+					shot.queue_free()
+
+		for e in get_tree().get_nodes_in_group("enemies"):
+			if is_instance_valid(e) and e is Node2D and e.has_method("apply_empathy_slow"):
+				if global_position.distance_squared_to(e.global_position) <= EMPATHY_SLOW_RADIUS_SQ:
+					e.apply_empathy_slow(2.0)
+
+	if parent_node:
+		for sib in parent_node.get_children():
+			if sib != self and sib is Node2D and sib.has_method("apply_empathy_slow"):
+				if global_position.distance_squared_to(sib.global_position) <= EMPATHY_SLOW_RADIUS_SQ:
+					sib.apply_empathy_slow(2.0)
+			elif sib.name == "Enemies":
+				for e in sib.get_children():
+					if e is Node2D and e.has_method("apply_empathy_slow"):
+						if global_position.distance_squared_to(e.global_position) <= EMPATHY_SLOW_RADIUS_SQ:
+							e.apply_empathy_slow(2.0)
+
+	if fx and parent_node:
+		fx.burst(parent_node, global_position + Vector2(0, -12), Color(0.45, 0.95, 1.0), 14, 150.0)
+		fx.floating_text(parent_node, global_position + Vector2(0, -36), "¡Pulso de Empatía!", Color(0.45, 0.95, 1.0), 14)
+	if sfx_attack:
+		sfx_attack.pitch_scale = 1.25
+		sfx_attack.play()
+	empathy_pulse_triggered.emit(EMPATHY_PULSE_COOLDOWN)
+	return true
 
 func take_damage(amount: int, from_pos: Variant = null) -> void:
 	if is_invulnerable or health <= 0 or not can_control:

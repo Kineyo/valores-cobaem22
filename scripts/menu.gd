@@ -27,6 +27,14 @@ const MODE_INFO := [
 	"Modo Arcade: Partida directa y acción continua superando los 6 escenarios.",
 	"Modo Historia: Cinemáticas, diálogos escolares y trasfondo narrativo en CEMSaD 22.",
 ]
+const STAGE_SHORT_NAMES := [
+	"1. Acceso y Edif. D",
+	"2. Cafetería (Edif. A)",
+	"3. Plaza Cívica",
+	"4. Biblioteca (Edif. B)",
+	"5. Cómputo (Edif. C)",
+	"6. Cancha Múltiple",
+]
 
 @onready var bg_scroller: Node2D = %BgScroller
 @onready var panel: PanelContainer = %Panel
@@ -71,6 +79,13 @@ var _stick_next_ms_x: int = 0
 var _stick_next_ms_y: int = 0
 var _last_vp_size: Vector2 = Vector2.ZERO
 var _ambient_particles: CPUParticles2D = null
+var _btn_stage_prev: Button = null
+var _stage_label: Label = null
+var _btn_stage_next: Button = null
+var _btn_mute: Button = null
+var _btn_vol_down: Button = null
+var _btn_vol_up: Button = null
+var _record_label: Label = null
 
 var _game_settings: Node:
 	get:
@@ -237,9 +252,11 @@ func _ready() -> void:
 	_last_input_was_touch = MobileControls.is_touch_device()
 	_last_input_was_gamepad = not _last_input_was_touch and not Input.get_connected_joypads().is_empty()
 
+	_build_extra_controls()
 	_refresh_mode(false)
 	_refresh_character(false)
 	_refresh_difficulty(false)
+	_refresh_stage_and_audio_ui()
 	_adapt_ui_for_touch()
 	_refresh_control_hints()
 	_ensure_background_tiles()
@@ -569,6 +586,8 @@ func _unhandled_input(event: InputEvent) -> void:
 						_select_mode(1 if current_m == 0 else 0)
 					KEY_C, KEY_P, KEY_TAB:
 						_select_character(1 if current_c == 0 else 0)
+					KEY_V:
+						_toggle_mute_audio()
 					KEY_1:
 						_select_difficulty(0)
 					KEY_2:
@@ -650,6 +669,7 @@ func _refresh_mode(_animate: bool = false) -> void:
 	if mode_info:
 		mode_info.text = MODE_INFO[m]
 		mode_info.modulate = Color(0.76, 0.79, 0.84)
+	_refresh_stage_and_audio_ui()
 
 func _select_character(index: int) -> void:
 	var current_c: int = _game_settings.selected_character if _game_settings else 0
@@ -729,6 +749,7 @@ func _refresh_difficulty(_animate: bool = false) -> void:
 
 	info_label.text = DIFFICULTY_INFO[d]
 	info_label.modulate = DIFFICULTY_COLORS[d]
+	_refresh_stage_and_audio_ui()
 
 func _open_character_select() -> void:
 	if _scene_transition and _scene_transition.is_busy:
@@ -776,3 +797,140 @@ func _quit() -> void:
 	if _scene_transition and _scene_transition.is_busy:
 		return
 	get_tree().quit()
+
+func _build_extra_controls() -> void:
+	if main_view == null or main_view.get_node_or_null("UtilityRow") != null:
+		return
+	var action_row := main_view.get_node_or_null("ActionRow")
+	var insert_idx := action_row.get_index() if action_row else main_view.get_child_count()
+
+	var utility_row := HBoxContainer.new()
+	utility_row.name = "UtilityRow"
+	utility_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	utility_row.add_theme_constant_override("separation", 4)
+	main_view.add_child(utility_row)
+	main_view.move_child(utility_row, insert_idx)
+
+	_btn_stage_prev = Button.new()
+	_btn_stage_prev.text = "<"
+	_btn_stage_prev.custom_minimum_size = Vector2(26, 24)
+	_btn_stage_prev.add_theme_font_size_override("font_size", 11)
+	_btn_stage_prev.pressed.connect(_cycle_start_stage.bind(-1))
+	utility_row.add_child(_btn_stage_prev)
+	UiJuice.attach_button(_btn_stage_prev, sfx_select)
+
+	_stage_label = Label.new()
+	_stage_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_stage_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_stage_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_stage_label.add_theme_font_size_override("font_size", 11)
+	utility_row.add_child(_stage_label)
+
+	_btn_stage_next = Button.new()
+	_btn_stage_next.text = ">"
+	_btn_stage_next.custom_minimum_size = Vector2(26, 24)
+	_btn_stage_next.add_theme_font_size_override("font_size", 11)
+	_btn_stage_next.pressed.connect(_cycle_start_stage.bind(1))
+	utility_row.add_child(_btn_stage_next)
+	UiJuice.attach_button(_btn_stage_next, sfx_select)
+
+	_btn_mute = Button.new()
+	_btn_mute.name = "BtnAudioMute"
+	_btn_mute.custom_minimum_size = Vector2(96, 24)
+	_btn_mute.add_theme_font_size_override("font_size", 11)
+	_btn_mute.pressed.connect(_toggle_mute_audio)
+	utility_row.add_child(_btn_mute)
+	UiJuice.attach_button(_btn_mute, sfx_select)
+
+	_btn_vol_down = Button.new()
+	_btn_vol_down.text = "-"
+	_btn_vol_down.custom_minimum_size = Vector2(24, 24)
+	_btn_vol_down.add_theme_font_size_override("font_size", 11)
+	_btn_vol_down.pressed.connect(_step_music_volume.bind(-4.0))
+	utility_row.add_child(_btn_vol_down)
+	UiJuice.attach_button(_btn_vol_down, sfx_select)
+
+	_btn_vol_up = Button.new()
+	_btn_vol_up.text = "+"
+	_btn_vol_up.custom_minimum_size = Vector2(24, 24)
+	_btn_vol_up.add_theme_font_size_override("font_size", 11)
+	_btn_vol_up.pressed.connect(_step_music_volume.bind(4.0))
+	utility_row.add_child(_btn_vol_up)
+	UiJuice.attach_button(_btn_vol_up, sfx_select)
+
+	_record_label = Label.new()
+	_record_label.name = "RecordLabel"
+	_record_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_record_label.add_theme_font_size_override("font_size", 10)
+	_record_label.add_theme_color_override("font_color", Color(0.84, 0.88, 0.68))
+	main_view.add_child(_record_label)
+	main_view.move_child(_record_label, utility_row.get_index() + 1)
+
+func _cycle_start_stage(step: int) -> void:
+	if _game_settings == null:
+		return
+	var unlocked_max := clampi(int(_game_settings.get("unlocked_stage_max")), 0, 5)
+	if unlocked_max <= 0:
+		return
+	var cur := clampi(int(_game_settings.get("selected_start_stage")), 0, unlocked_max)
+	var next := posmod(cur + step, unlocked_max + 1)
+	if _game_settings.has_method("set_selected_start_stage"):
+		_game_settings.set_selected_start_stage(next)
+	if sfx_select and sfx_select.is_inside_tree():
+		sfx_select.pitch_scale = 1.05
+		sfx_select.play()
+	_refresh_stage_and_audio_ui()
+
+func _toggle_mute_audio() -> void:
+	if _game_settings and _game_settings.has_method("toggle_mute"):
+		_game_settings.toggle_mute()
+	if sfx_select and sfx_select.is_inside_tree() and (not _game_settings or not bool(_game_settings.get("muted"))):
+		sfx_select.pitch_scale = 1.0
+		sfx_select.play()
+	_refresh_stage_and_audio_ui()
+
+func _step_music_volume(delta_db: float) -> void:
+	if _game_settings == null:
+		return
+	if _game_settings.has_method("set_music_volume_db"):
+		_game_settings.set_music_volume_db(float(_game_settings.get("music_volume_db")) + delta_db)
+	if _game_settings.has_method("set_sfx_volume_db"):
+		_game_settings.set_sfx_volume_db(float(_game_settings.get("sfx_volume_db")) + delta_db)
+	if sfx_select and sfx_select.is_inside_tree():
+		sfx_select.pitch_scale = 1.08 if delta_db > 0.0 else 0.92
+		sfx_select.play()
+	_refresh_stage_and_audio_ui()
+
+func _refresh_stage_and_audio_ui() -> void:
+	if _stage_label == null:
+		return
+	var is_story := _game_settings != null and int(_game_settings.get("game_mode")) == 1
+	var unlocked_max := clampi(int(_game_settings.get("unlocked_stage_max")), 0, 5) if _game_settings else 0
+	var start_stage := clampi(int(_game_settings.get("selected_start_stage")), 0, unlocked_max) if _game_settings else 0
+	if is_story:
+		_stage_label.text = "Inicio Historia: Acto I"
+		_btn_stage_prev.disabled = true
+		_btn_stage_next.disabled = true
+	else:
+		_stage_label.text = "Inicio: %s" % STAGE_SHORT_NAMES[start_stage]
+		var can_cycle := unlocked_max > 0
+		_btn_stage_prev.disabled = not can_cycle
+		_btn_stage_next.disabled = not can_cycle
+
+	var is_muted := bool(_game_settings.get("muted")) if _game_settings else false
+	if _btn_mute:
+		_btn_mute.text = "Audio: OFF (V)" if is_muted else "Audio: ON (V)"
+
+	if _record_label:
+		var d: int = _game_settings.difficulty if _game_settings else 1
+		var rec: Dictionary = _game_settings.get_record_for_difficulty(d) if (_game_settings and _game_settings.has_method("get_record_for_difficulty")) else {}
+		if rec.is_empty():
+			_record_label.text = "Récord: Completa la campaña para registrar marca"
+		else:
+			var t_sec := float(rec.get("best_time", 0.0))
+			var mins := int(t_sec) / 60
+			var secs := int(t_sec) % 60
+			_record_label.text = "Récord (%s): %02d:%02d · Redimidos: %d" % [
+				["Fácil", "Normal", "Difícil"][clampi(d, 0, 2)],
+				mins, secs, int(rec.get("best_defeated", 0))
+			]

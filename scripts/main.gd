@@ -68,7 +68,9 @@ func _ready() -> void:
 	if _is_story_mode():
 		_start_story_mode()
 	else:
-		load_level(0)
+		var start_stage := clampi(int(_game_settings.get("selected_start_stage")) if _game_settings else 0, 0, 5)
+		var start_idx := clampi(start_stage * 2, 0, maxi(0, levels.size() - 1))
+		load_level(start_idx)
 
 func _is_story_mode() -> bool:
 	return _game_settings != null and _game_settings.get("game_mode") == 1
@@ -294,6 +296,8 @@ func _on_level_completed() -> void:
 
 	# Si aún quedan escenarios pendientes en la campaña
 	if next_idx < levels.size():
+		if _game_settings and _game_settings.has_method("unlock_stage"):
+			_game_settings.unlock_stage(next_idx / 2)
 		hud.show_level_complete(cur_data.get("title", ""))
 		await get_tree().create_timer(1.2).timeout
 		if is_inside_tree() and not game_finished and epoch == _transition_epoch:
@@ -313,8 +317,14 @@ func _on_level_completed() -> void:
 		# Campaña de los 6 escenarios completada
 		game_finished = true
 		_campaign_completed = true
-		if _game_settings and _game_settings.has_method("stop_music"):
-			_game_settings.stop_music(0.5)
+		if _game_settings:
+			if _game_settings.has_method("unlock_stage"):
+				_game_settings.unlock_stage(5)
+			if _game_settings.has_method("record_campaign_completion"):
+				var d_idx: int = int(_game_settings.get("initial_difficulty")) if _game_settings.get("initial_difficulty") != null else int(_game_settings.difficulty)
+				_game_settings.record_campaign_completion(d_idx, elapsed_time, enemies_defeated)
+			if _game_settings.has_method("stop_music"):
+				_game_settings.stop_music(0.5)
 		await get_tree().create_timer(0.7).timeout
 		if is_inside_tree() and epoch == _transition_epoch:
 			if _is_story_mode():
@@ -441,7 +451,8 @@ func _on_restart_game() -> void:
 	_final_loading_layer = null
 	_set_hud_gameplay_visible(true)
 	if finished_campaign:
-		current_level_index = 0
+		var restart_stage := 0 if _is_story_mode() else (clampi(int(_game_settings.get("selected_start_stage")) if _game_settings else 0, 0, 5))
+		current_level_index = clampi(restart_stage * 2, 0, maxi(0, levels.size() - 1))
 		elapsed_time = 0.0
 		enemies_defeated = 0
 		_cleared_classrooms.clear()
@@ -478,9 +489,10 @@ func setup_inputs() -> void:
 	_ensure_joy_motion("aim_up", JOY_AXIS_RIGHT_Y, -1.0)
 	_ensure_joy_motion("aim_down", JOY_AXIS_RIGHT_Y, 1.0)
 
-	# Botones de disparo en gamepad
+	# Botones de disparo y Pulso de Empatía en gamepad
 	_ensure_joy_button("attack", JOY_BUTTON_A)
 	_ensure_joy_button("attack", JOY_BUTTON_RIGHT_SHOULDER)
+	_ensure_joy_button("empathy_pulse", JOY_BUTTON_X)
 
 	# Botones de navegación y menú en gamepad (Start para Pausa, B para Cancelar, A para Aceptar)
 	_ensure_joy_button("pause", JOY_BUTTON_START)

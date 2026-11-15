@@ -47,6 +47,8 @@ signal touch_mode_changed(touch_active: bool)
 const FOCUS_BUTTON_RADIUS: float = 22.0
 const FOCUS_HIT_RADIUS_SQ: float = 784.0 # Radio 28px (>= 44x44 dp ergonómico)
 const FOCUS_HOLD_THRESHOLD_MS: int = 350
+const PULSE_BUTTON_RADIUS: float = 20.0
+const PULSE_HIT_RADIUS_SQ: float = 676.0
 
 # ==============================================================================
 # ESTADO INTERNO Y CONTROL DE TOQUES MULTITÁCTILES
@@ -55,6 +57,7 @@ var _left_touch_id: int = -1
 var _right_touch_id: int = -1
 var _pause_touch_id: int = -1
 var _focus_touch_id: int = -1
+var _pulse_touch_id: int = -1
 
 var _left_base: Vector2 = Vector2.ZERO
 var _left_pos: Vector2 = Vector2.ZERO
@@ -62,11 +65,13 @@ var _right_base: Vector2 = Vector2.ZERO
 var _right_pos: Vector2 = Vector2.ZERO
 var _pause_pos: Vector2 = Vector2.ZERO
 var _focus_pos: Vector2 = Vector2.ZERO
+var _pulse_pos: Vector2 = Vector2.ZERO
 
 var _pause_pressed: bool = false
 var _right_pressed: bool = false
 var _focus_pressed: bool = false
 var _focus_toggled: bool = false
+var _pulse_pressed: bool = false
 var _focus_press_ms: int = 0
 var _force_visible: bool = false
 
@@ -148,6 +153,16 @@ func _release_focus_action() -> void:
 	if InputMap.has_action("focus"):
 		Input.action_release("focus")
 
+func _ensure_pulse_action() -> void:
+	if not InputMap.has_action("empathy_pulse"):
+		InputMap.add_action("empathy_pulse")
+
+func _release_pulse_action() -> void:
+	_pulse_touch_id = -1
+	_pulse_pressed = false
+	if InputMap.has_action("empathy_pulse") and Input.is_action_pressed("empathy_pulse"):
+		Input.action_release("empathy_pulse")
+
 func _get_safe_viewport_size() -> Vector2:
 	if not is_inside_tree():
 		return Vector2(800.0, 450.0)
@@ -198,6 +213,7 @@ func _update_positions() -> void:
 	var focus_max_y := default_right.y - joystick_radius - FOCUS_BUTTON_RADIUS - 14.0
 	var focus_y := clampf(default_right.y - joystick_radius - 48.0, minf(focus_min_y, focus_max_y), maxf(focus_min_y, focus_max_y))
 	_focus_pos = Vector2(focus_x, focus_y)
+	_pulse_pos = Vector2(maxf(vp_size.x * 0.5 + PULSE_BUTTON_RADIUS + 6.0, focus_x - 52.0), focus_y + 2.0)
 
 	if _left_touch_id == -1:
 		_left_base = default_left
@@ -235,6 +251,7 @@ func _release_active_touches() -> void:
 	_reset_left_stick()
 	_reset_right_stick()
 	_release_focus_action()
+	_release_pulse_action()
 	if had_focus:
 		focus_toggled.emit(false)
 	_pause_pressed = false
@@ -254,6 +271,7 @@ func deactivate() -> void:
 	_reset_left_stick()
 	_reset_right_stick()
 	_release_focus_action()
+	_release_pulse_action()
 	if had_focus:
 		focus_toggled.emit(false)
 	_pause_pressed = false
@@ -365,6 +383,9 @@ func _cancel_touch(touch_id: int) -> void:
 		if had_focus:
 			focus_toggled.emit(false)
 		queue_redraw()
+	elif touch_id == _pulse_touch_id:
+		_release_pulse_action()
+		queue_redraw()
 	elif touch_id == _pause_touch_id:
 		_pause_touch_id = -1
 		_pause_pressed = false
@@ -396,7 +417,7 @@ func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> void:
 		if pos.y < hud_insets.position.y + 46.0:
 			return
 
-		# 2. Botón táctil de Modo Enfoque (zona derecha segura encima del joystick derecho)
+		# 2. Botón táctil de Modo Enfoque y Botón Pulso de Empatía
 		if show_focus_button and _focus_touch_id == -1 and pos.x >= vp_half_x and pos.distance_squared_to(_focus_pos) <= FOCUS_HIT_RADIUS_SQ:
 			_focus_touch_id = touch_id
 			_focus_pressed = true
@@ -404,6 +425,13 @@ func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> void:
 			_focus_toggled = not _focus_toggled
 			_sync_focus_action()
 			focus_toggled.emit(_focus_toggled)
+			queue_redraw()
+			return
+		if show_focus_button and _pulse_touch_id == -1 and pos.x >= vp_half_x and pos.distance_squared_to(_pulse_pos) <= PULSE_HIT_RADIUS_SQ:
+			_pulse_touch_id = touch_id
+			_pulse_pressed = true
+			_ensure_pulse_action()
+			Input.action_press("empathy_pulse")
 			queue_redraw()
 			return
 
@@ -445,6 +473,9 @@ func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> void:
 				_focus_toggled = false
 				_sync_focus_action()
 				focus_toggled.emit(false)
+			queue_redraw()
+		elif touch_id == _pulse_touch_id:
+			_release_pulse_action()
 			queue_redraw()
 		elif touch_id == _pause_touch_id:
 			_pause_touch_id = -1
@@ -665,6 +696,17 @@ func _draw() -> void:
 			var f_sz := focus_font.get_string_size(f_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, f_size)
 			var f_col := Color(1.0, 0.96, 0.85, fa) if _focus_toggled else Color(1.0, 0.88, 0.68, fa)
 			draw_string(focus_font, _focus_pos + Vector2(-f_sz.x * 0.5, f_sz.y * 0.30), f_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, f_size, f_col)
+
+		# 3b. Botón táctil Pulso de Empatía ("PULSO")
+		var pa := active_alpha if _pulse_pressed else maxf(_right_alpha, resting_alpha)
+		var pulse_bg := Color(0.18, 0.58, 0.72, 0.90 * pa) if _pulse_pressed else Color(0.12, 0.24, 0.34, 0.55 * pa)
+		var pulse_border := Color(0.55, 0.96, 1.0, 0.96 * pa)
+		draw_circle(_pulse_pos, PULSE_BUTTON_RADIUS, pulse_bg)
+		draw_arc(_pulse_pos, PULSE_BUTTON_RADIUS, 0.0, TAU, 28, pulse_border, 2.0 if _pulse_pressed else 1.5)
+		if focus_font:
+			var p_txt := "PULSO"
+			var p_sz := focus_font.get_string_size(p_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 8)
+			draw_string(focus_font, _pulse_pos + Vector2(-p_sz.x * 0.5, p_sz.y * 0.30), p_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(0.90, 0.98, 1.0, pa))
 
 	# 4. BOTÓN DE PAUSA ERGONÓMICO SUPERIOR DERECHO (Mínimo 44x44 dp)
 	if show_pause_button and is_inside_tree() and get_tree() and not get_tree().paused:

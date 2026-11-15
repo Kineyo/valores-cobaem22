@@ -17,7 +17,6 @@ enum Phase {
 }
 
 const COURT_MAP_PATH := "res://escenarios/nivel_6_cancha_usos_multiples.png"
-const HIMNO_M4A_PATH := "res://assets/audio/himno.m4a"
 const HIMNO_OGG_PATH := "res://assets/audio/himno.ogg"
 const SFX_VICTORY_PATH := "res://assets/audio/victoria.wav"
 const SFX_BLIP_PATH := "res://assets/audio/ataque.wav"
@@ -42,18 +41,18 @@ const COORDINATOR_SPEECH: Array[String] = [
 const DIRECTOR_SPEECH: Array[String] = COORDINATOR_SPEECH
 
 const RESCUED_STUDENTS_DATA: Array[Dictionary] = [
-	{ "name": "Mateo", "primary": "res://assets/mateo_laboratorio.png", "fallback": "res://assets/characters/mateo_laboratorio/idle.png", "pos": Vector2(700, 285), "cheer": "¡Gracias por ayudarnos!" },
-	{ "name": "María", "primary": "res://assets/maria_cafeteria.png", "fallback": "res://assets/characters/maria_cafeteria/idle.png", "pos": Vector2(780, 285), "cheer": "¡Paz en todo el plantel!" },
-	{ "name": "Valeria", "primary": "res://assets/valeria_plaza.png", "fallback": "res://assets/characters/valeria_plaza/idle.png", "pos": Vector2(860, 285), "cheer": "¡Orgullo CEMSaD 22!" },
-	{ "name": "Fernanda", "primary": "res://assets/fernanda_biblioteca.png", "fallback": "res://assets/characters/fernanda_biblioteca/idle.png", "pos": Vector2(940, 285), "cheer": "¡Bravo, campeón!" },
-	{ "name": "Diego", "primary": "res://assets/diego_computo.png", "fallback": "res://assets/characters/diego_computo/idle.png", "pos": Vector2(700, 452), "cheer": "¡Compañerismo siempre!" },
-	{ "name": "Sofía", "primary": "res://assets/sofia_direccion.png", "fallback": "res://assets/characters/sofia_direccion/idle.png", "pos": Vector2(780, 452), "cheer": "¡Gracias por unirnos!" },
-	{ "name": "Alejandro", "primary": "res://assets/alejandro_cancha.png", "fallback": "res://assets/characters/alejandro_cancha/idle.png", "pos": Vector2(860, 452), "cheer": "¡Juego limpio en la cancha!" },
+	{ "name": "Mateo", "primary": "res://assets/characters/mateo_laboratorio/idle.png", "fallback": "res://assets/characters/mateo_laboratorio/idle.png", "pos": Vector2(700, 285), "cheer": "¡Gracias por ayudarnos!" },
+	{ "name": "María", "primary": "res://assets/characters/maria_cafeteria/idle.png", "fallback": "res://assets/characters/maria_cafeteria/idle.png", "pos": Vector2(780, 285), "cheer": "¡Paz en todo el plantel!" },
+	{ "name": "Valeria", "primary": "res://assets/characters/valeria_plaza/idle.png", "fallback": "res://assets/characters/valeria_plaza/idle.png", "pos": Vector2(860, 285), "cheer": "¡Orgullo CEMSaD 22!" },
+	{ "name": "Fernanda", "primary": "res://assets/characters/fernanda_biblioteca/idle.png", "fallback": "res://assets/characters/fernanda_biblioteca/idle.png", "pos": Vector2(940, 285), "cheer": "¡Bravo, campeón!" },
+	{ "name": "Diego", "primary": "res://assets/characters/diego_computo/idle.png", "fallback": "res://assets/characters/diego_computo/idle.png", "pos": Vector2(700, 452), "cheer": "¡Compañerismo siempre!" },
+	{ "name": "Sofía", "primary": "res://assets/characters/sofia_direccion/idle.png", "fallback": "res://assets/characters/sofia_direccion/idle.png", "pos": Vector2(780, 452), "cheer": "¡Gracias por unirnos!" },
+	{ "name": "Alejandro", "primary": "res://assets/characters/alejandro_cancha/idle.png", "fallback": "res://assets/characters/alejandro_cancha/idle.png", "pos": Vector2(860, 452), "cheer": "¡Juego limpio en la cancha!" },
 ]
 
 const TEACHER_DATA: Dictionary = {
 	"name": "Maestro",
-	"primary": "res://assets/maestro_desinteres_redeemed.png",
+	"primary": "res://assets/characters/maestro_desinteres_redeemed/idle.png",
 	"fallback": "res://assets/characters/maestro_desinteres_redeemed/idle.png",
 	"pos": Vector2(940, 452),
 	"cheer": "¡Digno ejemplo estudiantil!"
@@ -118,6 +117,7 @@ var _final_message_label: Label = null
 var _final_stats_label: Label = null
 var _btn_play_again: Button = null
 var _btn_menu: Button = null
+var _recipient_name_input: LineEdit = null
 
 var _himno_player: AudioStreamPlayer = null
 var _sfx_victory: AudioStreamPlayer = null
@@ -543,6 +543,14 @@ func _build_ui() -> void:
 	_cert_status_label.text = "Generando reconocimientos PDF (Tamaño Carta y 5x7)..."
 	f_vbox.add_child(_cert_status_label)
 
+	_recipient_name_input = LineEdit.new()
+	_recipient_name_input.name = "RecipientNameInput"
+	_recipient_name_input.placeholder_text = "Escribe tu nombre para el certificado (opcional)"
+	_recipient_name_input.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_recipient_name_input.custom_minimum_size = Vector2(360, 32)
+	_recipient_name_input.max_length = 64
+	f_vbox.add_child(_recipient_name_input)
+
 	_btn_export_pdf = Button.new()
 	_btn_export_pdf.name = "BtnExportCertPdf"
 	_btn_export_pdf.text = "Guardar Certificado PDF (Carta y 5x7)"
@@ -730,7 +738,8 @@ func _generate_completion_pdfs() -> void:
 			diff_str = str(gs.get_initial_difficulty_name())
 		elif gs.has_method("difficulty_name"):
 			diff_str = str(gs.difficulty_name())
-	generated_pdf_result = CertificateGeneratorClass.generate_certificates(diff_str)
+	var recipient_name := _recipient_name_input.text.strip_edges() if _recipient_name_input else ""
+	generated_pdf_result = CertificateGeneratorClass.generate_certificates(diff_str, "", recipient_name)
 	if _cert_status_label:
 		if generated_pdf_result.get("success", false):
 			_cert_status_label.text = "PDFs guardados (Carta y 5x7 · Modo %s):\n%s" % [diff_str, str(generated_pdf_result.get("carta_path", "")).get_base_dir()]
@@ -889,10 +898,6 @@ func _get_fx() -> Node:
 	return null
 
 func _load_himno_stream() -> AudioStream:
-	if ResourceLoader.exists(HIMNO_M4A_PATH):
-		var m4a_stream := load(HIMNO_M4A_PATH) as AudioStream
-		if m4a_stream != null:
-			return m4a_stream
 	if ResourceLoader.exists(HIMNO_OGG_PATH):
 		var ogg_stream := load(HIMNO_OGG_PATH) as AudioStream
 		if ogg_stream != null:
