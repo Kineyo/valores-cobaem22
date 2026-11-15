@@ -14,6 +14,8 @@ class_name MobileControls
 
 signal pause_requested
 signal aim_vector_changed(aim_vec: Vector2)
+signal focus_toggled(enabled: bool)
+signal touch_mode_changed(touch_active: bool)
 
 # ==============================================================================
 # PARÁMETROS CONFIGURABLES (INSPECTOR)
@@ -39,6 +41,12 @@ signal aim_vector_changed(aim_vec: Vector2)
 @export var safe_margin: float = 24.0
 ## Si se debe renderizar el botón de pausa flotante dedicado en la esquina superior
 @export var show_pause_button: bool = true
+## Si se debe renderizar el botón táctil de Modo Enfoque (precisión Danmaku 52%)
+@export var show_focus_button: bool = true
+
+const FOCUS_BUTTON_RADIUS: float = 22.0
+const FOCUS_HIT_RADIUS_SQ: float = 784.0 # Radio 28px (>= 44x44 dp ergonómico)
+const FOCUS_HOLD_THRESHOLD_MS: int = 350
 
 # ==============================================================================
 # ESTADO INTERNO Y CONTROL DE TOQUES MULTITÁCTILES
@@ -46,15 +54,20 @@ signal aim_vector_changed(aim_vec: Vector2)
 var _left_touch_id: int = -1
 var _right_touch_id: int = -1
 var _pause_touch_id: int = -1
+var _focus_touch_id: int = -1
 
 var _left_base: Vector2 = Vector2.ZERO
 var _left_pos: Vector2 = Vector2.ZERO
 var _right_base: Vector2 = Vector2.ZERO
 var _right_pos: Vector2 = Vector2.ZERO
 var _pause_pos: Vector2 = Vector2.ZERO
+var _focus_pos: Vector2 = Vector2.ZERO
 
 var _pause_pressed: bool = false
 var _right_pressed: bool = false
+var _focus_pressed: bool = false
+var _focus_toggled: bool = false
+var _focus_press_ms: int = 0
 var _force_visible: bool = false
 
 var _left_alpha: float = 0.0
@@ -75,25 +88,32 @@ var _inputmap_deadzone: float = 0.5
 # CICLO DE VIDA Y DETECCIÓN DE HARDWARE
 # ==============================================================================
 static func is_touch_device() -> bool:
-	return OS.has_feature("mobile") \
+	if OS.has_feature("mobile") \
 		or OS.has_feature("android") \
 		or OS.has_feature("ios") \
 		or OS.has_feature("web_android") \
-		or OS.has_feature("web_ios") \
-		or DisplayServer.is_touchscreen_available() \
-		or bool(ProjectSettings.get_setting("input_devices/pointing/emulate_touch_from_mouse", false))
+		or OS.has_feature("web_ios"):
+		return true
+	# En PC / Web de escritorio, DisplayServer.is_touchscreen_available() devuelve true
+	# artificialmente cuando emulate_touch_from_mouse=true está activo en project.godot.
+	if bool(ProjectSettings.get_setting("input_devices/pointing/emulate_touch_from_mouse", false)):
+		return false
+	return DisplayServer.is_touchscreen_available()
 
 func _ready() -> void:
 	_has_native_touch = is_touch_device()
 	_emulate_touch_from_mouse = bool(ProjectSettings.get_setting("input_devices/pointing/emulate_touch_from_mouse", false))
 	_cache_inputmap_deadzone()
+	_ensure_focus_action()
 
 	# En pantallas táctiles o Android, visible por defecto; en PC, oculto hasta F1 o primer toque físico
 	visible = _has_native_touch or _force_visible
 	mouse_filter = MOUSE_FILTER_PASS
 
 	_update_positions()
-	get_viewport().size_changed.connect(_update_positions)
+	if is_inside_tree() and get_viewport():
+		if not get_viewport().size_changed.is_connected(_update_positions):
+			get_viewport().size_changed.connect(_update_positions)
 
 	if visible:
 		_target_left_alpha = resting_alpha
@@ -104,11 +124,29 @@ func _ready() -> void:
 
 func _cache_inputmap_deadzone() -> void:
 	if InputMap.has_action("move_right"):
-		for ev in InputMap.action_get_events("move_right"):
-			if ev is InputEventJoypadMotion:
-				_inputmap_deadzone = 0.5
-				return
-	_inputmap_deadzone = 0.5
+		_inputmap_deadzone = clampf(InputMap.action_get_deadzone("move_right"), 0.0, 0.9)
+	else:
+		_inputmap_deadzone = 0.5
+
+func _ensure_focus_action() -> void:
+	if not InputMap.has_action("focus"):
+		InputMap.add_action("focus")
+
+func _sync_focus_action() -> void:
+	_ensure_focus_action()
+	if _focus_toggled:
+		if not Input.is_action_pressed("focus"):
+			Input.action_press("focus")
+	else:
+		if Input.is_action_pressed("focus"):
+			Input.action_release("focus")
+
+func _release_focus_action() -> void:
+	_focus_touch_id = -1
+	_focus_pressed = false
+	_focus_toggled = false
+	if InputMap.has_action("focus"):
+		Input.action_release("focus")
 
 func _get_safe_viewport_size() -> Vector2:
 	if not is_inside_tree():
@@ -145,11 +183,21 @@ func get_safe_insets() -> Rect2:
 func _update_positions() -> void:
 	var vp_size := _get_safe_viewport_size()
 	var insets := get_safe_insets()
+	var hud_insets := MobileControls.get_safe_insets_for_viewport(get_viewport(), 6.0) if is_inside_tree() else Rect2(6, 6, 6, 6)
 
 	_pause_pos = Vector2(vp_size.x - insets.size.x - 24.0, maxf(insets.position.y + 16.0, 26.0))
 
 	var default_left := Vector2(insets.position.x + joystick_radius + 20.0, vp_size.y - insets.size.y - joystick_radius - 16.0)
 	var default_right := Vector2(vp_size.x - insets.size.x - joystick_radius - 20.0, vp_size.y - insets.size.y - joystick_radius - 16.0)
+
+	# Botón táctil FOCUS ergonómico encima del joystick derecho (siempre en mitad derecha >= vp_size.x * 0.5)
+	var focus_min_x := vp_size.x * 0.5 + FOCUS_BUTTON_RADIUS + 8.0
+	var focus_max_x := vp_size.x - insets.size.x - FOCUS_BUTTON_RADIUS - 4.0
+	var focus_x := clampf(default_right.x + joystick_radius * 0.35, minf(focus_min_x, focus_max_x), maxf(focus_min_x, focus_max_x))
+	var focus_min_y := hud_insets.position.y + 46.0 + FOCUS_BUTTON_RADIUS + 8.0
+	var focus_max_y := default_right.y - joystick_radius - FOCUS_BUTTON_RADIUS - 14.0
+	var focus_y := clampf(default_right.y - joystick_radius - 48.0, minf(focus_min_y, focus_max_y), maxf(focus_min_y, focus_max_y))
+	_focus_pos = Vector2(focus_x, focus_y)
 
 	if _left_touch_id == -1:
 		_left_base = default_left
@@ -174,14 +222,40 @@ func _process(delta: float) -> void:
 # ==============================================================================
 # ACTIVACIÓN, DESACTIVACIÓN Y GESTIÓN DE MODALES
 # ==============================================================================
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_WM_WINDOW_FOCUS_OUT, NOTIFICATION_PAUSED, NOTIFICATION_EXIT_TREE:
+			_release_active_touches()
+		NOTIFICATION_VISIBILITY_CHANGED:
+			if not visible:
+				_release_active_touches()
+
+func _release_active_touches() -> void:
+	var had_focus := _focus_toggled or (InputMap.has_action("focus") and Input.is_action_pressed("focus"))
+	_reset_left_stick()
+	_reset_right_stick()
+	_release_focus_action()
+	if had_focus:
+		focus_toggled.emit(false)
+	_pause_pressed = false
+	_pause_touch_id = -1
+	if visible and is_active:
+		_target_left_alpha = resting_alpha
+		_target_right_alpha = resting_alpha
+	queue_redraw()
+
 func deactivate() -> void:
 	is_active = false
 	_target_left_alpha = 0.0
 	_target_right_alpha = 0.0
 	_left_alpha = 0.0
 	_right_alpha = 0.0
+	var had_focus := _focus_toggled
 	_reset_left_stick()
 	_reset_right_stick()
+	_release_focus_action()
+	if had_focus:
+		focus_toggled.emit(false)
 	_pause_pressed = false
 	_pause_touch_id = -1
 	queue_redraw()
@@ -197,30 +271,67 @@ func activate() -> void:
 # ==============================================================================
 # MANEJO DE ENTRADA CON COMPUERTA ESTRICTA ANTI-DOBLE EVENTO
 # ==============================================================================
+func _is_gameplay_key(keycode: int) -> bool:
+	return keycode in [
+		KEY_W, KEY_A, KEY_S, KEY_D,
+		KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT,
+		KEY_SPACE, KEY_SHIFT, KEY_I, KEY_J, KEY_K, KEY_L
+	]
+
 func _unhandled_input(event: InputEvent) -> void:
 	# Atajo de depuración en PC (F1 conmuta visibilidad)
-	if event is InputEventKey and event.pressed and not event.echo:
+	if event is InputEventKey and event.pressed and not event.is_echo():
 		if event.keycode == KEY_F1:
 			_force_visible = not _force_visible
 			visible = _force_visible
+			if not visible:
+				_release_active_touches()
 			_target_left_alpha = resting_alpha if visible else 0.0
 			_target_right_alpha = resting_alpha if visible else 0.0
+			touch_mode_changed.emit(visible)
 			queue_redraw()
+			if is_inside_tree() and get_viewport():
+				get_viewport().set_input_as_handled()
 			return
 
-	if not is_active or not visible:
+	if not is_active:
 		return
 	if is_inside_tree():
 		var tree := get_tree()
 		if tree and tree.paused:
 			return
 
-	# 1. Eventos Táctiles Nativos
-	if event is InputEventScreenTouch:
-		# Auto-promoción dinámica si recibimos un toque en hardware híbrido
-		if not _has_native_touch:
+	# Auto-promoción dinámica solo ante toque físico real (ignora emulación de ratón en PC)
+	if event is InputEventScreenTouch and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION:
+		if not visible or not _has_native_touch:
 			_has_native_touch = true
 			visible = true
+			_target_left_alpha = resting_alpha
+			_target_right_alpha = resting_alpha
+			_update_positions()
+			touch_mode_changed.emit(true)
+
+	# Si un jugador en dispositivo híbrido o Android cambia a mando o teclado físico, ocultar joysticks virtuales
+	if visible and not _force_visible:
+		var switched_to_physical: bool = (
+			(event is InputEventJoypadButton and event.is_pressed())
+			or (event is InputEventJoypadMotion and absf((event as InputEventJoypadMotion).axis_value) > 0.35)
+			or (event is InputEventKey and event.is_pressed() and _is_gameplay_key((event as InputEventKey).keycode))
+		)
+		if switched_to_physical:
+			_release_active_touches()
+			visible = false
+			_target_left_alpha = 0.0
+			_target_right_alpha = 0.0
+			touch_mode_changed.emit(false)
+			queue_redraw()
+			return
+
+	if not visible:
+		return
+
+	# 1. Eventos Táctiles Nativos
+	if event is InputEventScreenTouch:
 		# Manejo de cancelaciones del SO (llamadas, notificaciones, gestos)
 		if event.is_canceled():
 			_cancel_touch(event.index)
@@ -231,7 +342,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_handle_drag(event.index, event.position)
 
 	# 2. Eventos de Ratón (Solo permitidos en PC sin pantalla táctil y sin emulación activa)
-	elif event is InputEventMouseButton:
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if _has_native_touch or _emulate_touch_from_mouse:
 			return
 		_handle_touch(0, event.pressed, event.position)
@@ -248,6 +359,12 @@ func _cancel_touch(touch_id: int) -> void:
 	elif touch_id == _right_touch_id:
 		_target_right_alpha = resting_alpha
 		_reset_right_stick()
+	elif touch_id == _focus_touch_id:
+		var had_focus := _focus_toggled
+		_release_focus_action()
+		if had_focus:
+			focus_toggled.emit(false)
+		queue_redraw()
 	elif touch_id == _pause_touch_id:
 		_pause_touch_id = -1
 		_pause_pressed = false
@@ -255,7 +372,7 @@ func _cancel_touch(touch_id: int) -> void:
 
 func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> void:
 	var vp_size := _get_safe_viewport_size()
-	var insets := get_safe_insets()
+	var hud_insets := MobileControls.get_safe_insets_for_viewport(get_viewport(), 6.0) if is_inside_tree() else Rect2(6, 6, 6, 6)
 	var vp_half_x := vp_size.x * 0.5
 
 	if pressed:
@@ -264,8 +381,8 @@ func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> void:
 		if show_pause_button:
 			pause_hit = pos.distance_squared_to(_pause_pos) <= 1600.0 # Radio 40px
 		else:
-			# Zona de respaldo táctil para el botón del HUD respetando safe area
-			var hud_pause_rect := Rect2(vp_size.x - insets.size.x - 104.0, insets.position.y, 104.0 + insets.size.x, 52.0)
+			# Zona de respaldo táctil alineada exactamente con BtnPauseHud
+			var hud_pause_rect := Rect2(vp_size.x - hud_insets.size.x - 104.0, hud_insets.position.y, 104.0 + hud_insets.size.x, 52.0)
 			pause_hit = hud_pause_rect.has_point(pos)
 
 		if pause_hit:
@@ -276,10 +393,21 @@ func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> void:
 			return
 
 		# Ignorar toques sobre la franja superior del HUD
-		if pos.y < insets.position.y + 46.0:
+		if pos.y < hud_insets.position.y + 46.0:
 			return
 
-		# 2. Joystick Izquierdo (Mitad Izquierda)
+		# 2. Botón táctil de Modo Enfoque (zona derecha segura encima del joystick derecho)
+		if show_focus_button and _focus_touch_id == -1 and pos.x >= vp_half_x and pos.distance_squared_to(_focus_pos) <= FOCUS_HIT_RADIUS_SQ:
+			_focus_touch_id = touch_id
+			_focus_pressed = true
+			_focus_press_ms = Time.get_ticks_msec()
+			_focus_toggled = not _focus_toggled
+			_sync_focus_action()
+			focus_toggled.emit(_focus_toggled)
+			queue_redraw()
+			return
+
+		# 3. Joystick Izquierdo (Mitad Izquierda)
 		if pos.x < vp_half_x and _left_touch_id == -1:
 			_left_touch_id = touch_id
 			_left_base = _clamp_base_pos(pos, true)
@@ -290,7 +418,7 @@ func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> void:
 			queue_redraw()
 			return
 
-		# 3. Joystick Derecho (Mitad Derecha - Disparo y Puntería de Virtud)
+		# 4. Joystick Derecho (Mitad Derecha - Disparo y Puntería de Virtud)
 		if pos.x >= vp_half_x and _right_touch_id == -1:
 			_right_touch_id = touch_id
 			_right_base = _clamp_base_pos(pos, false)
@@ -310,6 +438,14 @@ func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> void:
 		elif touch_id == _right_touch_id:
 			_target_right_alpha = resting_alpha
 			_reset_right_stick()
+		elif touch_id == _focus_touch_id:
+			_focus_touch_id = -1
+			_focus_pressed = false
+			if _focus_toggled and (Time.get_ticks_msec() - _focus_press_ms) >= FOCUS_HOLD_THRESHOLD_MS:
+				_focus_toggled = false
+				_sync_focus_action()
+				focus_toggled.emit(false)
+			queue_redraw()
 		elif touch_id == _pause_touch_id:
 			_pause_touch_id = -1
 			_pause_pressed = false
@@ -318,18 +454,19 @@ func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> void:
 func _clamp_base_pos(pos: Vector2, is_left: bool) -> Vector2:
 	var vp_size := _get_safe_viewport_size()
 	var insets := get_safe_insets()
-	var min_y := insets.position.y + 44.0 + joystick_radius
+	var hud_insets := MobileControls.get_safe_insets_for_viewport(get_viewport(), 6.0) if is_inside_tree() else Rect2(6, 6, 6, 6)
+	var min_y := maxf(insets.position.y + 44.0, hud_insets.position.y + 46.0) + joystick_radius
 	var max_y := vp_size.y - insets.size.y - joystick_radius
-	var clamped_y := clampf(pos.y, min_y, max_y)
+	var clamped_y := clampf(pos.y, minf(min_y, max_y), maxf(min_y, max_y))
 
 	if is_left:
 		var min_x := insets.position.x + joystick_radius
 		var max_x := (vp_size.x * 0.5) - joystick_radius - 8.0
-		return Vector2(clampf(pos.x, min_x, max_x), clamped_y)
+		return Vector2(clampf(pos.x, minf(min_x, max_x), maxf(min_x, max_x)), clamped_y)
 	else:
 		var min_x := (vp_size.x * 0.5) + joystick_radius + 8.0
 		var max_x := vp_size.x - insets.size.x - joystick_radius
-		return Vector2(clampf(pos.x, min_x, max_x), clamped_y)
+		return Vector2(clampf(pos.x, minf(min_x, max_x), maxf(min_x, max_x)), clamped_y)
 
 func _handle_drag(touch_id: int, pos: Vector2) -> void:
 	if touch_id == _left_touch_id:
@@ -420,6 +557,8 @@ func _reset_left_stick() -> void:
 	Input.action_release("move_right")
 	Input.action_release("move_up")
 	Input.action_release("move_down")
+	if not _focus_toggled and InputMap.has_action("focus"):
+		Input.action_release("focus")
 	queue_redraw()
 
 func _reset_right_stick() -> void:
@@ -510,8 +649,25 @@ func _draw() -> void:
 			var text_size := font.get_string_size(label_text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
 			draw_string(font, _right_pos + Vector2(-text_size.x * 0.5, text_size.y * 0.32), label_text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, Color(0.35, 0.08, 0.12, ra))
 
-	# 3. BOTÓN DE PAUSA ERGONÓMICO SUPERIOR DERECHO (Mínimo 44x44 dp)
-	if show_pause_button and not get_tree().paused:
+	# 3. BOTÓN TÁCTIL DE MODO ENFOQUE (FOCUS / MICRO-DESPLAZAMIENTO DANMAKU)
+	if show_focus_button and (_right_alpha > 0.005 or _focus_toggled or _focus_pressed):
+		var fa := active_alpha if (_focus_toggled or _focus_pressed) else maxf(_right_alpha, resting_alpha)
+		var focus_bg := Color(0.76, 0.16, 0.28, 0.90 * fa) if _focus_toggled else Color(0.18, 0.14, 0.24, 0.50 * fa)
+		var focus_border := Color(1.0, 0.90, 0.42, 0.98 * fa) if _focus_toggled else Color(0.95, 0.72, 0.42, 0.85 * fa)
+		draw_circle(_focus_pos, FOCUS_BUTTON_RADIUS, focus_bg)
+		draw_arc(_focus_pos, FOCUS_BUTTON_RADIUS, 0.0, TAU, 32, focus_border, 2.2 if _focus_toggled else 1.5)
+		if _focus_toggled:
+			draw_arc(_focus_pos, FOCUS_BUTTON_RADIUS - 4.0, 0.0, TAU, 24, Color(1.0, 0.40, 0.50, 0.85 * fa), 1.2)
+		var focus_font := ThemeDB.fallback_font
+		if focus_font:
+			var f_size := 9
+			var f_txt := "FOCUS"
+			var f_sz := focus_font.get_string_size(f_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, f_size)
+			var f_col := Color(1.0, 0.96, 0.85, fa) if _focus_toggled else Color(1.0, 0.88, 0.68, fa)
+			draw_string(focus_font, _focus_pos + Vector2(-f_sz.x * 0.5, f_sz.y * 0.30), f_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, f_size, f_col)
+
+	# 4. BOTÓN DE PAUSA ERGONÓMICO SUPERIOR DERECHO (Mínimo 44x44 dp)
+	if show_pause_button and is_inside_tree() and get_tree() and not get_tree().paused:
 		var pause_bg := Color(0.41, 0.11, 0.20, 0.85) if not _pause_pressed else Color(0.68, 0.16, 0.28, 0.98)
 		var pause_border := Color(1.0, 0.85, 0.35, 0.95)
 		draw_circle(_pause_pos, 22.0, pause_bg)

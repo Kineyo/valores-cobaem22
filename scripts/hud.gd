@@ -51,6 +51,8 @@ var _overlay_alpha: float = 0.6
 var _panel_tweens: Dictionary = {}
 var _overlay_tween: Tween
 var _adapted_touch: bool = false
+var _input_hint_mode: String = "keyboard"
+var _modal_safe_scale: Vector2 = Vector2.ONE
 
 func _ensure_nodes() -> void:
 	if hearts_container == null:
@@ -130,10 +132,21 @@ func _ready() -> void:
 
 	if mobile_controls:
 		mobile_controls.pause_requested.connect(func(): set_paused(not is_paused))
+		if mobile_controls.has_signal("touch_mode_changed"):
+			mobile_controls.touch_mode_changed.connect(_on_touch_mode_changed)
+
+	if not Input.joy_connection_changed.is_connected(_on_joy_connection_changed):
+		Input.joy_connection_changed.connect(_on_joy_connection_changed)
 
 	_adapt_for_touch()
 	_update_safe_area()
-	get_viewport().size_changed.connect(_update_safe_area)
+	if is_inside_tree() and get_viewport():
+		if not get_viewport().size_changed.is_connected(_update_safe_area):
+			get_viewport().size_changed.connect(_update_safe_area)
+
+func _exit_tree() -> void:
+	if Input.joy_connection_changed.is_connected(_on_joy_connection_changed):
+		Input.joy_connection_changed.disconnect(_on_joy_connection_changed)
 
 func _process(delta: float) -> void:
 	if progress_bar == null or runner_icon == null:
@@ -147,38 +160,82 @@ func _process(delta: float) -> void:
 		progress_bar.value = _target_progress
 	var ratio := progress_bar.value / 100.0
 	runner_icon.position.x = roundf(progress_bar.size.x * ratio - runner_icon.size.x * 0.5)
-	if is_inside_tree() and get_tree() and not get_tree().paused:
-		runner_icon.position.y = -9.0 - roundf(absf(sin(Time.get_ticks_msec() * 0.012)) * 2.0)
+	if runner_icon.visible and is_inside_tree() and get_tree() and not get_tree().paused:
+		runner_icon.position.y = -9.0
+
+func _has_active_cutscene() -> bool:
+	for child in get_children():
+		if child is StoryCutscene and child.visible:
+			return true
+	return false
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not (event is InputEventKey and event.pressed and not event.echo):
+	if not is_inside_tree():
 		return
-	var st = get_node_or_null("/root/SceneTransition") if is_inside_tree() else null
+	if _has_active_cutscene():
+		return
+	var st = get_node_or_null("/root/SceneTransition")
 	if st and st.is_busy:
 		return
-	var key: int = event.keycode
-	var handled := true
-	if is_game_finished:
-		# Nota: ESPACIO no reinicia, para no reiniciar sin querer mientras se dispara
-		if key == KEY_R or key == KEY_ENTER or key == KEY_KP_ENTER:
-			_on_retry_pressed()
-		elif key == KEY_ESCAPE:
-			_on_menu_pressed()
+
+	var handled := false
+
+	if event is InputEventKey and event.pressed and not event.is_echo():
+		if not _is_touch_active():
+			_set_input_hint_mode("keyboard")
+		var key: int = event.keycode
+		handled = true
+		if is_game_finished:
+			# Nota: ESPACIO no reinicia, para no reiniciar sin querer mientras se dispara
+			if key == KEY_R or key == KEY_ENTER or key == KEY_KP_ENTER:
+				_on_retry_pressed()
+			elif key == KEY_ESCAPE:
+				_on_menu_pressed()
+			else:
+				handled = false
+		elif is_paused:
+			if key == KEY_ESCAPE or key == KEY_P:
+				set_paused(false)
+			elif key == KEY_R:
+				_on_retry_pressed()
+			elif key == KEY_M:
+				_on_menu_pressed()
+			else:
+				handled = false
 		else:
-			handled = false
-	elif is_paused:
-		if key == KEY_ESCAPE or key == KEY_P:
-			set_paused(false)
-		elif key == KEY_M:
-			_on_menu_pressed()
+			if key == KEY_ESCAPE or key == KEY_P:
+				set_paused(true)
+			else:
+				handled = false
+
+	elif event is InputEventJoypadButton and event.pressed and not event.is_echo():
+		_set_input_hint_mode("gamepad")
+		var btn_idx: int = event.button_index
+		handled = true
+		if is_game_finished:
+			if btn_idx == JOY_BUTTON_A or btn_idx == JOY_BUTTON_START:
+				_on_retry_pressed()
+			elif btn_idx == JOY_BUTTON_B or btn_idx == JOY_BUTTON_BACK:
+				_on_menu_pressed()
+			else:
+				handled = false
+		elif is_paused:
+			if btn_idx == JOY_BUTTON_B or btn_idx == JOY_BUTTON_START:
+				set_paused(false)
+			elif btn_idx == JOY_BUTTON_Y or btn_idx == JOY_BUTTON_BACK:
+				_on_menu_pressed()
+			else:
+				handled = false
 		else:
-			handled = false
-	else:
-		if key == KEY_ESCAPE or key == KEY_P:
-			set_paused(true)
-		else:
-			handled = false
-	if handled:
+			if btn_idx == JOY_BUTTON_START:
+				set_paused(true)
+			else:
+				handled = false
+
+	elif event is InputEventJoypadMotion and absf(event.axis_value) > 0.45:
+		_set_input_hint_mode("gamepad")
+
+	if handled and get_viewport():
 		get_viewport().set_input_as_handled()
 
 func _notification(what: int) -> void:
@@ -205,14 +262,18 @@ func _notification(what: int) -> void:
 
 ## Ajusta posiciones y márgenes del HUD para respetar muescas (notches) y Safe Areas de Android
 func _update_safe_area() -> void:
-	if not is_inside_tree():
+	if not is_inside_tree() or get_viewport() == null:
 		return
 	_ensure_nodes()
+	var vp_size := get_viewport().get_visible_rect().size
 	var insets := MobileControls.get_safe_insets_for_viewport(get_viewport(), 6.0)
+	var avail_w := maxf(260.0, vp_size.x - insets.position.x - insets.size.x)
+	var avail_h := maxf(200.0, vp_size.y - insets.position.y - insets.size.y)
 
 	# 1. Botón de Pausa / Menú: respetar muesca derecha y margen superior
+	var btn_w := 88.0
 	if btn_pause_hud:
-		var btn_w := btn_pause_hud.custom_minimum_size.x if btn_pause_hud.custom_minimum_size.x > 0 else 88.0
+		btn_w = btn_pause_hud.custom_minimum_size.x if btn_pause_hud.custom_minimum_size.x > 0 else 88.0
 		var btn_h := btn_pause_hud.custom_minimum_size.y if btn_pause_hud.custom_minimum_size.y > 0 else 44.0
 		btn_pause_hud.offset_right = -insets.size.x
 		btn_pause_hud.offset_left = -insets.size.x - btn_w
@@ -224,42 +285,144 @@ func _update_safe_area() -> void:
 	if top_panel:
 		top_panel.offset_left = insets.position.x
 		top_panel.offset_top = insets.position.y
-		var btn_w := btn_pause_hud.custom_minimum_size.x if btn_pause_hud else 88.0
 		top_panel.offset_right = -(insets.size.x + btn_w + 8.0)
 		top_panel.offset_bottom = insets.position.y + 44.0
 
-	# 3. Barra de Jefe: centrada pero respetando el margen superior de la muesca
+	var top_bar_w := vp_size.x - insets.position.x - (insets.size.x + btn_w + 8.0)
+	if progress_bar:
+		progress_bar.custom_minimum_size.x = 74.0 if top_bar_w < 660.0 else 110.0
+	if title_label:
+		title_label.custom_minimum_size.x = 90.0 if top_bar_w < 660.0 else 140.0
+	if difficulty_label:
+		difficulty_label.visible = top_bar_w >= 580.0
+
+	# 3. Barra de Jefe: centrada pero respetando el margen superior de la muesca y ancho disponible
 	if boss_bar_container:
-		boss_bar_container.offset_top = insets.position.y + 46.0
-		boss_bar_container.offset_bottom = insets.position.y + 80.0
+		var boss_half_w := minf(170.0, avail_w * 0.46)
+		boss_bar_container.offset_left = -boss_half_w
+		boss_bar_container.offset_right = boss_half_w
+		boss_bar_container.offset_top = insets.position.y + 48.0
+		boss_bar_container.offset_bottom = insets.position.y + 82.0
 
-	# 4. Texto de controles / pie de pantalla: respetar barra de gestos inferior
+	# 4. Texto de controles / pie de pantalla: respetar muescas laterales y barra de gestos inferior
 	if controls_label:
-		controls_label.offset_bottom = -maxf(6.0, insets.size.y)
+		var bottom_inset := maxf(6.0, insets.size.y)
+		controls_label.offset_left = insets.position.x + 10.0
+		controls_label.offset_right = -insets.size.x - 10.0
+		controls_label.offset_bottom = -bottom_inset
+		controls_label.offset_top = -bottom_inset - 34.0
+		controls_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		controls_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 
-## Adapta los textos de los botones modales e instrucciones para pantallas táctiles
+	# 5. Escala segura para modales en pantallas compactas o con notches amplios
+	var modal_s := minf(1.0, minf((avail_w - 16.0) / 540.0, (avail_h - 16.0) / 330.0))
+	_modal_safe_scale = Vector2(maxf(0.68, modal_s), maxf(0.68, modal_s))
+	for panel in [pause_panel, game_over_panel, victory_panel]:
+		if panel and panel.visible:
+			panel.pivot_offset = panel.size * 0.5
+			panel.scale = _modal_safe_scale
+
+	_refresh_controls_footer(avail_w)
+
+func _is_touch_active() -> bool:
+	if mobile_controls and mobile_controls.visible:
+		return true
+	return MobileControls.is_touch_device()
+
+func _on_touch_mode_changed(touch_active: bool) -> void:
+	_adapted_touch = false
+	_input_hint_mode = "touch" if touch_active else ("gamepad" if not Input.get_connected_joypads().is_empty() else "keyboard")
+	_adapt_for_touch()
+
+func _on_joy_connection_changed(_device: int, _connected: bool) -> void:
+	if _is_touch_active():
+		return
+	_input_hint_mode = "gamepad" if not Input.get_connected_joypads().is_empty() else "keyboard"
+	_refresh_controls_footer()
+
+func _set_input_hint_mode(mode: String) -> void:
+	if _input_hint_mode == mode:
+		return
+	_input_hint_mode = mode
+	_refresh_controls_footer()
+
+func _refresh_controls_footer(avail_w: float = -1.0) -> void:
+	if controls_label == null:
+		return
+	if avail_w < 0.0:
+		if is_inside_tree() and get_viewport():
+			var vp_size := get_viewport().get_visible_rect().size
+			var insets := MobileControls.get_safe_insets_for_viewport(get_viewport(), 6.0)
+			avail_w = maxf(260.0, vp_size.x - insets.position.x - insets.size.x)
+		else:
+			avail_w = 800.0
+
+	var mode := "touch" if _is_touch_active() else _input_hint_mode
+	match mode:
+		"touch":
+			if avail_w >= 640.0:
+				controls_label.add_theme_font_size_override("font_size", 11)
+				controls_label.text = "Izq: mover · Der: virtud · FOCUS: precisión · Pausa ↗"
+			else:
+				controls_label.add_theme_font_size_override("font_size", 10)
+				controls_label.text = "Izq: mover · Der: virtud · FOCUS"
+		"gamepad":
+			if avail_w >= 640.0:
+				controls_label.add_theme_font_size_override("font_size", 11)
+				controls_label.text = "Stick Izq: mover · Stick Der / A: virtud · LB: enfoque · Start: pausa"
+			else:
+				controls_label.add_theme_font_size_override("font_size", 10)
+				controls_label.text = "Stick Izq: mover · A: virtud · LB: enfoque · Start: pausa"
+		_:
+			if avail_w >= 680.0:
+				controls_label.add_theme_font_size_override("font_size", 12)
+				controls_label.text = "WASD / Flechas: mover (3/4) · Espacio: virtud · Shift: enfoque · Esc: pausa"
+			else:
+				controls_label.add_theme_font_size_override("font_size", 10)
+				controls_label.text = "WASD: mover · Espacio: virtud · Shift: enfoque · Esc: pausa"
+
+## Adapta los textos de los botones modales e instrucciones según plataforma/táctil
 func _adapt_for_touch() -> void:
 	if _adapted_touch:
 		return
 	_adapted_touch = true
-	if not MobileControls.is_touch_device():
-		return
-	if btn_resume:
-		btn_resume.text = "Continuar ▶"
-	if btn_pause_retry:
-		btn_pause_retry.text = "Reiniciar nivel ↺"
-	if btn_pause_menu:
-		btn_pause_menu.text = "Menú principal ⌂"
-	if btn_retry:
-		btn_retry.text = "Reintentar ↺"
-	if btn_menu_go:
-		btn_menu_go.text = "Menú principal ⌂"
-	if btn_play_again:
-		btn_play_again.text = "Jugar de nuevo ▶"
-	if btn_menu_vic:
-		btn_menu_vic.text = "Menú principal ⌂"
-	if controls_label:
-		controls_label.text = "Joystick Izq: mover (3/4) · Joystick Der: virtud · ❚❚ MENÚ: pausa"
+	var is_touch := _is_touch_active()
+	if is_touch:
+		_input_hint_mode = "touch"
+		if btn_resume:
+			btn_resume.text = "Continuar ▶"
+		if btn_pause_retry:
+			btn_pause_retry.text = "Reiniciar nivel ↺"
+		if btn_pause_menu:
+			btn_pause_menu.text = "Menú principal ⌂"
+		if btn_retry:
+			btn_retry.text = "Reintentar ↺"
+		if btn_menu_go:
+			btn_menu_go.text = "Menú principal ⌂"
+		if btn_play_again:
+			btn_play_again.text = "Jugar de nuevo ▶"
+		if btn_menu_vic:
+			btn_menu_vic.text = "Menú principal ⌂"
+	else:
+		if _input_hint_mode == "touch":
+			_input_hint_mode = "gamepad" if not Input.get_connected_joypads().is_empty() else "keyboard"
+		elif not Input.get_connected_joypads().is_empty():
+			_input_hint_mode = "gamepad"
+		if btn_resume:
+			btn_resume.text = "Continuar (Esc)"
+		if btn_pause_retry:
+			btn_pause_retry.text = "Reiniciar nivel (R)"
+		if btn_pause_menu:
+			btn_pause_menu.text = "Menú principal (M)"
+		if btn_retry:
+			btn_retry.text = "Reintentar (Enter / R)"
+		if btn_menu_go:
+			btn_menu_go.text = "Menú principal (Esc)"
+		if btn_play_again:
+			btn_play_again.text = "Jugar de nuevo (Enter)"
+		if btn_menu_vic:
+			btn_menu_vic.text = "Menú principal (Esc)"
+	_refresh_controls_footer()
 
 func set_paused(paused: bool) -> void:
 	if paused == is_paused or is_game_finished:
@@ -311,11 +474,11 @@ func update_quota(defeated: int, quota: int) -> void:
 	_ensure_nodes()
 	if quota_label:
 		if defeated >= quota:
-			quota_label.text = "⚡ ¡Jefe Activo!"
-			quota_label.modulate = Color(1.0, 0.45, 0.55)
+			quota_label.text = "Jefe en el área"
+			quota_label.modulate = Color(0.92, 0.48, 0.52)
 		else:
 			quota_label.text = "Antivalores: %d/%d" % [defeated, quota]
-			quota_label.modulate = Color(1.0, 0.95, 0.75)
+			quota_label.modulate = Color(0.88, 0.9, 0.94)
 
 func show_boss_bar(boss_name: String, current_hp: int, max_hp: int) -> void:
 	_ensure_nodes()
@@ -411,19 +574,19 @@ func show_intro(level_title: String, diff_name: String = "") -> void:
 	if intro_banner == null:
 		return
 	if diff_name != "":
-		intro_banner.text = "¡%s!\nDificultad: %s" % [level_title, diff_name]
+		intro_banner.text = "%s\nDificultad: %s" % [level_title, diff_name]
 	else:
-		intro_banner.text = "¡%s!" % level_title
+		intro_banner.text = level_title
 	intro_banner.visible = true
 	intro_banner.modulate.a = 0.0
 	intro_banner.pivot_offset = intro_banner.size * 0.5
-	intro_banner.scale = Vector2(0.5, 0.5)
+	intro_banner.scale = Vector2(0.96, 0.96)
 	var tw := create_tween()
 	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	tw.tween_interval(0.35)
+	tw.tween_interval(0.25)
 	tw.set_parallel(true)
-	tw.tween_property(intro_banner, "modulate:a", 1.0, 0.2)
-	tw.tween_property(intro_banner, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(intro_banner, "modulate:a", 1.0, 0.22)
+	tw.tween_property(intro_banner, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.set_parallel(false)
 	tw.tween_interval(1.4)
 	tw.set_parallel(true)
@@ -443,15 +606,15 @@ func show_level_complete(level_name: String) -> void:
 	_ensure_nodes()
 	if intro_banner == null:
 		return
-	intro_banner.text = "¡NIVEL SUPERADO!\n%s" % level_name
+	intro_banner.text = "Zona completada\n%s" % level_name
 	intro_banner.visible = true
 	intro_banner.modulate.a = 0.0
 	intro_banner.pivot_offset = intro_banner.size * 0.5
-	intro_banner.scale = Vector2(0.5, 0.5)
+	intro_banner.scale = Vector2(0.96, 0.96)
 	var tw := create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(intro_banner, "modulate:a", 1.0, 0.25)
-	tw.tween_property(intro_banner, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(intro_banner, "modulate:a", 1.0, 0.22)
+	tw.tween_property(intro_banner, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.set_parallel(false)
 	tw.tween_interval(1.2)
 	tw.set_parallel(true)
@@ -506,12 +669,12 @@ func _show_panel(panel: Control, focus_button: Button = null) -> void:
 	_kill_panel_tween(panel)
 	panel.visible = true
 	panel.pivot_offset = panel.size * 0.5
-	panel.scale = Vector2.ONE
+	panel.scale = _modal_safe_scale
 	panel.modulate.a = 1.0
 
 	var tw := panel.create_tween().set_parallel(true)
 	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	tw.tween_property(panel, "scale", Vector2.ONE, 0.28).from(Vector2(0.85, 0.85)).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(panel, "scale", _modal_safe_scale, 0.2).from(_modal_safe_scale * 0.96).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(panel, "modulate:a", 1.0, 0.16).from(0.0)
 	_panel_tweens[panel] = tw
 
@@ -559,10 +722,12 @@ func _fade_overlay(show: bool) -> void:
 
 func _on_retry_pressed() -> void:
 	set_paused(false)
-	get_tree().paused = false
+	if is_inside_tree() and get_tree():
+		get_tree().paused = false
 	restart_game.emit()
 
 func _on_menu_pressed() -> void:
 	set_paused(false)
-	get_tree().paused = false
+	if is_inside_tree() and get_tree():
+		get_tree().paused = false
 	go_to_menu.emit()

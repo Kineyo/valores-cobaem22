@@ -10,6 +10,7 @@ signal health_changed(current_hp: int, max_hp: int)
 signal attack_telegraphed(attack_name: String, duration: float)
 signal redeemed(boss: Boss)
 signal spell_card_changed(phase: int, spell_name: String)
+signal special_phase_message(message: String)
 
 enum BossType {
 	APATIA,        ## Nivel 1: Sombra de la Apatía (Acceso / Lab. D)
@@ -32,6 +33,91 @@ enum State {
 }
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile.tscn")
+const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
+
+const MAX_ACTIVE_CLONES := 3
+const MAX_SUMMONED_ENEMIES := 5
+const DANMAKU_CYCLE_PERIOD := 7.0
+const DANMAKU_ACTIVE_WINDOW := 5.0
+const COVER_VANISH_DURATION := 3.0
+const CIBER_TELEPORT_INTERVAL := 10.0
+
+const RESCUE_STUDENTS_DATA := [
+	{ "name": "Mateo", "tex": "res://assets/characters/mateo_laboratorio/idle.png", "virtue": "¡Rigor Científico!", "color": Color(0.35, 0.90, 1.0) },
+	{ "name": "María", "tex": "res://assets/characters/maria_cafeteria/idle.png", "virtue": "¡Empatía!", "color": Color(1.0, 0.72, 0.35) },
+	{ "name": "Valeria", "tex": "res://assets/characters/valeria_plaza/idle.png", "virtue": "¡Civismo!", "color": Color(0.55, 0.95, 0.55) },
+	{ "name": "Fernanda", "tex": "res://assets/characters/fernanda_biblioteca/idle.png", "virtue": "¡Sabiduría!", "color": Color(0.75, 0.65, 1.0) },
+	{ "name": "Diego", "tex": "res://assets/characters/diego_computo/idle.png", "virtue": "¡Ciudadanía Digital!", "color": Color(0.30, 0.95, 0.85) },
+	{ "name": "Sofía", "tex": "res://assets/characters/sofia_direccion/idle.png", "virtue": "¡Respeto!", "color": Color(1.0, 0.88, 0.35) },
+	{ "name": "Alejandro", "tex": "res://assets/characters/alejandro_cancha/idle.png", "virtue": "¡Juego Limpio!", "color": Color(1.0, 0.55, 0.45) },
+]
+
+## Clon falso de Titanor: parece idéntico visualmente y engaña al jugador, pero no daña la barra real del jefe.
+class BossFakeClone extends Area2D:
+	var owner_boss: Boss = null
+	var base_color: Color = Color(0.50, 0.15, 0.35)
+	var accent_color: Color = Color(0.95, 0.30, 0.55)
+	var phase_offset: float = 0.0
+	var _anim_t: float = 0.0
+
+	func _init(p_owner: Boss, p_base_col: Color, p_acc_col: Color, p_phase: float = 0.0) -> void:
+		owner_boss = p_owner
+		base_color = p_base_col
+		accent_color = p_acc_col
+		phase_offset = p_phase
+
+	func _ready() -> void:
+		y_sort_enabled = true
+		add_to_group("enemies")
+		add_to_group("boss_clones")
+		collision_layer = 8
+		collision_mask = 6
+
+		var col := CollisionShape2D.new()
+		var rect := RectangleShape2D.new()
+		rect.size = Vector2(40, 44)
+		col.shape = rect
+		col.position = Vector2(0, -20)
+		add_child(col)
+
+		var lbl := Label.new()
+		lbl.text = "Titanor"
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.position = Vector2(-48, -86)
+		lbl.size = Vector2(96, 20)
+		lbl.add_theme_font_size_override("font_size", 11)
+		lbl.add_theme_color_override("font_color", Color(0.95, 0.78, 0.88))
+		lbl.add_theme_color_override("font_outline_color", Color(0.08, 0.06, 0.12))
+		lbl.add_theme_constant_override("outline_size", 4)
+		add_child(lbl)
+
+	func _process(delta: float) -> void:
+		_anim_t += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var breathe := sin(_anim_t * 4.0 + phase_offset) * 2.0
+		var shadow_col := Color(0.05, 0.06, 0.10, 0.32)
+		draw_rect(Rect2(-22, -6, 44, 10), shadow_col)
+		var body_rect := Rect2(-18, -48 + breathe, 36, 42)
+		var head_rect := Rect2(-14, -66 + breathe, 28, 22)
+		draw_rect(body_rect.grow(2.0), base_color.darkened(0.4))
+		draw_rect(head_rect.grow(2.0), base_color.darkened(0.4))
+		draw_rect(body_rect, base_color * Color(1.0, 1.0, 1.0, 0.88))
+		draw_rect(head_rect, base_color.lightened(0.1) * Color(1.0, 1.0, 1.0, 0.88))
+		draw_rect(Rect2(-24, -46 + breathe, 10, 14), accent_color * Color(1.0, 1.0, 1.0, 0.85))
+		draw_rect(Rect2(14, -46 + breathe, 10, 14), accent_color * Color(1.0, 1.0, 1.0, 0.85))
+		draw_rect(Rect2(-8, -62 + breathe, 5, 5), Color(1.0, 0.2, 0.4, 0.9))
+		draw_rect(Rect2(3, -62 + breathe, 5, 5), Color(1.0, 0.2, 0.4, 0.9))
+
+	func hit_by_attack(_attacker_pos: Variant = null, _damage: int = 1) -> void:
+		var fx: Node = owner_boss._get_fx() if owner_boss and is_instance_valid(owner_boss) else null
+		if fx and get_parent():
+			fx.burst(get_parent(), global_position + Vector2(0, -24), Color(0.75, 0.45, 1.0), 12, 130.0)
+			fx.floating_text(get_parent(), global_position + Vector2(0, -48), "¡Clon Falso!", Color(0.82, 0.72, 1.0), 13)
+		if owner_boss and is_instance_valid(owner_boss):
+			owner_boss.active_clones.erase(self)
+		queue_free()
 
 const BOSS_DATA := {
 	BossType.APATIA: {
@@ -80,7 +166,7 @@ const BOSS_DATA := {
 		"virtue": "¡Empatía Digital y Honestidad!",
 		"intro_dialog": "«Un mensaje anónimo no le hace daño a nadie...»",
 		"redeemed_dialog": "«¡Las palabras en pantalla también tienen corazón!»",
-		"attack_names": ["Cadenas de Rumores", "Falla Espectral"],
+		"attack_names": ["Enjambre Ciber-Teledirigido", "Teletransporte Glitch + Ráfaga", "Cadenas de Rumores Teledirigidas"],
 	},
 	BossType.PLAGIO: {
 		"name": "Plagiatrix, el Señor de la Falsedad",
@@ -177,6 +263,33 @@ var _barrier_timer: float = 0.0
 # Nodos visuales y áreas
 var _hitbox: Area2D
 var _collision_shape: CollisionShape2D
+var _boss_texture: Texture2D = null
+
+# Mecánicas progresivas y fases finales de Titanor (10 HP y 5 HP)
+var last_special_message: String = ""
+var teleport_count: int = 0
+var active_clones: Array[Node2D] = []
+var summoned_enemies_count: int = 0
+var rescued_attack_students: Array[Node2D] = []
+var desperation_fog_active: bool = false
+
+var _summoned_enemies: Array[Node] = []
+var _ten_hp_triggered: bool = false
+var _five_hp_triggered: bool = false
+var _teleport_timer: float = 4.5
+var _ciber_teleport_timer: float = CIBER_TELEPORT_INTERVAL
+var _clone_timer: float = 6.0
+var _ten_hp_cycle_elapsed: float = 0.0
+var _ten_hp_fire_cooldown: float = 0.0
+var _is_covered_and_vanished: bool = false
+var _cover_vanish_timer: float = 0.0
+var _cover_cooldown_timer: float = 2.0
+var _is_transforming: bool = false
+var _climax_elapsed: float = 0.0
+var _climax_hp_step: int = 0
+var _pause_banner_layer: CanvasLayer = null
+var _pause_banner_active: bool = false
+var _pause_banner_timer: float = 0.0
 
 func _get_fx() -> Node:
 	if is_inside_tree():
@@ -215,6 +328,11 @@ func _ready() -> void:
 	if fx:
 		fx.shake(5.0, 0.4)
 
+func _exit_tree() -> void:
+	_dismiss_dramatic_pause()
+	_clear_fake_clones()
+	_clear_rescue_students()
+
 func _setup_nodes() -> void:
 	collision_layer = 8
 	collision_mask = 1
@@ -238,9 +356,9 @@ func _setup_nodes() -> void:
 		_hitbox.add_to_group("enemies")
 		var hit_shape := CollisionShape2D.new()
 		var rect := RectangleShape2D.new()
-		rect.size = Vector2(44, 52)
+		rect.size = Vector2(44, 48)
 		hit_shape.shape = rect
-		hit_shape.position = Vector2(0, -26)
+		hit_shape.position = Vector2(0, -20)
 		_hitbox.add_child(hit_shape)
 		_hitbox.body_entered.connect(_on_hitbox_body_entered)
 		_hitbox.area_entered.connect(_on_hitbox_area_entered)
@@ -254,15 +372,48 @@ func _setup_nodes() -> void:
 		if not _hitbox.area_entered.is_connected(_on_hitbox_area_entered):
 			_hitbox.area_entered.connect(_on_hitbox_area_entered)
 
+func _load_boss_texture(res_path: String) -> Texture2D:
+	if ResourceLoader.exists(res_path):
+		var loaded = ResourceLoader.load(res_path)
+		if loaded is Texture2D:
+			return loaded
+	var abs_path := ProjectSettings.globalize_path(res_path)
+	if FileAccess.file_exists(abs_path):
+		var img := Image.load_from_file(abs_path)
+		if img != null and not img.is_empty():
+			return ImageTexture.create_from_image(img)
+	return null
+
 func setup_boss_type(type: BossType) -> void:
 	boss_type = type
 	var data: Dictionary = BOSS_DATA[boss_type]
 	max_hp = data["max_hp"]
 	current_hp = max_hp
 	move_speed = data["speed"]
+	if boss_type == BossType.CIBERACOSO:
+		detection_range = 1400.0
+		attack_cooldown_range = Vector2(1.1, 1.8)
+	else:
+		detection_range = 400.0
+		attack_cooldown_range = Vector2(1.8, 3.2)
 	_detection_range_sq = detection_range * detection_range
+	_ciber_teleport_timer = CIBER_TELEPORT_INTERVAL
 	_spell_phase = 1
 	_is_spell_transition = false
+	_ten_hp_triggered = false
+	_five_hp_triggered = false
+	_is_covered_and_vanished = false
+	_is_transforming = false
+	desperation_fog_active = false
+	teleport_count = 0
+	summoned_enemies_count = 0
+	last_special_message = ""
+	_clear_fake_clones()
+	_clear_rescue_students()
+	if boss_type == BossType.DESINTERES:
+		_boss_texture = _load_boss_texture("res://assets/characters/maestro_desinteres/idle.png")
+	else:
+		_boss_texture = null
 	apply_difficulty()
 	health_changed.emit(current_hp, max_hp)
 	queue_redraw()
@@ -303,12 +454,61 @@ func set_fog_active(active: bool) -> void:
 
 func _physics_process(delta: float) -> void:
 	_anim_time += delta
-	_roulette_angle += delta * 1.25
+	_roulette_angle += delta * (1.25 + 0.85 * get_missing_hp_ratio() if boss_type == BossType.BULLYING else 1.25)
 
 	if _flash_timer > 0.0:
 		_flash_timer -= delta
 		if _flash_timer <= 0.0:
-			modulate = Color.WHITE
+			modulate = Color.WHITE if not _is_covered_and_vanished else Color(1.0, 1.0, 1.0, 0.06)
+
+	# Actualizar movimiento de clones falsos activos
+	_update_fake_clones(delta)
+
+	# Clímax final a 5 HP: intento de transformación e intervención de alumnos rescatados
+	if _is_transforming:
+		_update_five_hp_transformation_climax(delta)
+		queue_redraw()
+		return
+
+	# Controlar temporizador de cobertura + desaparición (3 segundos)
+	if _is_covered_and_vanished:
+		_cover_vanish_timer -= delta
+		if _cover_vanish_timer <= 0.0:
+			_end_cover_and_vanish()
+
+	# Mecánicas progresivas y fase de 10 HP de Titanor (Jefe Final)
+	if boss_type == BossType.BULLYING and current_state != State.APPEARING and current_state != State.REDEEMED:
+		if current_hp < max_hp and not _five_hp_triggered and not _is_covered_and_vanished and not _is_spell_transition:
+			_teleport_timer -= delta
+			if _teleport_timer <= 0.0:
+				_teleport_timer = maxf(2.2, 5.2 - 2.8 * get_missing_hp_ratio())
+				_perform_boss_teleport()
+
+			_clone_timer -= delta
+			if _clone_timer <= 0.0:
+				_clone_timer = maxf(4.5, 8.5 - 3.5 * get_missing_hp_ratio())
+				_spawn_fake_clones(2 if get_missing_hp_ratio() < 0.5 else 3)
+
+		if _ten_hp_triggered and not _five_hp_triggered:
+			_ten_hp_cycle_elapsed += delta
+			# Danmaku esquivable durante 5 segundos cada 7 segundos
+			if is_ten_hp_danmaku_window_active():
+				_ten_hp_fire_cooldown -= delta
+				if _ten_hp_fire_cooldown <= 0.0:
+					_ten_hp_fire_cooldown = 0.55
+					_fire_ten_hp_danmaku_pattern()
+			if not _is_covered_and_vanished:
+				_cover_cooldown_timer -= delta
+				if _cover_cooldown_timer <= 0.0:
+					_cover_cooldown_timer = 9.0
+					trigger_cover_and_vanish(COVER_VANISH_DURATION)
+
+	# Teletransporte periódico cada 10s para Ciber-Murmullus (Edificio B)
+	if boss_type == BossType.CIBERACOSO and current_state != State.APPEARING and current_state != State.REDEEMED:
+		_ciber_teleport_timer -= delta
+		if _ciber_teleport_timer <= 0.0:
+			_ciber_teleport_timer = CIBER_TELEPORT_INTERVAL
+			_perform_ciberacoso_teleport()
 
 	# Actualizar charcos múltiples (Boss 1 y otros)
 	if not _puddles.is_empty():
@@ -329,7 +529,7 @@ func _physics_process(delta: float) -> void:
 	# Actualizar barrera reflectante (Plagiatrix / Maestro Desinterés)
 	if _barrier_active:
 		_barrier_timer -= delta
-		if _barrier_timer <= 0.0 or current_state == State.STUNNED or current_state == State.REDEEMED:
+		if (_barrier_timer <= 0.0 and not _is_covered_and_vanished) or current_state == State.STUNNED or current_state == State.REDEEMED:
 			_barrier_active = false
 
 	# Transición entre Cartas de Hechizo Danmaku
@@ -390,8 +590,21 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 	queue_redraw()
 
+## Retorna la proporción de vida perdida [0.0 .. 1.0] para escalar dificultad progresiva
+func get_missing_hp_ratio() -> float:
+	if max_hp <= 0:
+		return 0.0
+	return clampf(1.0 - float(current_hp) / float(max_hp), 0.0, 1.0)
+
+## Velocidad efectiva que incrementa conforme Titanor pierde vida
+func get_effective_speed() -> float:
+	if boss_type == BossType.BULLYING:
+		return move_speed * (1.0 + 0.75 * get_missing_hp_ratio())
+	return move_speed
+
 ## Movimiento de merodeo o aproximación táctica
 func _update_idle_movement(delta: float) -> void:
+	var eff_speed := get_effective_speed()
 	if player and is_instance_valid(player) and player.can_control:
 		var dist_sq := global_position.distance_squared_to(player.global_position)
 		if dist_sq <= _detection_range_sq:
@@ -402,16 +615,16 @@ func _update_idle_movement(delta: float) -> void:
 			if boss_type == BossType.BULLYING and _spell_phase == 4:
 				var arena_center := Vector2(720, 450)
 				var to_center := (arena_center - global_position).normalized()
-				velocity = velocity.move_toward(to_center * (move_speed * 0.45), 250.0 * delta)
+				velocity = velocity.move_toward(to_center * (eff_speed * 0.55), 320.0 * delta)
 				return
 
 			if dist_sq > 28900.0: # > 170 px
-				velocity = velocity.move_toward(dir * move_speed, 400.0 * delta)
+				velocity = velocity.move_toward(dir * eff_speed, 460.0 * delta)
 			elif dist_sq < 10000.0: # < 100 px
-				velocity = velocity.move_toward(-dir * (move_speed * 0.75), 400.0 * delta)
+				velocity = velocity.move_toward(-dir * (eff_speed * 0.75), 440.0 * delta)
 			else:
 				var perp := Vector2(-dir.y, dir.x)
-				velocity = velocity.move_toward(perp * (move_speed * 0.65), 320.0 * delta)
+				velocity = velocity.move_toward(perp * (eff_speed * 0.72), 360.0 * delta)
 			return
 	velocity = velocity.move_toward(Vector2.ZERO, 350.0 * delta)
 
@@ -422,13 +635,17 @@ func _start_telegraph() -> void:
 
 	# Selección de ataque según el tipo y la fase activa
 	if boss_type == BossType.BULLYING:
-		# Titanor desata la carta correspondiente a su fase
+		# Titanor desata la carta correspondiente a su fase y telegrafía más rápido con menos vida
 		_current_attack_idx = mini(_spell_phase - 1, attack_names.size() - 1)
-		_state_timer = 0.85
+		_state_timer = maxf(0.45, 0.85 - 0.32 * get_missing_hp_ratio())
 	elif boss_type == BossType.APATIA:
 		# Boss 1: Apatía tiene 3 ataques demandantes y rápidos
 		_current_attack_idx = randi() % (3 if current_hp < (max_hp / 2) else 2)
 		_state_timer = 0.72 # Telegrafiado ágil para exigir reflejos tempranos
+	elif boss_type == BossType.CIBERACOSO:
+		# Edificio B: ataques teledirigidos y teletransporte seguro
+		_current_attack_idx = randi() % attack_names.size()
+		_state_timer = 0.65
 	else:
 		_current_attack_idx = randi() % mini(2, attack_names.size())
 		_state_timer = 0.90
@@ -487,9 +704,14 @@ func _execute_attack() -> void:
 
 		BossType.CIBERACOSO:
 			if _current_attack_idx == 0:
-				_attack_targeted_burst(6, 180.0)
-			else:
+				_attack_ciber_homing_swarm()
+			elif _current_attack_idx == 1:
 				_attack_glitch_teleport_starburst()
+			else:
+				_attack_targeted_burst(6, 200.0)
+				var ciber_origin := global_position + Vector2(0, -20)
+				for k in [-1, 1]:
+					_spawn_homing_boss_bullet(ciber_origin, _attack_dir.rotated(float(k) * 0.35), 205.0, Color(0.45, 0.95, 1.0), 3.1, 3.6)
 
 		BossType.PLAGIO:
 			if _current_attack_idx == 0:
@@ -498,29 +720,30 @@ func _execute_attack() -> void:
 				_attack_rotating_barrier(2.2)
 
 		BossType.BULLYING:
-			# Danmaku Touhou Multi-Fase con Ruletas de Balas y Micro-Hitbox
+			# Danmaku Touhou Multi-Fase + carreras rápidas conforme pierde vida
+			var dash_boost := 1.0 + 0.45 * get_missing_hp_ratio()
 			match _spell_phase:
 				1:
-					if randf() < 0.60:
+					if randf() < 0.55:
 						_attack_danmaku_roulette(2, 16, 170.0)
 					else:
-						_attack_dash_slam(330.0, 0.70)
+						_attack_dash_slam(330.0 * dash_boost, 0.70)
 				2:
-					if randf() < 0.65:
+					if randf() < 0.60:
 						_attack_danmaku_double_spiral(16, 175.0, 1.15)
 					else:
-						_attack_ground_slam(120.0)
+						_attack_dash_slam(360.0 * dash_boost, 0.65)
 				3:
-					if randf() < 0.70:
-						_attack_danmaku_tri_roulette(3, 18, 160.0)
+					if randf() < 0.65:
+						_attack_danmaku_tri_roulette(3, 18, 165.0)
 					else:
 						_attack_targeted_snipe_stream(8, 195.0)
 				_:
 					# Fase 4: Último Hechizo (Clímax Danmaku)
 					if randf() < 0.55:
-						_attack_danmaku_master_climax(20, 165.0)
+						_attack_danmaku_master_climax(20, 170.0)
 					else:
-						_attack_danmaku_double_spiral(20, 185.0, 1.25)
+						_attack_danmaku_double_spiral(20, 190.0, 1.25)
 
 		BossType.DESINTERES:
 			match classroom_index:
@@ -539,7 +762,14 @@ func _execute_attack() -> void:
 
 ## Impactado por un disparo de virtudes o ataque cuerpo a cuerpo del héroe
 func hit_by_attack(attacker_pos: Variant = null, damage: int = 1) -> void:
-	if current_state == State.REDEEMED or current_state == State.APPEARING:
+	if current_state == State.REDEEMED or current_state == State.APPEARING or _is_transforming:
+		return
+
+	if _is_covered_and_vanished:
+		var fx_cov = _get_fx()
+		if fx_cov:
+			var parent_cov = get_parent() if get_parent() else self
+			fx_cov.floating_text(parent_cov, global_position + Vector2(0, -40), "¡CUBIERTO EN LA NIEBLA!", Color(0.7, 0.75, 0.95), 12)
 		return
 
 	# Si está en transición entre cartas de hechizo, absorbe el golpe con cúpula dorada
@@ -559,6 +789,19 @@ func hit_by_attack(attacker_pos: Variant = null, damage: int = 1) -> void:
 			fx_b.floating_text(parent_b, global_position + Vector2(0, -40), "¡ATAJO BLOQUEADO!", Color(0.6, 0.85, 1.0), 12)
 			fx_b.burst(parent_b, global_position + Vector2(0, -24), Color.CYAN, 8, 110.0)
 		return
+
+	# Interceptar umbrales críticos de Titanor (10 HP y 5 HP) salvo daño total de test directo
+	if boss_type == BossType.BULLYING and damage < max_hp:
+		if not _ten_hp_triggered and current_hp - damage <= 10 and current_hp > 5:
+			current_hp = 10
+			health_changed.emit(current_hp, max_hp)
+			_trigger_ten_hp_desperation_phase()
+			return
+		elif _ten_hp_triggered and not _five_hp_triggered and current_hp - damage <= 5:
+			current_hp = 5
+			health_changed.emit(current_hp, max_hp)
+			_trigger_five_hp_final_climax()
+			return
 
 	current_hp = maxi(0, current_hp - damage)
 	health_changed.emit(current_hp, max_hp)
@@ -582,8 +825,8 @@ func hit_by_attack(attacker_pos: Variant = null, damage: int = 1) -> void:
 		var push_dir: Vector2 = (global_position - (attacker_pos as Vector2)).normalized()
 		velocity += push_dir * 95.0
 
-	# Comprobar progresión de Fases Danmaku para Titanor
-	if boss_type == BossType.BULLYING and current_hp > 0:
+	# Comprobar progresión de Fases Danmaku para Titanor (solo antes de su fase de 10 HP)
+	if boss_type == BossType.BULLYING and current_hp > 10 and not _ten_hp_triggered:
 		var hp_ratio := float(current_hp) / float(max_hp)
 		if hp_ratio <= 0.25 and _spell_phase < 4:
 			_trigger_spell_card_phase(4, "¡ÚLTIMO HECHIZO: RESPLANDOR DE LA INCLUSIÓN Y FAIR PLAY!")
@@ -651,11 +894,25 @@ func _grant_phase_clear_reward() -> void:
 
 ## Redención pacífica (filosofía sin violencia): el antivalor mayor se transforma e ilumina
 func redeem() -> void:
+	if current_state == State.REDEEMED:
+		return
 	current_state = State.REDEEMED
 	velocity = Vector2.ZERO
 	_puddles.clear()
 	_barrier_active = false
+	_is_covered_and_vanished = false
+	_is_transforming = false
+	desperation_fog_active = false
+	is_fog_active = false
+	modulate = Color.WHITE
+	_dismiss_dramatic_pause()
+	_clear_fake_clones()
+	_stop_summoned_enemies()
 	_clear_all_enemy_projectiles()
+
+	var lvl := _get_level_node()
+	if lvl and lvl.has_method("set_boss_desperation_fog"):
+		lvl.set_boss_desperation_fog(false)
 
 	if _hitbox:
 		_hitbox.set_deferred("monitoring", false)
@@ -676,14 +933,517 @@ func redeem() -> void:
 		fx.floating_text(get_parent(), hit_pos + Vector2(0, -40), virtue, Color(1.0, 0.95, 0.4), 20)
 
 	_proclaim_phrase(final_dialog, Color(0.9, 1.0, 0.9))
+	if boss_type == BossType.BULLYING and rescued_attack_students.is_empty():
+		_spawn_rescue_students()
 	redeemed.emit(self)
 
 	var tw := create_tween().set_parallel(true)
 	tw.tween_property(self, "scale", Vector2(1.25, 1.25), 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_property(self, "modulate", Color(2.0, 2.0, 1.5, 0.0), 1.5).set_delay(0.4)
 	tw.chain().tween_callback(func():
+		if boss_type != BossType.BULLYING:
+			_clear_rescue_students()
 		queue_free()
 	)
+
+# -----------------------------------------------------------------------------
+# MECÁNICAS PROGRESIVAS DE TITANOR (TELETRANSPORTE, CLONES, 10 HP Y 5 HP)
+# -----------------------------------------------------------------------------
+
+func _get_level_node() -> Node:
+	var p := get_parent()
+	while p != null:
+		if p.has_method("set_boss_desperation_fog") or p is Level:
+			return p
+		p = p.get_parent()
+	return null
+
+func _get_arena_bounds() -> Vector2:
+	var lvl := _get_level_node()
+	if lvl and "map_size" in lvl:
+		return lvl.map_size
+	return Vector2(1440.0, 900.0)
+
+func _is_pos_inside_obstacle(pos: Vector2, margin: float = 28.0) -> bool:
+	var lvl := _get_level_node()
+	if lvl == null or not ("level_data" in lvl):
+		return false
+	var obs_list: Array = lvl.level_data.get("obstacles", [])
+	for obs in obs_list:
+		var rect: Rect2 = obs if obs is Rect2 else Rect2(obs.get("x", 0), obs.get("y", 0), obs.get("w", 0), obs.get("h", 0))
+		if rect.grow(margin).has_point(pos):
+			return true
+	return false
+
+func _find_safe_boss_pos(desired_pos: Vector2, anchor_pos: Vector2) -> Vector2:
+	var bounds := _get_arena_bounds()
+	var cand := Vector2(
+		clampf(desired_pos.x, 90.0, bounds.x - 90.0),
+		clampf(desired_pos.y, 85.0, bounds.y - 85.0)
+	)
+	if not _is_pos_inside_obstacle(cand, 28.0):
+		return cand
+
+	var angles: Array[float] = [0.0, PI, 0.25, -0.25, PI - 0.25, -PI + 0.25, PI * 0.5, -PI * 0.5]
+	var distances: Array[float] = [170.0, 215.0, 260.0, 320.0]
+	for d: float in distances:
+		for ang: float in angles:
+			var alt: Vector2 = anchor_pos + Vector2(cos(ang), sin(ang)) * d
+			alt.x = clampf(alt.x, 90.0, bounds.x - 90.0)
+			alt.y = clampf(alt.y, 85.0, bounds.y - 85.0)
+			if not _is_pos_inside_obstacle(alt, 28.0):
+				return alt
+
+	var y_probes: Array[float] = [anchor_pos.y, global_position.y, bounds.y * 0.62, bounds.y * 0.5, bounds.y * 0.38]
+	var x_offs: Array[float] = [200.0, -200.0, 280.0, -280.0, 380.0, -380.0, 0.0]
+	for y_probe: float in y_probes:
+		for x_off: float in x_offs:
+			var corridor: Vector2 = Vector2(
+				clampf(anchor_pos.x + x_off, 100.0, bounds.x - 100.0),
+				clampf(y_probe, 90.0, bounds.y - 90.0)
+			)
+			if not _is_pos_inside_obstacle(corridor, 24.0):
+				return corridor
+
+	return cand
+
+## Teletransporte táctico de Titanor alrededor de la cancha
+func _perform_boss_teleport() -> void:
+	var parent_node: Node = get_parent() if get_parent() else self
+	var fx := _get_fx()
+	if fx:
+		fx.burst(parent_node, global_position + Vector2(0, -24), Color(0.85, 0.35, 1.0), 16, 140.0)
+
+	var anchor := player.global_position if (player and is_instance_valid(player)) else global_position
+	var ang := randf() * TAU
+	var dist := randf_range(160.0, 240.0)
+	var dest := _find_safe_boss_pos(anchor + Vector2(cos(ang), sin(ang)) * dist, anchor)
+
+	global_position = dest
+	teleport_count += 1
+	if fx:
+		fx.burst(parent_node, global_position + Vector2(0, -24), Color(0.35, 0.90, 1.0), 18, 160.0)
+		fx.floating_text(parent_node, global_position + Vector2(0, -56), "¡Teletransporte!", Color(0.75, 0.92, 1.0), 13)
+	queue_redraw()
+
+## Teletransporte periódico cada 10s del Jefe del Edificio B (evitando obstáculos del corredor)
+func _perform_ciberacoso_teleport() -> void:
+	var parent_node: Node = get_parent() if get_parent() else self
+	var fx := _get_fx()
+	if fx:
+		fx.burst(parent_node, global_position + Vector2(0, -24), Color.CYAN, 16, 140.0)
+
+	var anchor := player.global_position if (player and is_instance_valid(player)) else global_position
+	var side := -1.0 if global_position.x > anchor.x else 1.0
+	var desired := anchor + Vector2(side * randf_range(180.0, 250.0), randf_range(-24.0, 24.0))
+	var dest := _find_safe_boss_pos(desired, anchor)
+
+	global_position = dest
+	teleport_count += 1
+	if fx:
+		fx.burst(parent_node, global_position + Vector2(0, -24), Color.MAGENTA, 16, 140.0)
+		fx.floating_text(parent_node, global_position + Vector2(0, -52), "¡Ciber-Teletransporte!", Color.CYAN, 13)
+	queue_redraw()
+
+func _prune_clones() -> void:
+	var idx := active_clones.size() - 1
+	while idx >= 0:
+		if not is_instance_valid(active_clones[idx]):
+			active_clones.remove_at(idx)
+		idx -= 1
+
+func get_active_clone_count() -> int:
+	_prune_clones()
+	return active_clones.size()
+
+## Duplica al jefe creando clones falsos (solo el Titanor original recibe daño real)
+func _spawn_fake_clones(count: int = 2) -> void:
+	_prune_clones()
+	var can_add := mini(count, MAX_ACTIVE_CLONES - active_clones.size())
+	if can_add <= 0:
+		return
+
+	var parent_node: Node = get_parent() if get_parent() else self
+	var bounds := _get_arena_bounds()
+	var data: Dictionary = BOSS_DATA[boss_type]
+	var fx := _get_fx()
+
+	for i in range(can_add):
+		var ang := randf() * TAU
+		var offset := Vector2(cos(ang), sin(ang)) * randf_range(90.0, 165.0)
+		var spawn_pos := global_position + offset
+		spawn_pos.x = clampf(spawn_pos.x, 100.0, bounds.x - 100.0)
+		spawn_pos.y = clampf(spawn_pos.y, 100.0, bounds.y - 100.0)
+
+		var clone := BossFakeClone.new(self, data["color"], data["accent_color"], randf() * TAU)
+		clone.position = spawn_pos
+		parent_node.add_child(clone)
+		active_clones.append(clone)
+		if fx:
+			fx.burst(parent_node, spawn_pos + Vector2(0, -24), Color(0.75, 0.45, 1.0), 10, 90.0)
+
+	if fx:
+		fx.floating_text(parent_node, global_position + Vector2(0, -64), "¡Clones de Sombra! ¡Encuentra al real!", Color(0.95, 0.65, 1.0), 13)
+
+func _update_fake_clones(delta: float) -> void:
+	_prune_clones()
+	if active_clones.is_empty():
+		return
+	var target := player.global_position if (player and is_instance_valid(player)) else global_position
+	var spd := get_effective_speed() * 0.82
+	var bounds := _get_arena_bounds()
+	for idx in range(active_clones.size()):
+		var clone := active_clones[idx]
+		var to_p := target - clone.global_position
+		var dir := to_p.normalized() if to_p.length_squared() > 25.0 else Vector2.RIGHT
+		var perp := Vector2(-dir.y, dir.x) * sin(_anim_time * 3.0 + float(idx) * 2.1) * 0.55
+		var move_v := (dir + perp).normalized() * spd
+		clone.global_position = Vector2(
+			clampf(clone.global_position.x + move_v.x * delta, 80.0, bounds.x - 80.0),
+			clampf(clone.global_position.y + move_v.y * delta, 90.0, bounds.y - 80.0)
+		)
+
+func _clear_fake_clones() -> void:
+	for c in active_clones:
+		if is_instance_valid(c):
+			c.queue_free()
+	active_clones.clear()
+
+## Fase de Desesperación a los 10 de vida: Neblina oscura, pausa ("Aun me queda un ataque"), hasta 5 enemigos, Danmaku 5s/7s y cobertura 3s
+func _trigger_ten_hp_desperation_phase() -> void:
+	_ten_hp_triggered = true
+	desperation_fog_active = true
+	is_fog_active = true
+	last_special_message = "Aun me queda un ataque"
+	_ten_hp_cycle_elapsed = 0.0
+	_ten_hp_fire_cooldown = 0.15
+	_cover_cooldown_timer = 2.0
+	_clear_all_enemy_projectiles()
+
+	var lvl := _get_level_node()
+	if lvl and lvl.has_method("set_boss_desperation_fog"):
+		lvl.set_boss_desperation_fog(true)
+
+	special_phase_message.emit(last_special_message)
+	_show_dramatic_pause(last_special_message, Color(0.95, 0.28, 0.48), 1.6)
+	_summon_desperation_enemies(MAX_SUMMONED_ENEMIES)
+	_fire_ten_hp_danmaku_pattern()
+	queue_redraw()
+
+## Retorna true durante la ventana activa de 5 segundos dentro de cada ciclo de 7 segundos
+func is_ten_hp_danmaku_window_active(sample_time: float = -1.0) -> bool:
+	if not _ten_hp_triggered or _five_hp_triggered or _is_transforming:
+		return false
+	var t := _ten_hp_cycle_elapsed if sample_time < 0.0 else sample_time
+	return fmod(maxf(0.0, t), DANMAKU_CYCLE_PERIOD) < DANMAKU_ACTIVE_WINDOW
+
+func _fire_ten_hp_danmaku_pattern() -> void:
+	var step := int(_ten_hp_cycle_elapsed * 2.0) % 3
+	match step:
+		0:
+			_attack_danmaku_roulette(2, 16, 175.0)
+		1:
+			_attack_danmaku_double_spiral(16, 180.0, 1.15)
+		_:
+			_attack_danmaku_master_climax(20, 170.0)
+
+## Invoca enemigos alrededor del jefe respetando el límite estricto de máximo 5 activos
+func _summon_desperation_enemies(max_total: int = 5) -> void:
+	var lvl := _get_level_node()
+	var container: Node = null
+	if lvl and "enemies_container" in lvl and lvl.enemies_container != null:
+		container = lvl.enemies_container
+	elif get_parent() != null:
+		container = get_parent()
+	else:
+		container = self
+
+	var active_count := 0
+	for child in container.get_children():
+		if child is Enemy and child.is_active:
+			active_count += 1
+
+	var cap := mini(MAX_SUMMONED_ENEMIES, max_total)
+	var to_spawn := maxi(0, cap - active_count)
+	var bounds := _get_arena_bounds()
+	var types := [Enemy.Type.GROSERIA, Enemy.Type.ACOSO, Enemy.Type.BULLYING]
+
+	for i in range(to_spawn):
+		var e: Enemy = ENEMY_SCENE.instantiate()
+		e.enemy_type = types[i % types.size()]
+		var ang := float(i) * (TAU / float(maxi(1, to_spawn)))
+		var pos := global_position + Vector2(cos(ang), sin(ang)) * 110.0
+		pos.x = clampf(pos.x, 80.0, bounds.x - 80.0)
+		pos.y = clampf(pos.y, 95.0, bounds.y - 80.0)
+		e.position = pos
+		e.player = player
+		e.allow_respawn = false
+		e.detection_range = 700.0
+		e.is_alerted = true
+		container.add_child(e)
+		_summoned_enemies.append(e)
+
+	summoned_enemies_count = mini(MAX_SUMMONED_ENEMIES, get_summoned_enemy_count())
+
+func get_summoned_enemy_count() -> int:
+	var count := 0
+	var idx := _summoned_enemies.size() - 1
+	while idx >= 0:
+		var e = _summoned_enemies[idx]
+		if not is_instance_valid(e):
+			_summoned_enemies.remove_at(idx)
+		elif "is_active" in e and e.is_active:
+			count += 1
+		idx -= 1
+	return count
+
+func _stop_summoned_enemies() -> void:
+	for e in _summoned_enemies:
+		if is_instance_valid(e):
+			if e.has_method("stop_respawns"):
+				e.stop_respawns()
+			if e.has_method("stop"):
+				e.stop()
+
+## Cubre al jefe con escudo y lo oculta/desaparece durante exactamente `duration` segundos (3.0s)
+func trigger_cover_and_vanish(duration: float = 3.0) -> void:
+	_is_covered_and_vanished = true
+	_barrier_active = true
+	_barrier_timer = duration
+	_cover_vanish_timer = duration
+	modulate = Color(1.0, 1.0, 1.0, 0.05)
+	if _hitbox:
+		_hitbox.set_deferred("monitoring", false)
+		_hitbox.set_deferred("monitorable", false)
+	var fx := _get_fx()
+	if fx:
+		var parent_node: Node = get_parent() if get_parent() else self
+		fx.burst(parent_node, global_position + Vector2(0, -24), Color(0.55, 0.78, 1.0), 16, 120.0)
+		fx.floating_text(parent_node, global_position + Vector2(0, -52), "¡Cubierto y Oculto (3s)!", Color(0.65, 0.88, 1.0), 13)
+	queue_redraw()
+
+func _end_cover_and_vanish() -> void:
+	_is_covered_and_vanished = false
+	_barrier_active = false
+	_cover_vanish_timer = 0.0
+	modulate = Color.WHITE
+	if _hitbox:
+		_hitbox.set_deferred("monitoring", true)
+		_hitbox.set_deferred("monitorable", true)
+	var fx := _get_fx()
+	if fx:
+		var parent_node: Node = get_parent() if get_parent() else self
+		fx.burst(parent_node, global_position + Vector2(0, -24), Color(1.0, 0.45, 0.7), 14, 110.0)
+	queue_redraw()
+
+## Muestra una pausa cinemática breve con el mensaje dramático del Jefe
+func _show_dramatic_pause(message: String, accent: Color, duration: float) -> void:
+	_dismiss_dramatic_pause()
+	if not is_inside_tree() or get_tree() == null:
+		return
+
+	_pause_banner_active = true
+	_pause_banner_timer = duration
+
+	var layer := CanvasLayer.new()
+	layer.name = "BossDramaticPauseOverlay"
+	layer.layer = 96
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+
+	var bg := ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.02, 0.02, 0.05, 0.72)
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(bg)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(center)
+
+	var panel := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.08, 0.07, 0.14, 0.96)
+	sb.border_color = accent
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 3
+	sb.corner_radius_top_left = 8
+	sb.corner_radius_top_right = 8
+	sb.corner_radius_bottom_left = 8
+	sb.corner_radius_bottom_right = 8
+	sb.content_margin_left = 28.0
+	sb.content_margin_top = 20.0
+	sb.content_margin_right = 28.0
+	sb.content_margin_bottom = 20.0
+	panel.add_theme_stylebox_override("panel", sb)
+	center.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	panel.add_child(vbox)
+
+	var tag := Label.new()
+	tag.text = "TITANOR — COLOSO DEL BULLYING"
+	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tag.add_theme_font_size_override("font_size", 11)
+	tag.add_theme_color_override("font_color", accent)
+	vbox.add_child(tag)
+
+	var msg_lbl := Label.new()
+	msg_lbl.name = "DramaticPauseMessageLabel"
+	msg_lbl.text = message
+	msg_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	msg_lbl.add_theme_font_size_override("font_size", 20)
+	msg_lbl.add_theme_color_override("font_color", Color(0.98, 0.96, 1.0))
+	vbox.add_child(msg_lbl)
+
+	get_tree().root.add_child(layer)
+	_pause_banner_layer = layer
+
+	var is_headless := DisplayServer.get_name() == "headless"
+	if not is_headless:
+		get_tree().paused = true
+	var t := get_tree().create_timer(duration, true, false, false)
+	t.timeout.connect(_dismiss_dramatic_pause, CONNECT_ONE_SHOT)
+
+func _dismiss_dramatic_pause() -> void:
+	_pause_banner_active = false
+	_pause_banner_timer = 0.0
+	if _pause_banner_layer and is_instance_valid(_pause_banner_layer):
+		_pause_banner_layer.queue_free()
+	_pause_banner_layer = null
+	if is_inside_tree() and get_tree() and get_tree().paused:
+		get_tree().paused = false
+
+## Fase Clímax a los 5 de vida: Pausa ("No dejare que liberes tan facil a la escuela"), intento de transformación y redención grupal sin violencia por los alumnos rescatados
+func _trigger_five_hp_final_climax() -> void:
+	_five_hp_triggered = true
+	current_hp = 5
+	velocity = Vector2.ZERO
+	_is_transforming = true
+	_climax_elapsed = 0.0
+	_climax_hp_step = 0
+	_is_covered_and_vanished = false
+	_barrier_active = true
+	_barrier_timer = 10.0
+	modulate = Color.WHITE
+	last_special_message = "No dejare que liberes tan facil a la escuela"
+
+	_clear_fake_clones()
+	_clear_all_enemy_projectiles()
+	_stop_summoned_enemies()
+
+	special_phase_message.emit(last_special_message)
+	_show_dramatic_pause(last_special_message, Color(1.0, 0.65, 0.25), 1.5)
+	queue_redraw()
+
+func _spawn_rescue_students() -> void:
+	_clear_rescue_students()
+	var parent_node: Node = get_parent() if get_parent() else self
+	var bounds := _get_arena_bounds()
+	var fx := _get_fx()
+
+	for i in range(RESCUE_STUDENTS_DATA.size()):
+		var info: Dictionary = RESCUE_STUDENTS_DATA[i]
+		var ang := -PI * 0.85 + float(i) * (PI * 1.70 / float(maxi(1, RESCUE_STUDENTS_DATA.size() - 1)))
+		var pos := global_position + Vector2(cos(ang), sin(ang)) * 135.0
+		pos.x = clampf(pos.x, 70.0, bounds.x - 70.0)
+		pos.y = clampf(pos.y, 90.0, bounds.y - 70.0)
+
+		var node := Node2D.new()
+		node.name = "RescuedAlly_%s" % str(info["name"])
+		node.position = pos
+		node.z_index = 25
+
+		var tex := _load_boss_texture(str(info["tex"]))
+		if tex:
+			var spr := Sprite2D.new()
+			spr.texture = tex
+			var max_dim := float(maxi(1, maxi(tex.get_width(), tex.get_height())))
+			var s := 51.2 / max_dim
+			spr.scale = Vector2(s, s)
+			spr.position = Vector2(0, -22)
+			spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			node.add_child(spr)
+
+		var lbl := Label.new()
+		lbl.text = str(info["name"])
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.position = Vector2(-42, -56)
+		lbl.size = Vector2(84, 18)
+		lbl.add_theme_font_size_override("font_size", 10)
+		lbl.add_theme_color_override("font_color", Color(1.0, 0.96, 0.72))
+		lbl.add_theme_color_override("font_outline_color", Color(0.08, 0.06, 0.12))
+		lbl.add_theme_constant_override("outline_size", 4)
+		node.add_child(lbl)
+
+		node.set_meta("virtue", str(info["virtue"]))
+		node.set_meta("color", info["color"])
+		parent_node.add_child(node)
+		rescued_attack_students.append(node)
+		if fx:
+			fx.burst(parent_node, pos + Vector2(0, -20), info["color"], 12, 110.0)
+			fx.floating_text(parent_node, pos + Vector2(0, -64), str(info["virtue"]), info["color"], 11)
+
+	if fx:
+		fx.floating_text(parent_node, global_position + Vector2(0, -82), "¡Toda la escuela unida en valores!", Color(1.0, 0.95, 0.45), 15)
+
+func _clear_rescue_students() -> void:
+	for s in rescued_attack_students:
+		if is_instance_valid(s):
+			s.queue_free()
+	rescued_attack_students.clear()
+
+func _update_five_hp_transformation_climax(delta: float) -> void:
+	_climax_elapsed += delta
+	velocity = Vector2.ZERO
+
+	# Fase A (0.0s .. 1.2s): Titanor tiembla y crece como si se fuera a transformar
+	if _climax_elapsed < 1.2:
+		var t_norm := _climax_elapsed / 1.2
+		var target_sc := lerpf(1.0, 1.38, t_norm)
+		scale = Vector2(target_sc, target_sc)
+		modulate = Color(1.0 + 0.55 * t_norm, 0.72, 1.0 + 0.45 * t_norm)
+		return
+
+	# Aparición de todos los alumnos rescatados en t >= 1.2s
+	if rescued_attack_students.is_empty():
+		_spawn_rescue_students()
+
+	# Ataques pacíficos escalonados de los alumnos reduciendo HP de 5 -> 0
+	var target_step := mini(5, int((_climax_elapsed - 1.2) / 0.28) + 1)
+	if target_step > _climax_hp_step:
+		var fx := _get_fx()
+		var parent_node: Node = get_parent() if get_parent() else self
+		while _climax_hp_step < target_step and current_hp > 0:
+			var stu_idx := _climax_hp_step % maxi(1, rescued_attack_students.size())
+			var ally := rescued_attack_students[stu_idx] if stu_idx < rescued_attack_students.size() else null
+			var beam_col: Color = Color(1.0, 0.92, 0.4)
+			if ally and is_instance_valid(ally):
+				beam_col = ally.get_meta("color", beam_col)
+			_climax_hp_step += 1
+			current_hp = maxi(0, 5 - _climax_hp_step)
+			health_changed.emit(current_hp, max_hp)
+			if fx:
+				fx.burst(parent_node, global_position + Vector2(0, -24), beam_col, 14, 150.0)
+				fx.shake(3.0, 0.12)
+		scale = scale.lerp(Vector2.ONE, minf(1.0, delta * 5.0))
+
+	# Al llegar a 0 HP y completar la animación (t >= 2.8s), redimir definitivamente al Jefe Final
+	if current_hp <= 0 and _climax_elapsed >= 2.8:
+		complete_student_rescue_climax()
+
+## Completa inmediatamente la secuencia de rescate estudiantil para tests o fin de animación
+func complete_student_rescue_climax() -> void:
+	if current_state == State.REDEEMED:
+		return
+	if rescued_attack_students.is_empty():
+		_spawn_rescue_students()
+	current_hp = 0
+	health_changed.emit(0, max_hp)
+	scale = Vector2.ONE
+	redeem()
 
 func _proclaim_phrase(text: String, col: Color) -> void:
 	var fx = _get_fx()
@@ -722,7 +1482,7 @@ func _attack_apathy_cyclone() -> void:
 	# Rafaga dirigida 0.22s después
 	if is_inside_tree() and get_tree():
 		get_tree().create_timer(0.22).timeout.connect(func():
-			if is_inside_tree() and current_state != State.REDEEMED and player and is_instance_valid(player):
+			if is_instance_valid(self) and is_inside_tree() and current_state != State.REDEEMED and player and is_instance_valid(player):
 				var aim_dir := (player.global_position - global_position).normalized()
 				for k in range(3):
 					var offset_ang := float(k - 1) * 0.18
@@ -826,7 +1586,7 @@ func _attack_targeted_snipe_stream(stream_count: int, spd: float) -> void:
 	if is_inside_tree() and get_tree():
 		for i in range(stream_count):
 			get_tree().create_timer(float(i) * 0.075).timeout.connect(func():
-				if is_inside_tree() and current_state != State.REDEEMED and player and is_instance_valid(player):
+				if is_instance_valid(self) and is_inside_tree() and current_state != State.REDEEMED and player and is_instance_valid(player):
 					var aim_dir := (player.global_position - base_origin).normalized()
 					_spawn_boss_danmaku_bullet(base_origin, aim_dir, spd, Color(1.0, 0.4, 0.4), 0.0, 0.82)
 			)
@@ -927,29 +1687,45 @@ func _attack_targeted_burst(burst_count: int, spd: float) -> void:
 		var jitter := Vector2(randf_range(-0.15, 0.15), randf_range(-0.15, 0.15))
 		_spawn_boss_danmaku_bullet(global_position + Vector2(0, -20), (_attack_dir + jitter).normalized(), spd + float(i) * 15.0, BOSS_DATA[boss_type]["accent_color"])
 
+## Ataque exclusivo del Jefe del Edificio B: enjambre teledirigido + ráfaga directa
+func _attack_ciber_homing_swarm() -> void:
+	_state_timer = 0.65
+	var base_origin := global_position + Vector2(0, -20)
+	for offset_ang in [-0.45, -0.15, 0.15, 0.45]:
+		var dir: Vector2 = _attack_dir.rotated(offset_ang)
+		_spawn_homing_boss_bullet(base_origin, dir, 215.0, Color(0.35, 0.92, 1.0), 3.1, 3.6)
+	for direct_off in [-0.22, 0.0, 0.22]:
+		_spawn_boss_danmaku_bullet(base_origin, _attack_dir.rotated(direct_off), 235.0, Color(1.0, 0.45, 0.85), 0.0, 0.78)
+	var fx := _get_fx()
+	if fx:
+		var parent = get_parent() if get_parent() else self
+		fx.floating_text(parent, global_position + Vector2(0, -48), "¡Ciber-Rastreo!", Color(0.4, 0.95, 1.0), 13)
+
 func _attack_glitch_teleport_starburst() -> void:
-	_state_timer = 0.5
+	_state_timer = 0.55
 	var fx = _get_fx()
 	var parent = get_parent() if get_parent() else self
 	if fx:
 		fx.burst(parent, global_position, Color.CYAN, 14, 140.0)
-	if player and is_instance_valid(player):
-		var angles := [0.0, PI * 0.5, PI, PI * 1.5, PI * 0.25, PI * 0.75, PI * 1.25, PI * 1.75]
-		var chosen_angle: float = angles[randi() % angles.size()]
-		var offset := Vector2(cos(chosen_angle), sin(chosen_angle)) * randf_range(130.0, 190.0)
-		var candidate_pos := player.global_position + offset
-		if parent and "map_size" in parent:
-			var m_size: Vector2 = parent.map_size
-			candidate_pos.x = clampf(candidate_pos.x, 80.0, m_size.x - 80.0)
-			candidate_pos.y = clampf(candidate_pos.y, 80.0, m_size.y - 80.0)
-		global_position = candidate_pos
-		if fx:
-			fx.burst(parent, global_position, Color.MAGENTA, 14, 140.0)
-			fx.floating_text(parent, global_position + Vector2(0, -40), "¡GLITCH!", Color.CYAN, 12)
-		# Ráfaga estelar de 8 balas al materializarse
-		for k in range(8):
-			var ang := float(k) * (TAU / 8.0)
-			_spawn_boss_danmaku_bullet(global_position + Vector2(0, -20), Vector2(cos(ang), sin(ang)), 170.0, Color.CYAN)
+	var anchor := player.global_position if (player and is_instance_valid(player)) else global_position
+	var angles := [0.0, PI, PI * 0.25, PI * 0.75, PI * 1.25, PI * 1.75]
+	var chosen_angle: float = angles[randi() % angles.size()]
+	var offset := Vector2(cos(chosen_angle), sin(chosen_angle)) * randf_range(160.0, 220.0)
+	var candidate_pos := anchor + offset
+	global_position = _find_safe_boss_pos(candidate_pos, anchor)
+	teleport_count += 1
+	if fx:
+		fx.burst(parent, global_position, Color.MAGENTA, 14, 140.0)
+		fx.floating_text(parent, global_position + Vector2(0, -40), "¡GLITCH!", Color.CYAN, 12)
+	# Ráfaga estelar de 8 balas + 2 proyectiles teledirigidos al materializarse
+	for k in range(8):
+		var ang := float(k) * (TAU / 8.0)
+		_spawn_boss_danmaku_bullet(global_position + Vector2(0, -20), Vector2(cos(ang), sin(ang)), 175.0, Color.CYAN)
+	var aim_dir := (anchor - global_position).normalized()
+	if aim_dir == Vector2.ZERO:
+		aim_dir = Vector2.LEFT
+	for h_off in [-0.28, 0.28]:
+		_spawn_homing_boss_bullet(global_position + Vector2(0, -20), aim_dir.rotated(h_off), 210.0, Color(0.55, 1.0, 0.9), 3.1, 3.6)
 
 func _attack_mirror_volley(count: int, spd: float) -> void:
 	_state_timer = 0.6
@@ -1010,7 +1786,7 @@ func _attack_classroom_civic_shockwave() -> void:
 	_attack_expanding_ring(130.0, 1.0)
 	if is_inside_tree():
 		get_tree().create_timer(0.35).timeout.connect(func():
-			if is_instance_valid(self) and current_state != State.REDEEMED:
+			if is_instance_valid(self) and is_inside_tree() and current_state != State.REDEEMED:
 				for i in range(10):
 					var ang := float(i) * (TAU / 10.0) + 0.3
 					_spawn_boss_danmaku_bullet(global_position + Vector2(0, -20), Vector2(cos(ang), sin(ang)), 170.0, Color(0.85, 0.70, 0.35))
@@ -1050,7 +1826,7 @@ func _attack_classroom_digital_glitch() -> void:
 		parent.add_child(p)
 		if is_inside_tree():
 			get_tree().create_timer(0.4).timeout.connect(func():
-				if is_instance_valid(p) and player and is_instance_valid(player):
+				if is_instance_valid(self) and is_inside_tree() and current_state != State.REDEEMED and is_instance_valid(p) and player and is_instance_valid(player):
 					p.direction = (player.global_position - p.global_position).normalized()
 					p.speed = 260.0
 					p.modulate = Color(1.0, 0.3, 0.8)
@@ -1110,6 +1886,26 @@ func _spawn_boss_danmaku_bullet(pos: Vector2, dir: Vector2, spd: float, col: Col
 	var target_parent = get_parent() if get_parent() else self
 	target_parent.add_child(p)
 
+## Instancia un proyectil enemigo teledirigido hacia el jugador
+func _spawn_homing_boss_bullet(pos: Vector2, dir: Vector2, spd: float, col: Color, homing_str: float = 3.1, lifetime_sec: float = 3.6) -> void:
+	var p = PROJECTILE_SCENE.instantiate()
+	p.is_enemy_projectile = true
+	p.position = pos
+	p.direction = dir
+	p.speed = spd
+	p.modulate = col
+	p.is_homing = true
+	p.homing_strength = homing_str
+	p.homing_target = player
+	p.scale = Vector2(0.85, 0.85)
+	p.lifetime = lifetime_sec
+	p.collision_layer = 8
+	p.collision_mask = 3
+	p.remove_from_group("player_attack")
+	p.add_to_group("enemy_projectiles")
+	var target_parent = get_parent() if get_parent() else self
+	target_parent.add_child(p)
+
 func _update_attack(delta: float) -> void:
 	_state_timer -= delta
 	if _dash_velocity != Vector2.ZERO:
@@ -1121,11 +1917,11 @@ func _update_attack(delta: float) -> void:
 		_state_timer = randf_range(0.8, 1.5)
 
 func _on_hitbox_body_entered(body: Node2D) -> void:
-	if body is Player and current_state != State.REDEEMED and current_state != State.APPEARING:
+	if body is Player and current_state != State.REDEEMED and current_state != State.APPEARING and not _is_covered_and_vanished and not _is_transforming:
 		body.take_damage(1, global_position)
 
 func _on_hitbox_area_entered(area: Area2D) -> void:
-	if current_state == State.REDEEMED or current_state == State.APPEARING:
+	if current_state == State.REDEEMED or current_state == State.APPEARING or _is_covered_and_vanished or _is_transforming:
 		return
 	if area.is_in_group("player_attack"):
 		hit_by_attack(area.global_position)
@@ -1185,24 +1981,95 @@ func _draw() -> void:
 			draw_circle(to_target, 34.0, warn_col)
 			draw_arc(to_target, 34.0, 0, TAU, 16, Color(1.0, 1.0, 0.3, 0.8), 2.0)
 
-	# 3. Dibujar silueta pixel art del Jefe
+	# 3. Dibujar silueta pixel art o sprite oficial del Jefe
 	var breathe := sin(_anim_time * 4.0) * 2.0
-	var body_rect := Rect2(-18, -48 + breathe, 36, 42)
-	var head_rect := Rect2(-14, -66 + breathe, 28, 22)
+	if boss_type == BossType.DESINTERES and _boss_texture != null:
+		draw_texture_rect(_boss_texture, Rect2(-32, -68 + breathe, 64, 64), false)
+		if is_fog_active:
+			draw_rect(Rect2(-8, -54 + breathe, 5, 4), Color(1.0, 0.1, 0.15))
+			draw_rect(Rect2(3, -54 + breathe, 5, 4), Color(1.0, 0.1, 0.15))
+			var heart_pulse := 1.0 + sin(_anim_time * 6.0) * 0.2
+			draw_circle(Vector2(-3, -34 + breathe), 5.0 * heart_pulse, Color(0.95, 0.15, 0.25))
+			draw_circle(Vector2(3, -34 + breathe), 5.0 * heart_pulse, Color(0.95, 0.15, 0.25))
+			draw_polygon(PackedVector2Array([
+				Vector2(-7, -34 + breathe), Vector2(7, -34 + breathe), Vector2(0, -24 + breathe)
+			]), [Color(0.95, 0.15, 0.25)])
+			draw_circle(Vector2(-3, -34 + breathe), 3.5 * heart_pulse, Color(0.06, 0.04, 0.08))
+			draw_circle(Vector2(3, -34 + breathe), 3.5 * heart_pulse, Color(0.06, 0.04, 0.08))
+	else:
+		var body_rect := Rect2(-18, -48 + breathe, 36, 42)
+		var head_rect := Rect2(-14, -66 + breathe, 28, 22)
 
-	draw_rect(body_rect.grow(2.0), base_col.darkened(0.4))
-	draw_rect(head_rect.grow(2.0), base_col.darkened(0.4))
+		draw_rect(body_rect.grow(2.0), base_col.darkened(0.4))
+		draw_rect(head_rect.grow(2.0), base_col.darkened(0.4))
 
-	draw_rect(body_rect, base_col)
-	draw_rect(head_rect, base_col.lightened(0.1))
+		draw_rect(body_rect, base_col)
+		draw_rect(head_rect, base_col.lightened(0.1))
 
-	# Barrera de Atajos orbitante si está activa
-	if _barrier_active:
+		# Rasgos característicos
+		match boss_type:
+			BossType.APATIA:
+				draw_rect(Rect2(-8, -60 + breathe, 6, 4), Color.DARK_GRAY)
+				draw_rect(Rect2(2, -60 + breathe, 6, 4), Color.DARK_GRAY)
+			BossType.DESPERDICIO:
+				draw_rect(Rect2(-12, -72 + breathe, 6, 8), acc_col)
+				draw_rect(Rect2(6, -72 + breathe, 6, 8), acc_col)
+				draw_rect(Rect2(-8, -60 + breathe, 5, 5), Color.YELLOW)
+				draw_rect(Rect2(3, -60 + breathe, 5, 5), Color.YELLOW)
+			BossType.INTOLERANCIA:
+				draw_rect(Rect2(-10, -62 + breathe, 20, 4), Color.BLACK)
+				draw_rect(Rect2(-8, -58 + breathe, 4, 4), Color.WHITE)
+				draw_rect(Rect2(4, -58 + breathe, 4, 4), Color.WHITE)
+			BossType.CIBERACOSO:
+				draw_line(Vector2(-16, -55 + breathe), Vector2(16, -55 + breathe), Color.CYAN, 2.0)
+				draw_line(Vector2(-12, -42 + breathe), Vector2(12, -42 + breathe), Color.MAGENTA, 2.0)
+			BossType.PLAGIO:
+				draw_rect(Rect2(-10, -62 + breathe, 9, 10), Color(0.2, 0.2, 0.3))
+				draw_rect(Rect2(1, -62 + breathe, 9, 10), Color(0.7, 0.7, 0.8))
+			BossType.BULLYING:
+				draw_rect(Rect2(-24, -46 + breathe, 10, 14), acc_col)
+				draw_rect(Rect2(14, -46 + breathe, 10, 14), acc_col)
+				draw_rect(Rect2(-8, -62 + breathe, 5, 5), Color(1.0, 0.2, 0.2))
+				draw_rect(Rect2(3, -62 + breathe, 5, 5), Color(1.0, 0.2, 0.2))
+			BossType.DESINTERES:
+				draw_rect(Rect2(-12, -64 + breathe, 24, 18), Color(0.57, 0.60, 0.65))
+				if is_fog_active:
+					draw_rect(Rect2(-8, -58 + breathe, 5, 4), Color(1.0, 0.1, 0.15))
+					draw_rect(Rect2(3, -58 + breathe, 5, 4), Color(1.0, 0.1, 0.15))
+					var heart_pulse := 1.0 + sin(_anim_time * 6.0) * 0.2
+					draw_circle(Vector2(-3, -38 + breathe), 5.0 * heart_pulse, Color(0.95, 0.15, 0.25))
+					draw_circle(Vector2(3, -38 + breathe), 5.0 * heart_pulse, Color(0.95, 0.15, 0.25))
+					draw_polygon(PackedVector2Array([
+						Vector2(-7, -38 + breathe), Vector2(7, -38 + breathe), Vector2(0, -28 + breathe)
+					]), [Color(0.95, 0.15, 0.25)])
+					draw_circle(Vector2(-3, -38 + breathe), 3.5 * heart_pulse, Color(0.06, 0.04, 0.08))
+					draw_circle(Vector2(3, -38 + breathe), 3.5 * heart_pulse, Color(0.06, 0.04, 0.08))
+				else:
+					draw_rect(Rect2(-8, -58 + breathe, 5, 4), Color.WHITE)
+					draw_rect(Rect2(3, -58 + breathe, 5, 4), Color.WHITE)
+				draw_rect(Rect2(-5, -50 + breathe, 10, 2), Color(0.35, 0.38, 0.42))
+				draw_rect(Rect2(-2, -44 + breathe, 4, 14), Color(0.47, 0.18, 0.22))
+				draw_rect(Rect2(14, -40 + breathe, 8, 12), Color(0.62, 0.55, 0.45))
+
+	# Barrera de Atajos orbitante o escudo de ocultamiento si está activa
+	if _barrier_active or _is_covered_and_vanished:
 		for i in range(3):
 			var ang := _anim_time * 5.0 + float(i) * (TAU / 3.0)
 			var shield_pos := Vector2(cos(ang), sin(ang) * 0.6) * 36.0 + Vector2(0, -26)
 			draw_circle(shield_pos, 7.0, Color(0.4, 0.85, 1.0, 0.85))
 			draw_arc(shield_pos, 7.0, 0, TAU, 12, Color.WHITE, 1.5)
+
+	# Aura de intento de transformación y rayos de virtud de los alumnos (5 HP Clímax)
+	if _is_transforming:
+		var aura_r := 52.0 + sin(_anim_time * 14.0) * 8.0
+		draw_circle(Vector2(0, -28), aura_r, Color(0.65, 0.15, 0.85, 0.28))
+		draw_arc(Vector2(0, -28), aura_r, 0, TAU, 36, Color(1.0, 0.35, 0.75, 0.85), 3.0)
+		for ally in rescued_attack_students:
+			if is_instance_valid(ally):
+				var from_pt := to_local(ally.global_position + Vector2(0, -22))
+				var ray_col: Color = ally.get_meta("color", Color(1.0, 0.92, 0.45))
+				draw_line(from_pt, Vector2(0, -28), ray_col, 3.0)
+				draw_line(from_pt, Vector2(0, -28), Color(1.0, 1.0, 1.0, 0.8), 1.2)
 
 	# Estrellas de mareo en estado STUNNED
 	if current_state == State.STUNNED:
@@ -1210,51 +2077,6 @@ func _draw() -> void:
 			var star_ang := _anim_time * 8.0 + float(i) * (TAU / 3.0)
 			var star_pos := Vector2(cos(star_ang) * 16.0, -82.0 + sin(star_ang) * 5.0)
 			draw_circle(star_pos, 3.0, Color(1.0, 0.9, 0.2))
-
-	# Rasgos característicos
-	match boss_type:
-		BossType.APATIA:
-			draw_rect(Rect2(-8, -60 + breathe, 6, 4), Color.DARK_GRAY)
-			draw_rect(Rect2(2, -60 + breathe, 6, 4), Color.DARK_GRAY)
-		BossType.DESPERDICIO:
-			draw_rect(Rect2(-12, -72 + breathe, 6, 8), acc_col)
-			draw_rect(Rect2(6, -72 + breathe, 6, 8), acc_col)
-			draw_rect(Rect2(-8, -60 + breathe, 5, 5), Color.YELLOW)
-			draw_rect(Rect2(3, -60 + breathe, 5, 5), Color.YELLOW)
-		BossType.INTOLERANCIA:
-			draw_rect(Rect2(-10, -62 + breathe, 20, 4), Color.BLACK)
-			draw_rect(Rect2(-8, -58 + breathe, 4, 4), Color.WHITE)
-			draw_rect(Rect2(4, -58 + breathe, 4, 4), Color.WHITE)
-		BossType.CIBERACOSO:
-			draw_line(Vector2(-16, -55 + breathe), Vector2(16, -55 + breathe), Color.CYAN, 2.0)
-			draw_line(Vector2(-12, -42 + breathe), Vector2(12, -42 + breathe), Color.MAGENTA, 2.0)
-		BossType.PLAGIO:
-			draw_rect(Rect2(-10, -62 + breathe, 9, 10), Color(0.2, 0.2, 0.3))
-			draw_rect(Rect2(1, -62 + breathe, 9, 10), Color(0.7, 0.7, 0.8))
-		BossType.BULLYING:
-			draw_rect(Rect2(-24, -46 + breathe, 10, 14), acc_col)
-			draw_rect(Rect2(14, -46 + breathe, 10, 14), acc_col)
-			draw_rect(Rect2(-8, -62 + breathe, 5, 5), Color(1.0, 0.2, 0.2))
-			draw_rect(Rect2(3, -62 + breathe, 5, 5), Color(1.0, 0.2, 0.2))
-		BossType.DESINTERES:
-			draw_rect(Rect2(-12, -64 + breathe, 24, 18), Color(0.57, 0.60, 0.65))
-			if is_fog_active:
-				draw_rect(Rect2(-8, -58 + breathe, 5, 4), Color(1.0, 0.1, 0.15))
-				draw_rect(Rect2(3, -58 + breathe, 5, 4), Color(1.0, 0.1, 0.15))
-				var heart_pulse := 1.0 + sin(_anim_time * 6.0) * 0.2
-				draw_circle(Vector2(-3, -38 + breathe), 5.0 * heart_pulse, Color(0.95, 0.15, 0.25))
-				draw_circle(Vector2(3, -38 + breathe), 5.0 * heart_pulse, Color(0.95, 0.15, 0.25))
-				draw_polygon(PackedVector2Array([
-					Vector2(-7, -38 + breathe), Vector2(7, -38 + breathe), Vector2(0, -28 + breathe)
-				]), [Color(0.95, 0.15, 0.25)])
-				draw_circle(Vector2(-3, -38 + breathe), 3.5 * heart_pulse, Color(0.06, 0.04, 0.08))
-				draw_circle(Vector2(3, -38 + breathe), 3.5 * heart_pulse, Color(0.06, 0.04, 0.08))
-			else:
-				draw_rect(Rect2(-8, -58 + breathe, 5, 4), Color.WHITE)
-				draw_rect(Rect2(3, -58 + breathe, 5, 4), Color.WHITE)
-			draw_rect(Rect2(-5, -50 + breathe, 10, 2), Color(0.35, 0.38, 0.42))
-			draw_rect(Rect2(-2, -44 + breathe, 4, 14), Color(0.47, 0.18, 0.22))
-			draw_rect(Rect2(14, -40 + breathe, 8, 12), Color(0.62, 0.55, 0.45))
 
 	# Corona / indicador de Jefe
 	draw_polygon(PackedVector2Array([

@@ -12,6 +12,7 @@ const FOG_SHADER := preload("res://shaders/fog_of_war.gdshader")
 
 @export var is_fog_active: bool = false
 @export var light_radius: float = 145.0
+var desperation_darkness: bool = false
 
 var light_sources: Array = []
 var map_size: Vector2 = Vector2(800, 480)
@@ -47,6 +48,19 @@ func set_fog(active: bool, instant: bool = false) -> void:
 			_shader_mat.set_shader_parameter("fog_alpha", _fog_alpha)
 		_update_enemies_visibility()
 		queue_redraw()
+
+## Activa o desactiva el oscurecimiento extremo durante la fase final del Jefe
+func set_desperation_darkness(enabled: bool) -> void:
+	desperation_darkness = enabled
+	if _shader_mat:
+		if enabled:
+			_shader_mat.set_shader_parameter("fog_color", Color(0.01, 0.01, 0.03, 0.99))
+			_shader_mat.set_shader_parameter("mist_color", Color(0.03, 0.02, 0.06, 0.96))
+			_shader_mat.set_shader_parameter("rim_glow_color", Color(0.95, 0.35, 0.45, 0.32))
+		else:
+			_shader_mat.set_shader_parameter("fog_color", Color(0.07, 0.09, 0.15, 0.99))
+			_shader_mat.set_shader_parameter("mist_color", Color(0.15, 0.19, 0.28, 0.92))
+			_shader_mat.set_shader_parameter("rim_glow_color", Color(1.0, 0.92, 0.65, 0.38))
 
 func _update_rect_geometry() -> void:
 	if not _color_rect:
@@ -135,13 +149,14 @@ func _update_enemies_visibility() -> void:
 		for l_data in active_lights:
 			var l_pos: Vector2 = l_data["pos"]
 			var l_rad: float = l_data["radius"]
-			var d: float = e_pos.distance_to(l_pos)
-			var inner: float = l_rad - 22.0
+			var inner: float = maxf(0.0, l_rad - 22.0)
 			var outer: float = l_rad + 18.0
+			var d_sq: float = e_pos.distance_squared_to(l_pos)
 			var v: float = 0.0
-			if d <= inner:
+			if d_sq <= inner * inner:
 				v = 1.0
-			elif d < outer:
+			elif d_sq < outer * outer:
+				var d: float = sqrt(d_sq)
 				v = 1.0 - ((d - inner) / (outer - inner))
 			if v > best_vis:
 				best_vis = v

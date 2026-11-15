@@ -42,6 +42,11 @@ func unlock() -> void:
 	if fx:
 		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -32), "¡SALIDA DESBLOQUEADA!", Color(1.0, 0.92, 0.45), 14)
 		fx.burst(get_parent() if get_parent() else self, global_position, Color(1.0, 0.85, 0.35), 14, 120.0)
+	if is_inside_tree():
+		for body in get_overlapping_bodies():
+			if body is Player:
+				_on_body_entered(body)
+				break
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -64,7 +69,10 @@ func _on_body_entered(body: Node2D) -> void:
 		if is_locked:
 			var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
 			if fx:
-				fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -28), "¡Vence al antivalor jefe primero!", Color(1.0, 0.45, 0.45), 11)
+				var celebrating: bool = (level_ref != null and bool(level_ref.get("is_final_boss_celebrating")))
+				var locked_msg := "¡Los alumnos celebran: Finalmente lo derrotamos!" if celebrating else "¡Vence al antivalor jefe primero!"
+				var locked_color := Color(1.0, 0.92, 0.45) if celebrating else Color(1.0, 0.45, 0.45)
+				fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -28), locked_msg, locked_color, 11)
 			return
 		trigger(body)
 

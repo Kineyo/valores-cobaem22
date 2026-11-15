@@ -1436,9 +1436,9 @@
         <span>Comparar Salones</span>
       </button>
 
-      <a href="plano_3d.html" class="btn-top btn-top-3d" title="Explorar maqueta 3D interactiva del Plantel (3 Poses: 3/4 RPG, Cámara Baja, Vista Aérea)" style="text-decoration:none; background:#7c3aed; color:#ffffff; border-color:#6d28d9; font-weight:700;">
+      <a href="plano_3d.html" class="btn-top btn-top-3d" title="Explorar maqueta 3D interactiva del Plantel (3 vistas: 3/4 RPG, Peatonal, Aérea)" style="text-decoration:none; background:#1e293b; color:#f8fafc; border-color:#0f172a; font-weight:600;">
         <svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 3l9 4.5v9L12 21l-9-4.5v-9L12 3z"/><path d="M12 12l9-4.5M12 12v9M12 12L3 7.5"/></svg>
-        <span>🎮 Modelo 3D (3 Poses)</span>
+        <span>Maqueta 3D</span>
       </a>
 
       <button class="btn-top btn-top-accent" id="btn-open-catalog" title="Abrir tabla técnica con todas las medidas en cm y cm²">
@@ -2668,6 +2668,10 @@
               <tr>
                 <th>Norma Constructiva</th>
                 <td id="tbl-norm">U-1C H. AYTO. 2007</td>
+              </tr>
+              <tr>
+                <th>Escala Videojuego (40 px/m)</th>
+                <td id="tbl-game-scale">320 × 280 px (56 baldosas 1m²)</td>
               </tr>
             </tbody>
           </table>
@@ -4276,6 +4280,11 @@
       document.getElementById('tbl-pct-bldg').textContent =
         `${fmtDec2.format(pctBldg)}% de ${space.building} (${fmtDec2.format(pctSite)}% del Predio)`;
       document.getElementById('tbl-norm').textContent = space.norm;
+      const gamePxW = Math.round(space.length_m * 40);
+      const gamePxH = Math.round(space.width_m * 40);
+      const tilesM2 = Math.round(space.area_m2);
+      document.getElementById('tbl-game-scale').textContent =
+        `${fmtInt.format(gamePxW)} × ${fmtInt.format(gamePxH)} px (${fmtInt.format(tilesM2)} baldosas 1m²)`;
 
       // Equipamiento
       const equipContainer = document.getElementById('insp-equip-list');

@@ -44,6 +44,7 @@ var is_alerted: bool = false
 var spawn_position: Vector2 = Vector2.ZERO
 var current_respawns: int = 0
 var allow_respawn: bool = true
+var spawn_grace_timer: float = 0.0
 
 var _anim_time: float = 0.0
 var _value_text: String = ""
@@ -70,7 +71,11 @@ func _ready() -> void:
 	spawn_position = global_position
 	_target_wander = global_position
 	hitbox.body_entered.connect(_on_body_entered)
+	var custom_range := detection_range if (not is_equal_approx(detection_range, 280.0) and detection_range > 0.0) else -1.0
 	setup_type()
+	if custom_range > 0.0:
+		detection_range = custom_range
+		_detection_range_sq = detection_range * detection_range
 	var gs = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
 	if gs and gs.has_method("get_param"):
 		speed *= gs.get_param("enemy_speed_mult")
@@ -84,11 +89,18 @@ func _draw() -> void:
 	draw_rect(Rect2(-12, -4, 24, 6), shadow_col)
 	draw_rect(Rect2(-10, -6, 20, 10), shadow_col)
 
-## Desactiva el movimiento y colisiones del enemigo
+## Desactiva el movimiento y colisiones del enemigo y lo oculta para evitar estatuas inmunes
 func stop() -> void:
 	is_active = false
+	allow_respawn = false
 	_respawn_timer = 0.0
 	velocity = Vector2.ZERO
+	visible = false
+	if hitbox:
+		hitbox.set_deferred("monitoring", false)
+		hitbox.set_deferred("monitorable", false)
+	if has_node("CollisionShape2D"):
+		$CollisionShape2D.set_deferred("disabled", true)
 
 ## Configura textura, velocidad, color y virtud proclamada según el tipo
 func setup_type() -> void:
@@ -108,6 +120,12 @@ func _physics_process(delta: float) -> void:
 			_respawn_timer -= delta
 			if _respawn_timer <= 0.0:
 				respawn()
+		return
+
+	if spawn_grace_timer > 0.0:
+		spawn_grace_timer = maxf(0.0, spawn_grace_timer - delta)
+		velocity = Vector2.ZERO
+		_animate(delta)
 		return
 
 	_animate(delta)
@@ -252,5 +270,5 @@ func stop_respawns() -> void:
 	allow_respawn = false
 
 func _on_body_entered(body: Node2D) -> void:
-	if body is Player and is_active:
+	if body is Player and is_active and spawn_grace_timer <= 0.0:
 		body.take_damage(1, global_position)

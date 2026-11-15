@@ -29,6 +29,7 @@ var _visible_chars: float = 0.0
 var _chars_per_second: float = 38.0
 var _current_portrait_id: String = ""
 var _last_input_was_gamepad: bool = false
+var _finishing: bool = false
 
 var _game_settings: Node:
 	get:
@@ -81,7 +82,6 @@ func _adjust_layout_for_viewport() -> void:
 		center_box.offset_left = insets.position.x
 		center_box.offset_right = -insets.size.x
 		center_box.offset_bottom = -insets.size.y
-		center_box.size.x = vp_size.x - insets.position.x - insets.size.x
 
 	if dialog_panel:
 		var avail_w := vp_size.x - insets.position.x - insets.size.x
@@ -105,7 +105,7 @@ func _start_display() -> void:
 	if chapter_title_label:
 		chapter_title_label.text = title
 	if scenario_label:
-		scenario_label.text = "📍 " + loc
+		scenario_label.text = loc
 
 	_show_node(0)
 
@@ -130,7 +130,7 @@ func _show_node(idx: int) -> void:
 			speaker_name_label.modulate = Color(0.85, 0.85, 0.95)
 		elif "Voz Ancestral" in speaker or "Otomí" in speaker:
 			speaker_name_label.modulate = Color(1.0, 0.75, 0.35)
-		elif "Director" in speaker:
+		elif "Coordinador" in speaker:
 			speaker_name_label.modulate = Color(0.95, 0.85, 0.65)
 		elif "Apatyx" in speaker or "Desperdicius" in speaker or "Superbus" in speaker or "Murmullus" in speaker or "Plagiatrix" in speaker or "Titanor" in speaker:
 			speaker_name_label.modulate = Color(1.0, 0.45, 0.50)
@@ -160,19 +160,19 @@ func _update_button_prompts() -> void:
 
 	if is_mobile:
 		if btn_next:
-			btn_next.text = "Finalizar ▶" if is_last else "Continuar ▶"
+			btn_next.text = "Finalizar" if is_last else "Continuar"
 		if btn_skip:
-			btn_skip.text = "Saltar ⏭"
+			btn_skip.text = "Saltar"
 	elif _last_input_was_gamepad:
 		if btn_next:
-			btn_next.text = "Finalizar (A) ▶" if is_last else "Continuar (A) ▶"
+			btn_next.text = "Finalizar (A)" if is_last else "Continuar (A)"
 		if btn_skip:
-			btn_skip.text = "Saltar (B) ⏭"
+			btn_skip.text = "Saltar (B)"
 	else:
 		if btn_next:
-			btn_next.text = "Finalizar ▶ (Espacio)" if is_last else "Continuar ▶ (Espacio)"
+			btn_next.text = "Finalizar (Espacio)" if is_last else "Continuar (Espacio)"
 		if btn_skip:
-			btn_skip.text = "Saltar ⏭ (Esc)"
+			btn_skip.text = "Saltar (Esc)"
 
 func _process(delta: float) -> void:
 	if _is_typing and dialogue_label:
@@ -248,6 +248,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 func _advance_dialogue() -> void:
+	if _finishing:
+		return
 	if _is_typing:
 		# Completar inmediatamente el texto en pantalla
 		_is_typing = false
@@ -260,17 +262,27 @@ func _advance_dialogue() -> void:
 			_finish()
 
 func _skip_cutscene() -> void:
+	if _finishing:
+		return
 	_finish()
 
 func _finish() -> void:
+	if _finishing:
+		return
+	_finishing = true
 	set_process(false)
+	if btn_next:
+		btn_next.disabled = true
+	if btn_skip:
+		btn_skip.disabled = true
 	if _game_settings and _game_settings.has_method("duck_music"):
 		_game_settings.duck_music(false)
 	var tw := create_tween()
 	tw.tween_property(self, "modulate:a", 0.0, 0.22)
 	await tw.finished
-	cutscene_finished.emit()
-	queue_free()
+	if is_instance_valid(self):
+		cutscene_finished.emit()
+		queue_free()
 
 func _get_portrait_texture(p: String) -> Texture2D:
 	var path := ""
@@ -298,6 +310,8 @@ func _get_portrait_texture(p: String) -> Texture2D:
 			path = "res://assets/portraits/maestro_desinteres_redeemed.png"
 		else:
 			path = "res://assets/portraits/maestro_desinteres.png"
+	elif "coordinador" in p:
+		path = "res://assets/characters/coordinador/hablando_frente.png"
 
 	if path != "":
 		if ResourceLoader.exists(path):
@@ -584,9 +598,9 @@ func _on_portrait_draw() -> void:
 			portrait_canvas.draw_line(p1, p2, Color(1.0, 0.90, 0.45), 3.0)
 
 	# -------------------------------------------------------------------------
-	# 9. DIRECTOR INSTITUCIONAL COBAEM
+	# 9. COORDINADOR INSTITUCIONAL COBAEM
 	# -------------------------------------------------------------------------
-	elif "director" in p:
+	elif "coordinador" in p:
 		portrait_canvas.draw_rect(Rect2(cx - 30, size.y - 32, 60, 30), Color(0.20, 0.15, 0.22))
 		portrait_canvas.draw_polygon(PackedVector2Array([Vector2(cx - 10, size.y - 32), Vector2(cx + 10, size.y - 32), Vector2(cx, size.y - 18)]), [Color(1.0, 1.0, 1.0)])
 		portrait_canvas.draw_rect(Rect2(cx - 3, size.y - 28, 6, 20), Color(0.55, 0.10, 0.18)) # Corbata guinda

@@ -9,11 +9,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Motor WebGL Three.js + OrbitControls + Tween.js (Local con fallback a CDN para escuelas sin internet) -->
-  <script src="assets/vendor/three.min.js"></script>
+  <script src="../assets/vendor/three.min.js"></script>
   <script>window.THREE || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');</script>
-  <script src="assets/vendor/OrbitControls.js"></script>
+  <script src="../assets/vendor/OrbitControls.js"></script>
   <script>(window.THREE && window.THREE.OrbitControls) || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>');</script>
-  <script src="assets/vendor/tween.umd.js"></script>
+  <script src="../assets/vendor/tween.umd.js"></script>
   <script>window.TWEEN || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"><\/script>');</script>
 
   <style>
@@ -34,8 +34,8 @@
       --accent-cad-dark: #0369a1;
       --accent-cad-soft: #e0f2fe;
 
-      --accent-rpg: #6d28d9;
-      --accent-rpg-soft: #ede9fe;
+      --accent-rpg: #1e293b;
+      --accent-rpg-soft: #f1f5f9;
 
       --accent-emerald: #059669;
       --accent-amber: #d97706;
@@ -251,7 +251,7 @@
       color: var(--accent-rpg);
       padding: 2px 6px;
       border-radius: 4px;
-      border: 1px solid #c4b5fd;
+      border: 1px solid #cbd5e1;
     }
 
     .brand-info p {
@@ -413,6 +413,23 @@
       font-size: 12px;
       font-weight: 800;
       color: var(--text-main);
+    }
+
+    .exp-search {
+      width: 100%;
+      padding: 5px 8px;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      color: var(--text-main);
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      outline: none;
+    }
+
+    .exp-search:focus {
+      border-color: var(--accent-cad);
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
     }
 
     .exp-filter-pills {
@@ -872,6 +889,7 @@
         <span>EXPLORADOR DE SALONES (35)</span>
         <span style="font-family:var(--font-mono);font-size:10px;color:var(--accent-cad);">1:1</span>
       </div>
+      <input type="search" id="exp-search" class="exp-search" placeholder="Filtrar aula, edificio o clave..." autocomplete="off" />
       <div class="exp-filter-pills" id="exp-filters">
         <button class="exp-pill active" data-filter="all">Todos</button>
         <button class="exp-pill" data-filter="Edificio A">Edif. A</button>
@@ -909,7 +927,7 @@
       </div>
 
       <button class="btn-focus-room" id="btn-focus-room">
-        🎯 Enfocar Cámara 3D en este Espacio (Tecla F)
+        Enfocar cámara 3D en este espacio (F)
       </button>
 
       <div class="dims-grid-2x2">
@@ -956,6 +974,10 @@
           <tr>
             <th>Normativa / Clave</th>
             <td id="insp-norm">U-1C • H. AYTO. 2007</td>
+          </tr>
+          <tr>
+            <th>Escala Juego (40 px/m)</th>
+            <td id="insp-game-px">320 × 280 px (56 baldosas 1m²)</td>
           </tr>
         </tbody>
       </table>
@@ -2206,6 +2228,8 @@
     let isCadWhiteStyle = false;
     let showLabels3D = true;
     let selectedSpaceId = 'a_aula1';
+    let currentExplorerFilter = 'all';
+    let currentExplorerQuery = '';
 
     let scene, camera, renderer, controls;
     const interactiveMeshes = [];
@@ -3437,15 +3461,34 @@
     /* ==========================================================================
        EXPLORADOR LATERAL IZQUIERDO DE SALONES
        ========================================================================== */
-    function buildExplorerList(filterKey) {
+    function _normText(str) {
+      return (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function buildExplorerList(filterKey = currentExplorerFilter, searchQuery = currentExplorerQuery) {
+      currentExplorerFilter = filterKey;
+      currentExplorerQuery = searchQuery;
       const listEl = document.getElementById('exp-list');
       listEl.innerHTML = '';
+      const q = _normText(searchQuery.trim());
 
       const filtered = SPACES_DB.filter(sp => {
-        if (filterKey === 'all') return true;
-        if (filterKey === 'ext') return !sp.building.startsWith('Edificio');
-        return sp.building === filterKey;
+        if (filterKey === 'ext') {
+          if (sp.building.startsWith('Edificio')) return false;
+        } else if (filterKey !== 'all') {
+          if (sp.building !== filterKey) return false;
+        }
+        if (!q) return true;
+        return _normText(`${sp.name} ${sp.short_name} ${sp.code} ${sp.building}`).includes(q);
       });
+
+      if (filtered.length === 0) {
+        const emptyEl = document.createElement('div');
+        emptyEl.style.cssText = 'padding:14px 10px;text-align:center;font-size:11px;color:var(--text-muted);';
+        emptyEl.textContent = 'Sin coincidencias en este filtro.';
+        listEl.appendChild(emptyEl);
+        return;
+      }
 
       filtered.forEach(sp => {
         const btn = document.createElement('button');
@@ -3549,6 +3592,10 @@
       document.getElementById('insp-npt').textContent = space.npt;
       document.getElementById('insp-occ').textContent = space.capacity || space.occupancy || 'Uso educativo';
       document.getElementById('insp-norm').textContent = space.norm;
+      const gamePxX = Math.round(space.length_m * 40);
+      const gamePxZ = Math.round(space.width_m * 40);
+      const tiles1m = Math.round(space.area_m2);
+      document.getElementById('insp-game-px').textContent = `${fmtInt.format(gamePxX)} × ${fmtInt.format(gamePxZ)} px (${fmtInt.format(tiles1m)} baldosas 1m²)`;
       document.getElementById('insp-desc').textContent = space.notes || space.description || '';
 
       document.getElementById('sb-active-room').textContent = `${space.short_name}: ${fCm(space.length_cm)} × ${fCm(space.width_cm)} = ${fCm2(space.area_cm2)}`;
@@ -3669,9 +3716,16 @@
         pill.addEventListener('click', () => {
           document.querySelectorAll('#exp-filters .exp-pill').forEach(p => p.classList.remove('active'));
           pill.classList.add('active');
-          buildExplorerList(pill.dataset.filter);
+          buildExplorerList(pill.dataset.filter, currentExplorerQuery);
         });
       });
+
+      const expSearch = document.getElementById('exp-search');
+      if (expSearch) {
+        expSearch.addEventListener('input', (e) => {
+          buildExplorerList(currentExplorerFilter, e.target.value);
+        });
+      }
 
       document.getElementById('btn-focus-room').addEventListener('click', () => selectSpace(selectedSpaceId, true));
       document.getElementById('btn-close-insp').addEventListener('click', () => {
@@ -3680,6 +3734,10 @@
 
       // Atajos de teclado
       window.addEventListener('keydown', (e) => {
+        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+          if (e.key === 'Escape') document.activeElement.blur();
+          return;
+        }
         if (e.key === '1') switchCameraPose('rpg');
         else if (e.key === '2') switchCameraPose('low');
         else if (e.key === '3') switchCameraPose('aerial');

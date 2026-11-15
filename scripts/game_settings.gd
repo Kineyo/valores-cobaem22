@@ -40,13 +40,18 @@ const PRESETS := {
 	},
 }
 
+const HIMNO_M4A_PATH := "res://assets/audio/himno.m4a"
+const HIMNO_OGG_PATH := "res://assets/audio/himno.ogg"
+
 var MUSIC_MENU: AudioStream
 var MUSIC_GAME: AudioStream
+var MUSIC_HIMNO: AudioStream
 
 const SILENT_DB := -40.0
 const FADE_TIME := 0.6
 
 var difficulty: int = Difficulty.NORMAL
+var initial_difficulty: int = Difficulty.NORMAL
 var game_mode: int = GameMode.ARCADE
 var selected_character: int = CharacterSkin.MASCULINO
 var music_volume_db: float = -8.0
@@ -95,6 +100,7 @@ func _exit_tree() -> void:
 		_music = null
 	MUSIC_MENU = null
 	MUSIC_GAME = null
+	MUSIC_HIMNO = null
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
@@ -107,10 +113,11 @@ func save_settings() -> void:
 func load_settings() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(SETTINGS_PATH) == OK:
-		difficulty = cfg.get_value("game", "difficulty", Difficulty.NORMAL)
-		game_mode = cfg.get_value("game", "game_mode", GameMode.ARCADE)
-		selected_character = cfg.get_value("game", "selected_character", CharacterSkin.PANTALON)
-		music_volume_db = cfg.get_value("audio", "music_volume_db", -8.0)
+		difficulty = clampi(int(cfg.get_value("game", "difficulty", Difficulty.NORMAL)), 0, DIFFICULTY_NAMES.size() - 1)
+		initial_difficulty = difficulty
+		game_mode = clampi(int(cfg.get_value("game", "game_mode", GameMode.ARCADE)), 0, GAME_MODE_NAMES.size() - 1)
+		selected_character = clampi(int(cfg.get_value("game", "selected_character", CharacterSkin.PANTALON)), 0, CHARACTER_NAMES.size() - 1)
+		music_volume_db = clampf(float(cfg.get_value("audio", "music_volume_db", -8.0)), -60.0, 6.0)
 		if _music:
 			_music.volume_db = music_volume_db
 
@@ -120,29 +127,64 @@ func _on_music_finished() -> void:
 
 ## Retorna un parámetro de configuración para la dificultad activa
 func get_param(key: String) -> Variant:
-	return PRESETS[difficulty][key]
+	var safe_diff := clampi(difficulty, 0, DIFFICULTY_NAMES.size() - 1)
+	return PRESETS[safe_diff][key]
+
+## Establece la dificultad activa y actualiza la dificultad inicial registrada
+func set_difficulty(value: int) -> void:
+	difficulty = clampi(value, 0, DIFFICULTY_NAMES.size() - 1)
+	initial_difficulty = difficulty
+
+## Fija explícitamente la dificultad inicial al comenzar la campaña
+func lock_initial_difficulty() -> void:
+	initial_difficulty = clampi(difficulty, 0, DIFFICULTY_NAMES.size() - 1)
 
 ## Retorna el nombre legible de la dificultad activa
 func difficulty_name() -> String:
-	return DIFFICULTY_NAMES[difficulty]
+	return DIFFICULTY_NAMES[clampi(difficulty, 0, DIFFICULTY_NAMES.size() - 1)]
+
+## Retorna el nombre legible de la dificultad inicial con la que comenzó la partida
+func get_initial_difficulty_name() -> String:
+	return DIFFICULTY_NAMES[clampi(initial_difficulty, 0, DIFFICULTY_NAMES.size() - 1)]
 
 ## Retorna el nombre legible del modo de juego activo
 func game_mode_name() -> String:
-	return GAME_MODE_NAMES[game_mode]
+	return GAME_MODE_NAMES[clampi(game_mode, 0, GAME_MODE_NAMES.size() - 1)]
 
 ## Retorna el nombre legible del personaje/aspecto seleccionado
 func character_name() -> String:
-	return CHARACTER_NAMES[selected_character]
+	return CHARACTER_NAMES[clampi(selected_character, 0, CHARACTER_NAMES.size() - 1)]
 
 ## Retorna la ruta de la carpeta del personaje seleccionado
 func character_folder() -> String:
-	return CHARACTER_FOLDERS[selected_character]
+	return CHARACTER_FOLDERS[clampi(selected_character, 0, CHARACTER_FOLDERS.size() - 1)]
 
 func play_menu_music() -> void:
 	_play(MUSIC_MENU)
 
 func play_game_music() -> void:
 	_play(MUSIC_GAME)
+
+func play_himno_music() -> void:
+	if MUSIC_HIMNO == null:
+		MUSIC_HIMNO = _load_himno_stream()
+	if MUSIC_HIMNO != null:
+		_play(MUSIC_HIMNO)
+
+func _load_himno_stream() -> AudioStream:
+	if ResourceLoader.exists(HIMNO_M4A_PATH):
+		var m4a_stream := load(HIMNO_M4A_PATH) as AudioStream
+		if m4a_stream != null:
+			return m4a_stream
+	if ResourceLoader.exists(HIMNO_OGG_PATH):
+		var ogg_stream := load(HIMNO_OGG_PATH) as AudioStream
+		if ogg_stream != null:
+			return ogg_stream
+	if FileAccess.file_exists(HIMNO_OGG_PATH):
+		var loaded_ogg := AudioStreamOggVorbis.load_from_file(ProjectSettings.globalize_path(HIMNO_OGG_PATH))
+		if loaded_ogg != null:
+			return loaded_ogg
+	return MUSIC_GAME
 
 ## Detiene la música aplicando un fundido suave
 func stop_music(fade: float = FADE_TIME) -> void:
@@ -159,7 +201,7 @@ func stop_music(fade: float = FADE_TIME) -> void:
 
 ## Reduce temporalmente el volumen de la música (ej. al pausar el juego)
 func duck_music(enabled: bool) -> void:
-	if enabled == _ducked or not _music.playing:
+	if enabled == _ducked or _music == null or not _music.playing:
 		return
 	_ducked = enabled
 	_fade_to(music_volume_db - (10.0 if enabled else 0.0), 0.25)
@@ -191,5 +233,6 @@ func _fade_to(db: float, time: float) -> Tween:
 	if _fade_tween and _fade_tween.is_valid():
 		_fade_tween.kill()
 	_fade_tween = create_tween()
-	_fade_tween.tween_property(_music, "volume_db", db, time)
+	if _music != null:
+		_fade_tween.tween_property(_music, "volume_db", db, time)
 	return _fade_tween

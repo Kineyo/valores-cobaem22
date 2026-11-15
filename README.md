@@ -81,10 +81,7 @@ Abre una terminal en tu sistema y ejecuta:
 git clone https://github.com/Kineyo/valores-cobaem22.git
 cd valores-cobaem22
 
-# 2. (Opcional) Instalar dependencias Python para herramientas de generación
-pip install -r requirements.txt
-
-# 3. Abrir e iniciar directamente con Godot Engine 4 (ejecutable en PATH)
+# 2. Abrir e iniciar directamente con Godot Engine 4 (ejecutable en PATH)
 godot --path . scenes/menu.tscn
 
 # O bien, si tienes Godot instalado mediante Flatpak en Linux:
@@ -114,9 +111,6 @@ El repositorio incluye una presentación audiovisual oficial que resume la misi�
   *Abre este archivo en tu navegador web para ver la animación interactiva con el reproductor oficial de Remotion (play, pausa, barra de tiempo y pantalla completa).*
 * 📹 **Archivo de Video Físico MP4:** [`assets/video/video_presentacion.mp4`](assets/video/video_presentacion.mp4)  
   *Video Full HD (1920×1080 @ 30 FPS, 1.4 MB) con banda sonora chiptune sincronizada (`music_game.wav`). Compatible con reproductores de video locales y dispositivos móviles.*
-* 🛠️ **Scripts de Generación:**
-  * [`tools/build_video.py`](tools/build_video.py): Generador de código Remotion y llamada al servidor MCP.
-  * [`tools/render_mp4.py`](tools/render_mp4.py): Renderizador de frames y ensamble de audio con FFmpeg.
 
 ---
 
@@ -351,14 +345,14 @@ Para permitir a la comunidad escolar, docentes y alumnos personalizar o crear su
 
 | Archivo PNG | Rol y Ubicación Escolar | Formato & Dimensiones |
 | :--- | :--- | :--- |
-| [`assets/mateo_laboratorio.png`](assets/mateo_laboratorio.png) | Mateo — Laboratorio Edificio D (Ciencia y Respeto) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/maria_cafeteria.png`](assets/maria_cafeteria.png) | María — Cafetería y Aulas Edif. A (Empatía y Solidaridad) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/valeria_plaza.png`](assets/valeria_plaza.png) | Valeria — Plaza Cívica (Liderazgo Cívico y Valores) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/fernanda_biblioteca.png`](assets/fernanda_biblioteca.png) | Fernanda — Biblioteca Edificio B (Lectura y Honestidad) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/diego_computo.png`](assets/diego_computo.png) | Diego — Cómputo Edificio C (Tecnología y Trabajo en Equipo) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/sofia_direccion.png`](assets/sofia_direccion.png) | Sofía — Dirección Edificio C (Liderazgo Estudiantil) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/alejandro_cancha.png`](assets/alejandro_cancha.png) | Alejandro — Cancha Deportiva (Compañerismo y Fair Play) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/maestro_desinteres.png`](assets/maestro_desinteres.png) | Maestro Desinterés — Jefe de Salón (Inacción ante Bullying) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/characters/mateo_laboratorio/idle.png`](assets/characters/mateo_laboratorio/idle.png) | Mateo — Laboratorio Edificio D (Ciencia y Respeto) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/characters/maria_cafeteria/idle.png`](assets/characters/maria_cafeteria/idle.png) | María — Cafetería y Aulas Edif. A (Empatía y Solidaridad) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/characters/valeria_plaza/idle.png`](assets/characters/valeria_plaza/idle.png) | Valeria — Plaza Cívica (Liderazgo Cívico y Valores) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/characters/fernanda_biblioteca/idle.png`](assets/characters/fernanda_biblioteca/idle.png) | Fernanda — Biblioteca Edificio B (Lectura y Honestidad) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/characters/diego_computo/idle.png`](assets/characters/diego_computo/idle.png) | Diego — Cómputo Edificio C (Tecnología y Trabajo en Equipo) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/characters/sofia_direccion/idle.png`](assets/characters/sofia_direccion/idle.png) | Sofía — Dirección Edificio C (Liderazgo Estudiantil) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/characters/alejandro_cancha/idle.png`](assets/characters/alejandro_cancha/idle.png) | Alejandro — Cancha Deportiva (Compañerismo y Fair Play) | Sprite 512×512 (Grilla 32×32) |
+| [`assets/characters/maestro_desinteres/idle.png`](assets/characters/maestro_desinteres/idle.png) | Maestro Desinterés — Jefe de Salón (Inacción ante Bullying) | Sprite 512×512 (Grilla 32×32) |
 | [`assets/portraits/*.png`](assets/portraits/) | Retratos de primer plano para cinemáticas del Modo Historia | Retratos 256×256 (Grilla 32×32) |
 
 ---
@@ -497,13 +491,13 @@ El proyecto incluye un script de validación que revisa automáticamente la inte
 godot --headless -s tools/test_game.gd
 ```
 
-### 🎨 Generación Procedimental de Escenarios
+### 🎨 Escenarios Pixel Art a Escala Real
 
-Los 6 escenarios Pixel Art en escala $1\text{ m} = 40\text{ px}$ se construyen de forma determinista mediante Pillow:
+Los 6 escenarios en `escenarios/` y los 6 salones en `escenarios/salones/` están diseñados bajo la escala arquitectónica $1\text{ m} = 40\text{ px}$ y se indexan automáticamente al importar el proyecto en Godot:
 
 ```bash
-# Regenerar todos los mapas de escenarios en la carpeta escenarios/
-python3 tools/generate_scenarios.py
+# Reimportar mapas e imágenes editadas en el repositorio
+godot --headless --import
 ```
 
 ### 🎵 Generación de la Banda Sonora Chiptune
@@ -591,8 +585,10 @@ campeones-de-los-valores/
 ├── assets/
 │   ├── audio/                  # Loops musicales (.wav) y efectos de sonido
 │   ├── background/             # Texturas y fondos de menú
+│   ├── characters/             # Sprites oficiales del héroe, heroína, alumnos y Maestro Desinterés
+│   ├── logos/                  # Emblemas oficiales de COBAEM y del Plantel 22 ENTHAVI
 │   ├── planos/                 # 52 Fotografías reales y levantamientos del plantel
-│   └── sprites/                # Sprites pixel art (personaje, enemigos, corazones, meta)
+│   └── sprites/                # Sprites pixel art (proyectiles, enemigos, corazones, meta)
 ├── escenarios/                 # Los 6 mapas a escala real (1m = 40px) en PNG
 │   ├── LEEME_ESCENARIOS.md     # Documentación técnica de cotas y dimensiones por escenario
 │   ├── nivel_1_acceso_laboratorio.png
@@ -638,18 +634,12 @@ campeones-de-los-valores/
 ├── themes/                     # Estilos visuales de UI y fuentes retro
 ├── tools/                      # Herramientas de automatización en Python y GDScript
 │   ├── generate_music.py       # Sintetizador procedural de temas chiptune
-│   ├── generate_scenarios.py   # Generador procedural de los 6 mapas a escala real
-│   ├── generate_classroom_scenarios.py # Generador de mapas interiores de salones
-│   ├── generate_secondary_characters.py # Generador de sprites de estudiantes
-│   ├── generate_character_assets.py    # Generador de retratos y assets
-│   ├── requirements.txt        # Dependencias Python (Pillow) para herramientas
 │   └── test_game.gd            # Suite completa de pruebas automatizadas en modo headless
 ├── planos/                     # Visores arquitectónicos BIM/CAD y planimetría
 │   ├── plano_3d.html           # Maqueta arquitectónica interactiva 3D (Three.js BIM/CAD)
 │   ├── planos_interactivos.html # Sistema CAD 2D de planos interactivos vectoriales
 │   └── CEMSaD 22 ENTHAVI...pdf # Planos arquitectónicos vectoriales en PDF
-├── icon.svg                    # Emblema heráldico vectorial del juego
-├── icon.png                    # Icono rasterizado para el lanzador
+├── icon.jpeg                   # Icono oficial y emblema del juego para el lanzador
 ├── project.godot               # Archivo maestro de configuración de Godot Engine 4
 ├── LICENSE                     # Licencia de código abierto MIT
 ├── AGENTS.md                   # Guía técnica para agentes de IA y resolución de errores
@@ -732,8 +722,7 @@ Este proyecto está distribuido bajo la licencia de código abierto **MIT**. Con
 ### 🏛️ Reconocimientos Institucionales
 
 > 
-> - **Un especial reconocimiento** Para la maestra **Lic. Guadalupe Larisa Zarza  Velazquez**; Maestra de Informatica en el **Colegio De Bachilleres Del Estado De Mexico Centro De Educacion Media Superior Plantel 22 Enthavi**.
-
+> - **Un especial reconocimiento** Para la maestra **Lic. Guadalupe Larisa Zarza  Velazquez**; Maestra de Informatica en el **Colegio De Bachilleres Del Estado De Mexico Centro De Educacion Media Superior Plantel 22 Enthavi**, gracias a ella y su dedicacion enseñandonos a diario sobre informatica y programacion se logro hacer este juego.
 > 
 
 - **Colegio de Bachilleres del Estado de México (COBAEM)**.

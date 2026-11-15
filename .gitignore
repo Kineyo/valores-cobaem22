@@ -63,3 +63,7 @@ reports/
 /reports/
 .proposals/
 .test_env/
+
+# Generated recognition PDFs (local user/test exports)
+certificados/
+/certificados/

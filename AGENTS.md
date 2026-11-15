@@ -110,8 +110,15 @@ Si encuentras un error o necesitas implementar una función, consulta esta tabla
 | [`scripts/main.gd`](scripts/main.gd) | GDScript | Controlador general de la campaña escolar. Orquesta las 12 fases (6 edificios + 6 salones interiores) y cinemáticas. | `load_level()`, `_on_level_completed()`, `_on_player_died()` |
 | [`scripts/menu.gd`](scripts/menu.gd) | GDScript | Controlador del menú inicial. Selección de dificultad, animaciones elásticas de botones y fondo con scroll. | `_select_difficulty()`, `_refresh_difficulty()`, `_start_game()` |
 | [`scripts/hud.gd`](scripts/hud.gd) | GDScript (`HUD`) | Interfaz gráfica de usuario. Renderizado de vidas (corazones), barra de avance métrico y modales interactivos. | `update_hearts()`, `update_progress()`, `set_paused()`, `show_victory()` |
-| [`scripts/mobile_controls.gd`](scripts/mobile_controls.gd) | GDScript (`MobileControls`) | Controles táctiles virtuales para móvil/Android: joystick analógico 8D, botón de Virtud y pausa flotante. | `_update_joystick()`, `_apply_input_axis()`, `_reset_joystick()` |
+| [`scripts/mobile_controls.gd`](scripts/mobile_controls.gd) | GDScript (`MobileControls`) | Controles táctiles dinámicos multitáctil (joystick 8D, botón de Virtud, botón `FOCUS` Danmaku y pausa flotante) con detección real en PC/Web/Móvil. | `is_touch_device()`, `_update_joystick()`, `deactivate()` |
 | [`scenes/mobile_controls.tscn`](scenes/mobile_controls.tscn) | Escena Godot | Capa visual y táctil de controles móviles para celulares, tabletas y pantallas táctiles. | Nodo `Control` con dibujo vectorial |
+| [`scripts/classroom_door.gd`](scripts/classroom_door.gd) | GDScript (`ClassroomDoor`) | Puerta interactiva de acceso a los 6 salones de clase desde los escenarios exteriores. | `update_state()`, `_on_body_entered()` |
+| [`scripts/fog_overlay.gd`](scripts/fog_overlay.gd) | GDScript (`FogOverlay`) | Niebla volumétrica del Desinterés con luces dinámicas y oscurecimiento en fases de jefe. | `set_fog()`, `light_sources`, `desperation_darkness` |
+| [`scripts/scenario_decor.gd`](scripts/scenario_decor.gd) | GDScript (`ScenarioDecor`) | Capa ambiental 3/4 compatible con `gl_compatibility` (brisa, haces de luz y destellos) sobre `Background`. | `setup_decor()`, `_rebuild_decor()`, `_align_above_background()` |
+| [`scripts/loading_screen.gd`](scripts/loading_screen.gd) | GDScript (`LoadingScreen`) | Pantalla institucional de carga multiplataforma (PC, táctil y gamepad) con frases formativas y logos. | `_unhandled_input()`, `_update_prompt_text()`, `_adjust_layout_for_viewport()` |
+| [`scripts/final_ceremony.gd`](scripts/final_ceremony.gd) | GDScript (`FinalCeremony`) | Escena final en la cancha de básquetbol con discurso del Coordinador en podio, himno, entrega de medalla y cierre. | `_advance_speech()`, `_start_walking_phase()`, `_start_medal_phase()`, `_show_final_message_phase()` |
+| [`scenes/final_ceremony.tscn`](scenes/final_ceremony.tscn) | Escena Godot | Escena empaquetada de la ceremonia de agradecimiento y reconocimiento final. | Nodo raíz `FinalCeremony` |
+| [`scripts/certificate_generator.gd`](scripts/certificate_generator.gd) | GDScript (`CertificateGenerator`) | Generador puro en GDScript de certificados PDF 1.4 en Tamaño Carta (`612×792 pt`) y 5×7 (`360×504 pt`) con logos oficiales. | `generate_certificates()`, `resolve_initial_difficulty()` |
 | [`scripts/ui_juice.gd`](scripts/ui_juice.gd) | GDScript (`UiJuice`) | Utilidad estática para dotar a los botones de microanimaciones elásticas (hover, focus, click) y SFX. | `attach_button()`, `_scale_to()` |
 | [`shaders/pixel_transition.gdshader`](shaders/pixel_transition.gdshader) | GLSL Shader | Shader de cortinilla de rombos pixel-art con tamaño de celda ajustable y efecto reversible de barrido. | `fragment()`, parámetros `progress`, `reverse`, `pixel_size` |
 | [`scenes/*.tscn`](scenes/) | Escenas Godot | Nodos empaquetados: jerarquía visual y de colisiones de `menu`, `main`, `level`, `player`, `enemy`, `goal`, `hud`. | Estructura de nodos del motor |
@@ -119,23 +126,16 @@ Si encuentras un error o necesitas implementar una función, consulta esta tabla
 | [`escenarios/salones/*.png`](escenarios/salones/) | Texturas PNG | Los 6 mapas de salones interiores temáticos (800×480 px) del CEMSaD 22 ENTHAVI. | Laboratorio, Aula 1, Sala Cívica, Biblioteca, Cómputo y Gimnasio |
 | [`assets/characters/Masculino/`](assets/characters/Masculino/) | Sprites PNG | Colección de aspectos y sprites del personaje masculino (portada frontal sobre fondo blanco puro y sprites de movimiento: idle, walk_right, walk_left, back, attack, hurt). | `portada.png`, `idle.png`, `walk_*.png`, `back.png`, `attack.png`, `hurt.png` |
 | [`assets/characters/Femenino/`](assets/characters/Femenino/) | Sprites PNG | Colección de aspectos y sprites del personaje femenino (portada frontal sobre fondo blanco puro y capas/sprites de movimiento). | `portada.png`, `idle.png`, `atack.png`, `hurt.png`, `Capa *.png` |
-| [`assets/*.png`](assets/) | Sprites PNG | Renders pixel art individuales de los alumnos (`mateo_laboratorio.png`, `maria_cafeteria.png`, etc.) y `maestro_desinteres.png` editables por el usuario. | Sprites 512×512 en grilla 32×32 |
+| [`assets/characters/*/`](assets/characters/) | Sprites PNG | Sprites oficiales modificados de los estudiantes secundarios (`mateo_laboratorio`, `maria_cafeteria`, `valeria_plaza`, `fernanda_biblioteca`, `diego_computo`, `sofia_direccion`, `alejandro_cancha`), del jefe (`maestro_desinteres`, `maestro_desinteres_redeemed`) y del Coordinador (`coordinador/`). | `idle.png`, poses `normal_*` / `hablando_*` |
 | [`assets/portraits/*.png`](assets/portraits/) | Retratos PNG | Retratos de primer plano 256×256 para cinemáticas del Modo Historia. | Retratos faciales de alumnos y maestro |
-| [`tools/generate_character_skins.py`](tools/generate_character_skins.py) | Script Python (Pillow) | Generador determinista de los aspectos, sprites y portadas frontales sobre fondo blanco puro de las dos protagonistas escolares. | `main()`, `generate_portada()`, `populate_sprites()` |
-| [`tools/generate_secondary_characters.py`](tools/generate_secondary_characters.py) | Script Python (Pillow) | Procesador y conversor de los 8 personajes secundarios a la plantilla estándar centrada en 512×512 RGBA en subcarpetas dedicadas. | `main()`, `extract_tight_clean_from_sheet()`, `place_on_standard_canvas()` |
-| [`tools/generate_character_assets.py`](tools/generate_character_assets.py) | Script Python (Pillow) | Generador determinista de todos los renders PNG de alumnos y maestro en `assets/` y `assets/portraits/`. | `main()`, `make_student_body()`, `make_character_portrait()` |
-| [`tools/generate_classroom_scenarios.py`](tools/generate_classroom_scenarios.py) | Script Python (Pillow) | Generador determinista de los 6 mapas de salones interiores en `escenarios/salones/`. | `main()`, `generate_salon_*()` |
-| [`tools/generate_scenarios.py`](tools/generate_scenarios.py) | Script Python (Pillow) | Generador determinista de los 6 mapas de escenarios con cotas arquitectónicas, adoquines, pasto y edificios. | Función `main()`, base de datos de colores `PAL` |
 | [`tools/generate_music.py`](tools/generate_music.py) | Script Python (WAV) | Sintetizador procedural de música chiptune suave (`music_menu.wav` y `music_game.wav`) sin dependencias. | Generación matemática de ondas cuadradas/triangulares |
-| [`tools/test_game.gd`](tools/test_game.gd) | Suite Headless GDScript | Test automatizado de integridad: valida carga de niveles, colisiones, spawns y metas libres de bloqueos. | `_init()`, aserciones de consistencia |
-| [`tools/build_video.py`](tools/build_video.py) | Script Python (Remotion MCP) | Generador de video interactivo para Remotion MCP y exportador a `video_presentacion.html`. | Llamada JSON-RPC a `create_video` |
-| [`tools/render_mp4.py`](tools/render_mp4.py) | Script Python (FFmpeg) | Renderizador local de video MP4 a 1080p con audio chiptune sincronizado. | `render_frame()`, tubería rawvideo a FFmpeg |
+| [`tools/test_game.gd`](tools/test_game.gd) | Suite Headless GDScript | Test automatizado de integridad: valida carga de niveles, colisiones, spawns, texturas y metas libres de bloqueos. | `_init()`, aserciones de consistencia |
 | [`assets/video/video_presentacion.html`](assets/video/video_presentacion.html) | Aplicación Web (Remotion Player) | Reproductor web interactivo del video generado a través del servidor MCP oficial. | Widget Remotion con controles de reproducción |
 | [`assets/video/video_presentacion.mp4`](assets/video/video_presentacion.mp4) | Video H.264 / AAC | Archivo de video Full HD (1920×1080 @ 30 FPS, 20s) listo para reproducir localmente. | Video institucional del proyecto |
 | [`assets/video_preview.png`](assets/video_preview.png) | Imagen PNG | Miniatura y banner interactivo del video de presentación con botón de reproducción. | Portada y enlace audiovisual en `README.md` |
 | [`planos/plano_3d.html`](planos/plano_3d.html) | Aplicación WebGL (Three.js) | Maqueta 3D arquitectónica interactiva con 3 cámaras (RPG 3/4, peatonal, aérea), aristas vectoriales y cotas. | Renderizado BIM del plantel completo |
 | [`planos/planos_interactivos.html`](planos/planos_interactivos.html) | Aplicación HTML5/Canvas/SVG | Sistema CAD 2D de alta precisión con cálculo de áreas en $\text{m}^2/\text{cm}^2$ y 52 fotos reales de campo. | Fichas de edificios del CEMSaD 22 |
-| [`tools/requirements.txt`](tools/requirements.txt) | Dependencias PIP | Declaración de librerías Python (`Pillow`) para ejecutar las herramientas de assets y escenarios. | `pip install -r tools/requirements.txt` |
+| [`icon.jpeg`](icon.jpeg) | Imagen JPEG | Icono principal del proyecto configurado en `project.godot` y mostrado en la pantalla de título. | Recurso `res://icon.jpeg` |
 | [`README.md`](README.md) | Documentación Markdown | Guía pública del proyecto: presentación, manual de juego, tabla de controles, escenarios y comandos. | Presentación general para usuarios |
 | [`AGENTS.md`](AGENTS.md) | Especificación Técnica | Este documento: arquitectura interna, guía de reparación para agentes y reglas de código. | Guía para agentes de IA |
 
@@ -208,8 +208,8 @@ Si se produce un error o un fallo en los tests automatizados, sigue este protoco
 - **Causa:** El archivo `.png` en `escenarios/` fue creado recientemente y Godot aún no genera su archivo `.import`, o la ruta está mal escrita.
 - **Cómo reparar:**
   1. En [`scripts/level.gd`](scripts/level.gd), se incluye una vía de carga directa mediante `Image.load_from_file()` como respaldo de `ResourceLoader.load()`.
-  2. Regenera los escenarios con `python3 tools/generate_scenarios.py`.
-  3. Inicia Godot brevemente para que indexe los nuevos assets o ejecuta los tests headless.
+  2. Verifica que el archivo `.png` exista en `escenarios/` y ejecuta `godot --headless --import` para indexar y actualizar su archivo `.import`.
+  3. Ejecuta los tests headless para validar carga y colisiones.
 
 ---
 
@@ -249,13 +249,11 @@ Antes de dar por concluida cualquier modificación en el repositorio, ejecuta es
 # 1. Validar y regenerar la banda sonora sin errores sintácticos
 python3 tools/generate_music.py
 
-# 2. Validar y regenerar los 6 escenarios a escala real
-python3 tools/generate_scenarios.py
-
-# 3. Correr la suite de pruebas automatizadas en Godot (si godot está en PATH)
+# 2. Reimportar texturas/recursos y correr la suite de pruebas automatizadas en Godot
+godot --headless --import
 godot --headless -s tools/test_game.gd
 
-# 4. Comprobar que no queden archivos temporales no deseados
+# 3. Comprobar que no queden archivos temporales no deseados
 git status --short
 ```
 

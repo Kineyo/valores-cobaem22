@@ -19,7 +19,7 @@ config/description="Juego en perspectiva 3/4 de buenos valores vs antivalores en
 config/version="1.4.2"
 run/main_scene="res://scenes/menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
-config/icon="res://icon.png"
+config/icon="res://icon.jpeg"
 
 [autoload]
 

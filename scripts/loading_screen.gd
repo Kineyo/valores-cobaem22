@@ -46,6 +46,10 @@ var _tip_index: int = 0
 var _can_proceed: bool = false
 var _current_progress: float = 0.0
 var _transition_triggered: bool = false
+var _last_input_was_gamepad: bool = false
+var _prompt_tween: Tween = null
+var on_complete_callback: Callable = Callable()
+var custom_status_messages: Array[String] = []
 
 func _ensure_nodes() -> void:
 	if progress_bar == null:
@@ -81,11 +85,31 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_nodes()
 	_setup_ui()
+	_adjust_layout_for_viewport()
+	if is_inside_tree() and get_viewport():
+		if not get_viewport().size_changed.is_connected(_adjust_layout_for_viewport):
+			get_viewport().size_changed.connect(_adjust_layout_for_viewport)
+	if not Input.joy_connection_changed.is_connected(_on_joy_connection_changed):
+		Input.joy_connection_changed.connect(_on_joy_connection_changed)
 	_start_loading()
 
+func _exit_tree() -> void:
+	if Input.joy_connection_changed.is_connected(_on_joy_connection_changed):
+		Input.joy_connection_changed.disconnect(_on_joy_connection_changed)
+	if _prompt_tween and _prompt_tween.is_valid():
+		_prompt_tween.kill()
+
 func _setup_ui() -> void:
+	# Evitar que el fondo ColorRect bloquee toques o clics para acelerar la carga
+	var bg := get_node_or_null("Background") as Control
+	if bg:
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var center := get_node_or_null("Center") as Control
+	if center:
+		center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 	if logo_rect:
-		var logo_tex = load("res://assets/logos/cobaem-logo.png")
+		var logo_tex = load("res://assets/logos/cobaem-logo.jpeg")
 		if logo_tex:
 			logo_rect.texture = logo_tex
 
@@ -95,11 +119,41 @@ func _setup_ui() -> void:
 		percent_label.text = "0%"
 	if prompt_label:
 		prompt_label.visible = false
+		_update_prompt_text()
 
 	_tip_index = randi() % TIPS.size()
 	_update_tip_text(false)
 
+func _adjust_layout_for_viewport() -> void:
+	if not is_inside_tree() or get_viewport() == null:
+		return
+	var vp_size := get_viewport().get_visible_rect().size
+	var insets := MobileControls.get_safe_insets_for_viewport(get_viewport(), 12.0)
+	var avail_w := maxf(280.0, vp_size.x - insets.position.x - insets.size.x - 24.0)
+	var vbox_node := get_node_or_null("Center/VBox") as Control
+	if vbox_node:
+		vbox_node.custom_minimum_size.x = minf(580.0, avail_w)
+	if tip_panel:
+		tip_panel.custom_minimum_size.x = minf(560.0, avail_w)
+	if tip_label:
+		tip_label.custom_minimum_size.x = minf(520.0, maxf(240.0, avail_w - 40.0))
+
+func _on_joy_connection_changed(_device: int, _connected: bool) -> void:
+	_update_prompt_text()
+
+func _update_prompt_text() -> void:
+	if prompt_label == null:
+		return
+	if _last_input_was_gamepad or (not MobileControls.is_touch_device() and not Input.get_connected_joypads().is_empty()):
+		prompt_label.text = "Pulsa A o cualquier botón para continuar"
+	elif MobileControls.is_touch_device():
+		prompt_label.text = "Toca la pantalla para continuar"
+	else:
+		prompt_label.text = "¡Listo! Ingresando al plantel escolar..."
+
 func _start_loading() -> void:
+	if on_complete_callback.is_valid():
+		return
 	# Precarga síncrona inmediata en memoria: 'scenes/main.tscn' pesa apenas unos bytes
 	# y se carga en ~2 ms, evitando cualquier bloqueo o interbloqueo de hilos (deadlock en 54%).
 	if ResourceLoader.exists(target_scene):
@@ -125,9 +179,10 @@ func _process(delta: float) -> void:
 		percent_label.text = "%d%%" % int(_current_progress)
 
 	# Mensajes de estado dinámicos conforme avanza la barra
-	var status_idx := clampi(int((_current_progress / 100.0) * (STATUS_MESSAGES.size() - 1)), 0, STATUS_MESSAGES.size() - 1)
+	var messages: Array[String] = custom_status_messages if not custom_status_messages.is_empty() else STATUS_MESSAGES
+	var status_idx := clampi(int((_current_progress / 100.0) * (messages.size() - 1)), 0, messages.size() - 1)
 	if status_label:
-		status_label.text = STATUS_MESSAGES[status_idx]
+		status_label.text = messages[status_idx]
 
 	# Al completar el 100% y el tiempo mínimo de lectura
 	if _current_progress >= 99.5 and _elapsed >= min_display_time and not _can_proceed:
@@ -149,10 +204,13 @@ func _update_tip_text(animate: bool) -> void:
 
 func _on_loading_completed() -> void:
 	if prompt_label:
+		_update_prompt_text()
 		prompt_label.visible = true
-		var tw := create_tween().set_loops()
-		tw.tween_property(prompt_label, "modulate:a", 0.3, 0.5)
-		tw.tween_property(prompt_label, "modulate:a", 1.0, 0.5)
+		if _prompt_tween and _prompt_tween.is_valid():
+			_prompt_tween.kill()
+		_prompt_tween = create_tween().set_loops()
+		_prompt_tween.tween_property(prompt_label, "modulate:a", 0.3, 0.5)
+		_prompt_tween.tween_property(prompt_label, "modulate:a", 1.0, 0.5)
 
 	# Transición automática suave tras un breve instante si el nodo está en el árbol de escenas
 	if is_inside_tree() and get_tree():
@@ -160,9 +218,35 @@ func _on_loading_completed() -> void:
 	else:
 		_transition_to_target()
 
-func _unhandled_input(event: InputEvent) -> void:
+func _gui_input(event: InputEvent) -> void:
 	if _can_proceed and not _transition_triggered:
-		if (event is InputEventKey and event.pressed) or (event is InputEventScreenTouch and event.pressed) or (event is InputEventMouseButton and event.pressed):
+		if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+			accept_event()
+			_transition_to_target()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventJoypadButton and event.pressed:
+		_last_input_was_gamepad = true
+		_update_prompt_text()
+	elif event is InputEventJoypadMotion and absf(event.axis_value) > 0.5:
+		_last_input_was_gamepad = true
+		_update_prompt_text()
+	elif (event is InputEventKey and event.pressed) or (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION):
+		_last_input_was_gamepad = false
+		_update_prompt_text()
+
+	if _can_proceed and not _transition_triggered:
+		var should_proceed: bool = (
+			(event is InputEventKey and event.is_pressed() and not event.is_echo())
+			or (event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed)
+			or (event is InputEventMouseButton and (event as InputEventMouseButton).pressed)
+			or (event is InputEventJoypadButton and event.is_pressed() and not event.is_echo())
+			or event.is_action_pressed("ui_accept")
+			or event.is_action_pressed("attack")
+		)
+		if should_proceed:
+			if is_inside_tree() and get_viewport():
+				get_viewport().set_input_as_handled()
 			_transition_to_target()
 
 func _transition_to_target() -> void:
@@ -170,6 +254,26 @@ func _transition_to_target() -> void:
 		return
 	_transition_triggered = true
 	set_process(false)
+
+	if on_complete_callback.is_valid():
+		var cb := on_complete_callback
+		on_complete_callback = Callable()
+		if is_inside_tree():
+			var transition_cb = get_node_or_null("/root/SceneTransition")
+			if transition_cb and transition_cb.has_method("transition_call"):
+				if transition_cb.is_busy:
+					await transition_cb.transition_finished
+				if is_inside_tree() and transition_cb.is_inside_tree():
+					transition_cb.transition_call(func():
+						cb.call()
+						if is_instance_valid(self):
+							queue_free()
+					)
+					return
+		cb.call()
+		if is_instance_valid(self):
+			queue_free()
+		return
 
 	if is_inside_tree() and get_tree():
 		var transition = get_node_or_null("/root/SceneTransition")

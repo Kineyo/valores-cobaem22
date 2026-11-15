@@ -1,7 +1,7 @@
 [gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/loading_screen.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://assets/logos/cobaem-logo.png" id="2_logo"]
+[ext_resource type="Texture2D" path="res://assets/logos/cobaem-logo.jpeg" id="2_logo"]
 [ext_resource type="Theme" path="res://themes/pixel_theme.tres" id="3_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tip"]
@@ -9,36 +9,36 @@ content_margin_left = 18.0
 content_margin_top = 10.0
 content_margin_right = 18.0
 content_margin_bottom = 10.0
-bg_color = Color(0.08, 0.04, 0.06, 0.88)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 3
-border_color = Color(0.77, 0.63, 0.35, 0.85)
+bg_color = Color(0.09, 0.11, 0.15, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.24, 0.29, 0.37, 1)
 corner_radius_top_left = 6
 corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg_bar"]
-bg_color = Color(0.06, 0.04, 0.06, 0.9)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.77, 0.63, 0.35, 0.7)
+bg_color = Color(0.09, 0.11, 0.15, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.24, 0.29, 0.37, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fill_bar"]
-bg_color = Color(0.12, 0.65, 0.36, 1)
+bg_color = Color(0.16, 0.54, 0.36, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.4, 0.95, 0.6, 1)
+border_color = Color(0.28, 0.68, 0.46, 0.85)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -61,7 +61,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.05, 0.08, 0.07, 1)
+color = Color(0.07, 0.09, 0.12, 1)
 
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1

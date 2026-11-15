@@ -89,8 +89,8 @@ const EPILOGUE: Dictionary = {
 			"sfx": "chime"
 		},
 		{
-			"speaker": "Director Institucional COBAEM",
-			"portrait": "director",
+			"speaker": "Coordinador del Plantel CEMSaD 22",
+			"portrait": "coordinador",
 			"text": "Jóvenes del CEMSaD 22 ENTHAVI: ustedes han demostrado que la educación media superior no solo forma profesionistas competentes, sino seres humanos íntegros, solidarios y de corazón noble. ¡Son auténticos Campeones de los Valores!",
 			"emotion": "inspirational",
 			"sfx": "applause"

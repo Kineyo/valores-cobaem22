@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b3l5cgl3c7uec"
-path="res://.godot/imported/nuevo_logo_cobaem.png-1d8f27ceedda0567bb90de8e8996dfd9.ctex"
+uid="uid://c1x5rrtnevblw"
+path="res://.godot/imported/hablando_izquierda.png-b3815e8dbfd349e41d9a2ca8d87e16e8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/logos/nuevo_logo_cobaem.png"
-dest_files=["res://.godot/imported/nuevo_logo_cobaem.png-1d8f27ceedda0567bb90de8e8996dfd9.ctex"]
+source_file="res://assets/characters/coordinador/hablando_izquierda.png"
+dest_files=["res://.godot/imported/hablando_izquierda.png-b3815e8dbfd349e41d9a2ca8d87e16e8.ctex"]
 
 [params]
 

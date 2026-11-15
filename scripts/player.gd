@@ -61,6 +61,7 @@ var _walk_time: float = 0.0
 var _dust_timer: float = 0.0
 var _squash_tween: Tween
 var _flash_tween: Tween
+var _hit_this_attack: Array[int] = []
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var attack_area: Area2D = $AttackArea
@@ -87,6 +88,8 @@ func _ready() -> void:
 		attack_sprite.visible = false
 	if attack_collision:
 		attack_collision.disabled = true
+	if attack_area:
+		attack_area.position = Vector2(0.0, -14.0) + facing_vector * 22.0
 
 	if not attack_area.area_entered.is_connected(_on_attack_area_entered):
 		attack_area.area_entered.connect(_on_attack_area_entered)
@@ -275,8 +278,8 @@ func _update_facing(input_vector: Vector2) -> void:
 
 	if new_facing != facing_vector:
 		facing_vector = new_facing
-		# Posicionar el área de ataque cuerpo a cuerpo frente al jugador
-		attack_area.position = facing_vector * 24.0
+		# Posicionar el área de ataque cuerpo a cuerpo a la altura del torso frente al jugador
+		attack_area.position = Vector2(0.0, -14.0) + facing_vector * 22.0
 
 func _update_texture(_input_vector: Vector2) -> void:
 	if is_attacking:
@@ -328,6 +331,7 @@ func _animate_procedural(delta: float, input_vector: Vector2) -> void:
 
 func perform_attack() -> void:
 	is_attacking = true
+	_hit_this_attack.clear()
 	_shot_cooldown_left = shot_cooldown
 	if sfx_attack:
 		sfx_attack.pitch_scale = randf_range(0.94, 1.06)
@@ -384,13 +388,25 @@ func check_attack_hits() -> void:
 		_hit_enemy_area(area)
 	for body in attack_area.get_overlapping_bodies():
 		if (body.is_in_group("enemies") or body is Enemy) and body.has_method("hit_by_attack"):
-			body.hit_by_attack(global_position)
+			var body_id := body.get_instance_id()
+			if body_id not in _hit_this_attack:
+				_hit_this_attack.append(body_id)
+				body.hit_by_attack(global_position)
 
 func _hit_enemy_area(area: Area2D) -> void:
 	if area.is_in_group("enemies"):
+		if area.has_method("hit_by_attack"):
+			var area_id := area.get_instance_id()
+			if area_id not in _hit_this_attack:
+				_hit_this_attack.append(area_id)
+				area.hit_by_attack(global_position)
+			return
 		var enemy = area.get_parent()
 		if enemy and enemy.has_method("hit_by_attack"):
-			enemy.hit_by_attack(global_position)
+			var enemy_id := enemy.get_instance_id()
+			if enemy_id not in _hit_this_attack:
+				_hit_this_attack.append(enemy_id)
+				enemy.hit_by_attack(global_position)
 
 func _on_attack_timer_timeout() -> void:
 	is_attacking = false
@@ -398,7 +414,16 @@ func _on_attack_timer_timeout() -> void:
 		attack_sprite.visible = false
 	if attack_collision:
 		attack_collision.disabled = true
+	if attack_area:
+		attack_area.position = Vector2(0.0, -14.0) + facing_vector * 22.0
 	sprite.flip_h = false
+
+## Concede protección temporal de aparición al salir de un salón para evitar daño sin defensa
+func grant_spawn_protection(duration: float = 2.0) -> void:
+	can_control = true
+	is_invulnerable = true
+	if invulnerable_timer:
+		invulnerable_timer.start(duration)
 
 func take_damage(amount: int, from_pos: Variant = null) -> void:
 	if is_invulnerable or health <= 0 or not can_control:

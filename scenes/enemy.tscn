@@ -5,7 +5,7 @@
 [ext_resource type="AudioStream" path="res://assets/audio/golpe_enemigo.wav" id="3_sfx_hit"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hitbox"]
-size = Vector2(30, 30)
+size = Vector2(30, 34)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_enemy_body"]
 size = Vector2(20, 12)
@@ -25,7 +25,7 @@ position = Vector2(0, -18)
 texture = ExtResource("2_sprite")
 
 [node name="Hitbox" type="Area2D" parent="." groups=["enemies"]]
-position = Vector2(0, -18)
+position = Vector2(0, -15)
 collision_layer = 8
 collision_mask = 6
 

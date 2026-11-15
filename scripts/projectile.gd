@@ -69,23 +69,25 @@ func _physics_process(delta: float) -> void:
 		_dir_vec = _dir_vec.rotated(curve_speed * delta)
 		rotation = _dir_vec.angle()
 
+	var prev_pos: Vector2 = global_position
 	position += _dir_vec * speed * delta
 	if sprite:
 		sprite.rotation += 12.0 * delta
 	_time += delta
 
-	# Comprobar si el proyectil en rozadura penetra la micro-hitbox vital del jugador
+	# Comprobar de forma continua (anti-tunneling) si el proyectil penetra la micro-hitbox vital del jugador
 	if _grazing_body != null and is_instance_valid(_grazing_body):
 		var core_pos: Vector2 = _grazing_body.get_core_position() if _grazing_body.has_method("get_core_position") else (_grazing_body.global_position + Vector2(0, -10.0))
-		var dist_sq: float = global_position.distance_squared_to(core_pos)
-		if dist_sq <= 30.25: # Radio 5.5 px (Micro-hitbox Touhou)
+		var core_r_sq: float = _grazing_body.get_core_radius_sq() if _grazing_body.has_method("get_core_radius_sq") else 30.25
+		var closest_pt: Vector2 = Geometry2D.get_closest_point_to_segment(core_pos, prev_pos, global_position)
+		if core_pos.distance_squared_to(closest_pt) <= core_r_sq: # Micro-hitbox Touhou
 			_done = true
 			_spawn_impact_fx(Color(1.0, 0.35, 0.45), 10, 140.0)
 			if _grazing_body.has_method("take_damage"):
 				_grazing_body.take_damage(1, global_position)
 			queue_free()
 			return
-		elif dist_sq > 784.0: # > 28 px: se alejó fuera del cuerpo
+		elif global_position.distance_squared_to(core_pos) > 784.0: # > 28 px: se alejó fuera del cuerpo
 			_grazing_body = null
 
 	# Desvanecimiento en el último cuarto de vida útil
@@ -109,10 +111,13 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 
 	if is_enemy_projectile:
+		if body is Student:
+			return
 		if body is Player or body.has_method("take_damage"):
 			var core_pos: Vector2 = body.get_core_position() if body.has_method("get_core_position") else (body.global_position + Vector2(0, -10.0))
+			var core_r_sq: float = body.get_core_radius_sq() if body.has_method("get_core_radius_sq") else 30.25
 			var dist_sq: float = global_position.distance_squared_to(core_pos)
-			if dist_sq <= 30.25: # Radio 5.5 px: Impacto directo a la micro-hitbox vital
+			if dist_sq <= core_r_sq: # Impacto directo a la micro-hitbox vital
 				_done = true
 				_spawn_impact_fx(Color(1.0, 0.35, 0.45), 10, 140.0)
 				if body.has_method("take_damage"):
@@ -182,6 +187,12 @@ func _on_area_entered(area: Area2D) -> void:
 		return
 
 	if area.is_in_group("enemies"):
+		if area.has_method("hit_by_attack"):
+			_done = true
+			_spawn_impact_fx()
+			area.hit_by_attack(global_position)
+			queue_free()
+			return
 		var enemy = area.get_parent()
 		if enemy and enemy.has_method("hit_by_attack"):
 			_done = true

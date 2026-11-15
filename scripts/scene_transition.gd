@@ -34,7 +34,7 @@ func _ready() -> void:
 	add_child(_rect)
 
 	_logo_rect = TextureRect.new()
-	var logo_tex = load("res://assets/logos/cobaem-logo.png")
+	var logo_tex = load("res://assets/logos/cobaem-logo.jpeg")
 	if logo_tex:
 		_logo_rect.texture = logo_tex
 	_logo_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE

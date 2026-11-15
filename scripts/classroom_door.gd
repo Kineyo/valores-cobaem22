@@ -13,8 +13,8 @@ signal player_entered_classroom(classroom_idx: int)
 var _player_inside: bool = false
 var _anim_time: float = 0.0
 
-@onready var label: Label = $Label
-@onready var status_label: Label = $StatusLabel
+@onready var label: Label = get_node_or_null("Label")
+@onready var status_label: Label = get_node_or_null("StatusLabel")
 
 func _ready() -> void:
 	y_sort_enabled = true

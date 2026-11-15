@@ -75,41 +75,26 @@ func _setup_sprite() -> void:
 	var s_canon := student_name.to_lower().strip_edges()
 	var candidates: Array[String] = [
 		"res://assets/characters/%s/idle.png" % s_canon,
-		"res://assets/sprites/students/%s.png" % s_canon,
-		"res://assets/%s.png" % s_canon,
 	]
 	if "mateo" in s_canon:
 		candidates.append("res://assets/characters/mateo_laboratorio/idle.png")
-		candidates.append("res://assets/mateo_laboratorio.png")
-		candidates.append("res://assets/sprites/students/mateo_laboratorio.png")
 	elif "maria" in s_canon:
 		candidates.append("res://assets/characters/maria_cafeteria/idle.png")
-		candidates.append("res://assets/maria_cafeteria.png")
-		candidates.append("res://assets/sprites/students/maria_cafeteria.png")
 	elif "valeria" in s_canon:
 		candidates.append("res://assets/characters/valeria_plaza/idle.png")
-		candidates.append("res://assets/valeria_plaza.png")
-		candidates.append("res://assets/sprites/students/valeria_plaza.png")
 	elif "fernanda" in s_canon:
 		candidates.append("res://assets/characters/fernanda_biblioteca/idle.png")
-		candidates.append("res://assets/fernanda_biblioteca.png")
-		candidates.append("res://assets/sprites/students/fernanda_biblioteca.png")
 	elif "diego" in s_canon:
 		candidates.append("res://assets/characters/diego_computo/idle.png")
-		candidates.append("res://assets/diego_computo.png")
-		candidates.append("res://assets/sprites/students/diego_computo.png")
 	elif "sofia" in s_canon:
 		candidates.append("res://assets/characters/sofia_direccion/idle.png")
-		candidates.append("res://assets/sofia_direccion.png")
-		candidates.append("res://assets/sprites/students/sofia_direccion.png")
 	elif "alejandro" in s_canon or "emiliano" in s_canon:
 		candidates.append("res://assets/characters/alejandro_cancha/idle.png")
-		candidates.append("res://assets/alejandro_cancha.png")
-		candidates.append("res://assets/sprites/students/alejandro_cancha.png")
 	elif "maestro" in s_canon or "desinteres" in s_canon:
 		candidates.append("res://assets/characters/maestro_desinteres_redeemed/idle.png")
-		candidates.append("res://assets/maestro_desinteres_redeemed.png")
-		candidates.append("res://assets/sprites/students/maestro_desinteres_redeemed.png")
+	elif "coordinador" in s_canon:
+		candidates.append("res://assets/characters/coordinador/normal_frente.png")
+		candidates.append("res://assets/characters/coordinador/hablando_frente.png")
 
 	# Respaldo por género si el nombre es genérico (Lupita, Brenda, Carlos, etc.)
 	var name_hash := absi(s_canon.hash())
@@ -143,7 +128,9 @@ func _setup_sprite() -> void:
 	if tex:
 		sprite = Sprite2D.new()
 		sprite.texture = tex
-		sprite.scale = Vector2(0.1, 0.1) # Grilla estricta alineada a player_idle.png (512x512)
+		var max_dim := float(maxi(1, maxi(tex.get_width(), tex.get_height())))
+		var s := 51.2 / max_dim
+		sprite.scale = Vector2(s, s) # Escala normalizada a 51.2 px sin importar resolución (512px o 2048px)
 		sprite.position = Vector2(0, -22)
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		add_child(sprite)
@@ -152,10 +139,10 @@ func _setup_collision() -> void:
 	if get_node_or_null("CollisionShape2D") == null:
 		collision_shape = CollisionShape2D.new()
 		var capsule := CapsuleShape2D.new()
-		capsule.radius = 8.0
-		capsule.height = 18.0
+		capsule.radius = 10.0
+		capsule.height = 24.0
 		collision_shape.shape = capsule
-		collision_shape.position = Vector2(0, -4)
+		collision_shape.position = Vector2(0, -12)
 		add_child(collision_shape)
 	collision_layer = 1
 	collision_mask = 1
