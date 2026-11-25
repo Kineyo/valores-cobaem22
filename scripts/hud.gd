@@ -7,6 +7,7 @@ class_name HUD
 
 signal restart_game
 signal go_to_menu
+signal use_item_requested
 
 const HEART_FULL := preload("res://assets/sprites/corazon_lleno.png")
 const HEART_EMPTY := preload("res://assets/sprites/corazon_vacio.png")
@@ -22,27 +23,24 @@ const HEART_EMPTY := preload("res://assets/sprites/corazon_vacio.png")
 @onready var overlay: ColorRect = %Overlay
 @onready var pause_panel: PanelContainer = %PausePanel
 @onready var game_over_panel: PanelContainer = %GameOverPanel
-@onready var victory_panel: PanelContainer = %VictoryPanel
 @onready var boss_bar_container: PanelContainer = get_node_or_null("%BossBarContainer")
 @onready var boss_name_label: Label = get_node_or_null("%BossNameLabel")
 @onready var boss_hp_label: Label = get_node_or_null("%BossHpLabel")
 @onready var boss_progress_bar: ProgressBar = get_node_or_null("%BossProgressBar")
 @onready var game_over_stats: Label = %GameOverStats
-@onready var victory_stats: Label = %VictoryStats
 @onready var btn_resume: Button = %BtnResume
 @onready var btn_pause_menu: Button = %BtnPauseMenu
 @onready var btn_pause_retry: Button = get_node_or_null("%BtnPauseRetry")
 @onready var btn_pause_hud: Button = get_node_or_null("%BtnPauseHud")
 @onready var btn_retry: Button = %BtnRetry
 @onready var btn_menu_go: Button = %BtnGameOverMenu
-@onready var btn_play_again: Button = %BtnPlayAgain
-@onready var btn_menu_vic: Button = %BtnVictoryMenu
 @onready var sfx_game_over: AudioStreamPlayer = $SFXGameOver
 @onready var sfx_ui: AudioStreamPlayer = $SFXUi
 @onready var mobile_controls: MobileControls = get_node_or_null("MobileControls")
 
 var is_game_finished: bool = false
 var is_paused: bool = false
+var can_pause: bool = true
 
 var _hearts: Array[TextureRect] = []
 var _shown_hp: int = -1
@@ -50,10 +48,22 @@ var _target_progress: float = 0.0
 var _overlay_alpha: float = 0.6
 var _panel_tweens: Dictionary = {}
 var _overlay_tween: Tween
+var _intro_tween: Tween
+var _controls_tween: Tween
+var _intro_base_y: float = 0.0
+var _intro_base_y_saved: bool = false
 var _adapted_touch: bool = false
 var _input_hint_mode: String = "keyboard"
 var _modal_safe_scale: Vector2 = Vector2.ONE
 var btn_pause_mute: Button = null
+var _inventory_panel: PanelContainer = null
+var _inventory_btn: Button = null
+var _inventory_badge: ColorRect = null
+var _last_item_id: String = ""
+var _last_item_info: Dictionary = {}
+var _esperanza_container: PanelContainer = null
+var _esperanza_bar: ProgressBar = null
+var _esperanza_label: Label = null
 
 func _ensure_nodes() -> void:
 	if hearts_container == null:
@@ -86,8 +96,6 @@ func _ensure_nodes() -> void:
 		pause_panel = get_node_or_null("%PausePanel")
 	if game_over_panel == null:
 		game_over_panel = get_node_or_null("%GameOverPanel")
-	if victory_panel == null:
-		victory_panel = get_node_or_null("%VictoryPanel")
 	if btn_pause_hud == null:
 		btn_pause_hud = get_node_or_null("%BtnPauseHud")
 	if btn_pause_retry == null:
@@ -100,26 +108,24 @@ func _ensure_nodes() -> void:
 		btn_retry = get_node_or_null("%BtnRetry")
 	if btn_menu_go == null:
 		btn_menu_go = get_node_or_null("%BtnGameOverMenu")
-	if btn_play_again == null:
-		btn_play_again = get_node_or_null("%BtnPlayAgain")
-	if btn_menu_vic == null:
-		btn_menu_vic = get_node_or_null("%BtnVictoryMenu")
 	if not _adapted_touch:
 		_adapt_for_touch()
 
 func _ready() -> void:
 	_ensure_nodes()
+	if intro_banner and not _intro_base_y_saved:
+		_intro_base_y = intro_banner.position.y
+		_intro_base_y_saved = true
 	_overlay_alpha = overlay.color.a
-	for panel in [pause_panel, game_over_panel, victory_panel]:
-		panel.visible = false
+	for panel in [pause_panel, game_over_panel]:
+		if panel:
+			panel.visible = false
 	overlay.visible = false
 
 	btn_resume.pressed.connect(set_paused.bind(false))
 	btn_pause_menu.pressed.connect(_on_menu_pressed)
 	btn_retry.pressed.connect(_on_retry_pressed)
-	btn_play_again.pressed.connect(_on_retry_pressed)
 	btn_menu_go.pressed.connect(_on_menu_pressed)
-	btn_menu_vic.pressed.connect(_on_menu_pressed)
 
 	if btn_pause_hud:
 		btn_pause_hud.pressed.connect(func(): set_paused(not is_paused))
@@ -128,7 +134,7 @@ func _ready() -> void:
 		btn_pause_retry.pressed.connect(_on_retry_pressed)
 		UiJuice.attach_button(btn_pause_retry, sfx_ui)
 
-	for btn in [btn_resume, btn_pause_menu, btn_retry, btn_menu_go, btn_play_again, btn_menu_vic]:
+	for btn in [btn_resume, btn_pause_menu, btn_retry, btn_menu_go]:
 		UiJuice.attach_button(btn, sfx_ui)
 
 	if pause_panel:
@@ -142,6 +148,7 @@ func _ready() -> void:
 				pause_vbox.move_child(btn_pause_mute, btn_pause_menu.get_index())
 			UiJuice.attach_button(btn_pause_mute, sfx_ui)
 	_refresh_pause_mute_label()
+	_refresh_pause_gender_subtitle()
 
 	if mobile_controls:
 		mobile_controls.pause_requested.connect(func(): set_paused(not is_paused))
@@ -152,6 +159,7 @@ func _ready() -> void:
 		Input.joy_connection_changed.connect(_on_joy_connection_changed)
 
 	_adapt_for_touch()
+	_ensure_inventory_ui()
 	_update_safe_area()
 	if is_inside_tree() and get_viewport():
 		if not get_viewport().size_changed.is_connected(_update_safe_area):
@@ -217,11 +225,13 @@ func _unhandled_input(event: InputEvent) -> void:
 				_on_mute_toggle_pressed()
 			else:
 				handled = false
-		else:
+		elif can_pause:
 			if key == KEY_ESCAPE or key == KEY_P:
 				set_paused(true)
 			else:
 				handled = false
+		else:
+			handled = false
 
 	elif event is InputEventJoypadButton and event.pressed and not event.is_echo():
 		_set_input_hint_mode("gamepad")
@@ -241,11 +251,13 @@ func _unhandled_input(event: InputEvent) -> void:
 				_on_menu_pressed()
 			else:
 				handled = false
-		else:
+		elif can_pause:
 			if btn_idx == JOY_BUTTON_START:
 				set_paused(true)
 			else:
 				handled = false
+		else:
+			handled = false
 
 	elif event is InputEventJoypadMotion and absf(event.axis_value) > 0.45:
 		_set_input_hint_mode("gamepad")
@@ -260,19 +272,19 @@ func _notification(what: int) -> void:
 		is_transitioning = st.is_busy if st else false
 	match what:
 		NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED:
-			if not is_game_finished and not is_paused and not is_transitioning:
+			if can_pause and not is_game_finished and not is_paused and not is_transitioning:
 				set_paused(true)
 		NOTIFICATION_WM_GO_BACK_REQUEST:
 			# Si hay una cinemática de historia activa como hijo del HUD, delegar a ella
 			for child in get_children():
-				if child is StoryCutscene or (child.has_method("has_method") and child.has_method("_skip_cutscene")):
+				if child is StoryCutscene or child.has_method("_skip_cutscene"):
 					child._skip_cutscene()
 					return
 			if is_game_finished:
 				_on_menu_pressed()
 			elif is_paused:
 				set_paused(false)
-			else:
+			elif can_pause:
 				set_paused(true)
 
 ## Ajusta posiciones y márgenes del HUD para respetar muescas (notches) y Safe Areas de Android
@@ -307,17 +319,32 @@ func _update_safe_area() -> void:
 	if progress_bar:
 		progress_bar.custom_minimum_size.x = 74.0 if top_bar_w < 660.0 else 110.0
 	if title_label:
-		title_label.custom_minimum_size.x = 90.0 if top_bar_w < 660.0 else 140.0
+		title_label.custom_minimum_size.x = 78.0 if top_bar_w < 620.0 else (96.0 if top_bar_w < 680.0 else 140.0)
 	if difficulty_label:
-		difficulty_label.visible = top_bar_w >= 580.0
+		difficulty_label.visible = top_bar_w >= 680.0
+	var heart_sz := Vector2(18, 18) if top_bar_w < 640.0 else Vector2(22, 22)
+	for h_icon in _hearts:
+		if is_instance_valid(h_icon):
+			h_icon.custom_minimum_size = heart_sz
+			h_icon.pivot_offset = heart_sz * 0.5
 
-	# 3. Barra de Jefe: centrada pero respetando el margen superior de la muesca y ancho disponible
+	# 3. Barra de Jefe, Ranura de Ítem y Barra de Esperanza sin traslape en pantallas con notch o estrechas
+	var boss_half_w := minf(170.0, avail_w * 0.46)
 	if boss_bar_container:
-		var boss_half_w := minf(170.0, avail_w * 0.46)
 		boss_bar_container.offset_left = -boss_half_w
 		boss_bar_container.offset_right = boss_half_w
 		boss_bar_container.offset_top = insets.position.y + 48.0
 		boss_bar_container.offset_bottom = insets.position.y + 82.0
+
+	var boss_left_x := vp_size.x * 0.5 - boss_half_w
+	var compact_inv_row := (boss_left_x - insets.position.x) < 168.0
+	if _inventory_panel:
+		_inventory_panel.position = Vector2(insets.position.x, insets.position.y + (86.0 if compact_inv_row else 48.0))
+	if _esperanza_container:
+		var esp_w := minf(260.0, avail_w * 0.56)
+		var esp_y := insets.position.y + (118.0 if compact_inv_row else 86.0)
+		_esperanza_container.position = Vector2(vp_size.x * 0.5 - esp_w * 0.5, esp_y)
+		_esperanza_container.size = Vector2(esp_w, 26.0)
 
 	# 4. Texto de controles / pie de pantalla: respetar muescas laterales y barra de gestos inferior
 	if controls_label:
@@ -328,11 +355,22 @@ func _update_safe_area() -> void:
 		controls_label.offset_top = -bottom_inset - 34.0
 		controls_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		controls_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+		controls_label.add_theme_constant_override("outline_size", 5)
+		controls_label.add_theme_color_override("font_outline_color", Color(0.04, 0.05, 0.10, 0.96))
+		if not controls_label.has_theme_stylebox_override("normal"):
+			var ctrl_sb := StyleBoxFlat.new()
+			ctrl_sb.bg_color = Color(0.05, 0.07, 0.12, 0.62)
+			ctrl_sb.set_corner_radius_all(6)
+			ctrl_sb.content_margin_left = 8
+			ctrl_sb.content_margin_right = 8
+			ctrl_sb.content_margin_top = 3
+			ctrl_sb.content_margin_bottom = 3
+			controls_label.add_theme_stylebox_override("normal", ctrl_sb)
 
 	# 5. Escala segura para modales en pantallas compactas o con notches amplios
 	var modal_s := minf(1.0, minf((avail_w - 16.0) / 540.0, (avail_h - 16.0) / 330.0))
 	_modal_safe_scale = Vector2(maxf(0.68, modal_s), maxf(0.68, modal_s))
-	for panel in [pause_panel, game_over_panel, victory_panel]:
+	for panel in [pause_panel, game_over_panel]:
 		if panel and panel.visible:
 			panel.pivot_offset = panel.size * 0.5
 			panel.scale = _modal_safe_scale
@@ -377,24 +415,24 @@ func _refresh_controls_footer(avail_w: float = -1.0) -> void:
 		"touch":
 			if avail_w >= 640.0:
 				controls_label.add_theme_font_size_override("font_size", 11)
-				controls_label.text = "Izq: mover · Der: virtud · PULSO · FOCUS: precisión · Pausa ↗"
+				controls_label.text = "Izq: mover · Der: virtud · PULSO · ÍTEM · FOCUS · Pausa ↗"
 			else:
 				controls_label.add_theme_font_size_override("font_size", 10)
-				controls_label.text = "Izq: mover · Der: virtud · PULSO · FOCUS"
+				controls_label.text = "Izq: mover · Der: virtud · PULSO · ÍTEM"
 		"gamepad":
 			if avail_w >= 640.0:
 				controls_label.add_theme_font_size_override("font_size", 11)
-				controls_label.text = "Stick Izq: mover · Der / A: virtud · X: pulso · LB: enfoque · Start: pausa"
+				controls_label.text = "Stick Izq: mover · Der/A: virtud · X: pulso · Y: ítem · LB: enfoque · Start: pausa"
 			else:
 				controls_label.add_theme_font_size_override("font_size", 10)
-				controls_label.text = "Stick Izq: mover · A: virtud · X: pulso · Start: pausa"
+				controls_label.text = "Stick Izq: mover · A: virtud · Y: ítem · Start: pausa"
 		_:
 			if avail_w >= 680.0:
 				controls_label.add_theme_font_size_override("font_size", 12)
-				controls_label.text = "WASD / Flechas: mover · Espacio: virtud · E: pulso · Shift: enfoque · Esc: pausa"
+				controls_label.text = "WASD: mover · Espacio: virtud · E: pulso · Q: ítem · Shift: enfoque · Esc: pausa"
 			else:
 				controls_label.add_theme_font_size_override("font_size", 10)
-				controls_label.text = "WASD: mover · Espacio: virtud · E: pulso · Esc: pausa"
+				controls_label.text = "WASD: mover · Espacio: virtud · E: pulso · Q: ítem · Esc: pausa"
 
 ## Adapta los textos de los botones modales e instrucciones según plataforma/táctil
 func _adapt_for_touch() -> void:
@@ -414,10 +452,6 @@ func _adapt_for_touch() -> void:
 			btn_retry.text = "Reintentar ↺"
 		if btn_menu_go:
 			btn_menu_go.text = "Menú principal ⌂"
-		if btn_play_again:
-			btn_play_again.text = "Jugar de nuevo ▶"
-		if btn_menu_vic:
-			btn_menu_vic.text = "Menú principal ⌂"
 	else:
 		if _input_hint_mode == "touch":
 			_input_hint_mode = "gamepad" if not Input.get_connected_joypads().is_empty() else "keyboard"
@@ -433,13 +467,17 @@ func _adapt_for_touch() -> void:
 			btn_retry.text = "Reintentar (Enter / R)"
 		if btn_menu_go:
 			btn_menu_go.text = "Menú principal (Esc)"
-		if btn_play_again:
-			btn_play_again.text = "Jugar de nuevo (Enter)"
-		if btn_menu_vic:
-			btn_menu_vic.text = "Menú principal (Esc)"
+	if _inventory_panel:
+		_inventory_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE if is_touch else Control.MOUSE_FILTER_PASS
+	if _inventory_btn:
+		_inventory_btn.mouse_filter = Control.MOUSE_FILTER_IGNORE if is_touch else Control.MOUSE_FILTER_STOP
+	_refresh_pause_mute_label()
+	update_inventory_slot(_last_item_id, _last_item_info)
 	_refresh_controls_footer()
 
 func set_paused(paused: bool) -> void:
+	if paused and not can_pause:
+		return
 	if paused == is_paused or is_game_finished:
 		return
 	is_paused = paused
@@ -450,6 +488,7 @@ func set_paused(paused: bool) -> void:
 		gs.duck_music(paused)
 	if paused:
 		_refresh_pause_mute_label()
+		_refresh_pause_gender_subtitle()
 		if mobile_controls:
 			mobile_controls.deactivate()
 		_show_panel(pause_panel, btn_resume)
@@ -469,7 +508,20 @@ func _refresh_pause_mute_label() -> void:
 		return
 	var gs = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
 	var is_muted := bool(gs.get("muted")) if gs else false
-	btn_pause_mute.text = "Audio: Silencio (V)" if is_muted else "Audio: Activo (V)"
+	if _is_touch_active():
+		btn_pause_mute.text = "Audio: Silencio" if is_muted else "Audio: Activo"
+	else:
+		btn_pause_mute.text = "Audio: Silencio (V)" if is_muted else "Audio: Activo (V)"
+
+func _refresh_pause_gender_subtitle() -> void:
+	if pause_panel == null:
+		return
+	var sub_lbl := pause_panel.get_node_or_null("VBoxContainer/Subtitle") as Label
+	if sub_lbl == null:
+		return
+	var gs = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	var is_fem := gs != null and int(gs.get("selected_character")) == 1
+	sub_lbl.text = "Respira hondo, campeona escolar." if is_fem else "Respira hondo, campeón escolar."
 
 func set_difficulty_text(diff_name: String) -> void:
 	_ensure_nodes()
@@ -479,7 +531,21 @@ func set_difficulty_text(diff_name: String) -> void:
 func set_level_title(title: String) -> void:
 	_ensure_nodes()
 	if title_label:
-		title_label.text = title
+		title_label.clip_text = true
+		title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		var compact := title
+		var paren_idx := compact.find("(")
+		if paren_idx > 0:
+			compact = compact.substr(0, paren_idx).strip_edges()
+		var dash_idx := compact.find(" — ")
+		if dash_idx > 0:
+			compact = compact.substr(0, dash_idx).strip_edges()
+		var comma_idx := compact.find(",")
+		if comma_idx > 0:
+			compact = compact.substr(0, comma_idx).strip_edges()
+		compact = compact.replace("Escenario ", "Esc. ")
+		title_label.text = compact
+		title_label.tooltip_text = title
 
 func reset_state() -> void:
 	_ensure_nodes()
@@ -487,17 +553,148 @@ func reset_state() -> void:
 	is_paused = false
 	_shown_hp = -1
 	_target_progress = 0.0
-	for panel in [pause_panel, game_over_panel, victory_panel]:
+	for panel in [pause_panel, game_over_panel]:
 		if panel:
 			panel.visible = false
 	if overlay:
 		overlay.visible = false
 	if boss_bar_container:
 		boss_bar_container.visible = false
+	update_esperanza_bar(0.0)
 	if quota_label:
 		quota_label.text = ""
 	if mobile_controls:
 		mobile_controls.activate()
+
+func _ensure_inventory_ui() -> void:
+	if _inventory_panel == null:
+		_inventory_panel = PanelContainer.new()
+		_inventory_panel.name = "InventorySlotPanel"
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.08, 0.10, 0.16, 0.86)
+		sb.border_color = Color(0.65, 0.72, 0.85, 0.85)
+		sb.set_border_width_all(2)
+		sb.set_corner_radius_all(4)
+		sb.content_margin_left = 6
+		sb.content_margin_right = 6
+		sb.content_margin_top = 3
+		sb.content_margin_bottom = 3
+		_inventory_panel.add_theme_stylebox_override("panel", sb)
+
+		var hbox := HBoxContainer.new()
+		hbox.add_theme_constant_override("separation", 6)
+		_inventory_panel.add_child(hbox)
+
+		_inventory_badge = ColorRect.new()
+		_inventory_badge.custom_minimum_size = Vector2(12, 12)
+		_inventory_badge.color = Color(0.32, 0.36, 0.45)
+		hbox.add_child(_inventory_badge)
+
+		_inventory_btn = Button.new()
+		_inventory_btn.name = "BtnInventoryUse"
+		_inventory_btn.flat = true
+		_inventory_btn.focus_mode = Control.FOCUS_NONE
+		_inventory_btn.add_theme_font_size_override("font_size", 11)
+		_inventory_btn.text = "ÍTEM [Q]: Vacío"
+		_inventory_btn.pressed.connect(func(): use_item_requested.emit())
+		hbox.add_child(_inventory_btn)
+		add_child(_inventory_panel)
+
+	if _esperanza_container == null:
+		_esperanza_container = PanelContainer.new()
+		_esperanza_container.name = "EsperanzaBarContainer"
+		_esperanza_container.visible = false
+		var esb := StyleBoxFlat.new()
+		esb.bg_color = Color(0.18, 0.14, 0.04, 0.92)
+		esb.border_color = Color(1.0, 0.88, 0.25, 0.96)
+		esb.set_border_width_all(2)
+		esb.set_corner_radius_all(4)
+		esb.content_margin_left = 8
+		esb.content_margin_right = 8
+		esb.content_margin_top = 3
+		esb.content_margin_bottom = 3
+		_esperanza_container.add_theme_stylebox_override("panel", esb)
+
+		var vbox := VBoxContainer.new()
+		vbox.add_theme_constant_override("separation", 2)
+		_esperanza_container.add_child(vbox)
+
+		_esperanza_label = Label.new()
+		_esperanza_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_esperanza_label.add_theme_font_size_override("font_size", 10)
+		_esperanza_label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.55))
+		vbox.add_child(_esperanza_label)
+
+		_esperanza_bar = ProgressBar.new()
+		_esperanza_bar.custom_minimum_size = Vector2(200, 7)
+		_esperanza_bar.show_percentage = false
+		_esperanza_bar.max_value = 15.0
+		_esperanza_bar.value = 0.0
+		vbox.add_child(_esperanza_bar)
+		add_child(_esperanza_container)
+
+func set_gameplay_ui_visible(visible_flag: bool) -> void:
+	_ensure_nodes()
+	if _inventory_panel:
+		_inventory_panel.visible = visible_flag
+	if _esperanza_container and not visible_flag:
+		_esperanza_container.visible = false
+
+func update_pulse_cooldown(remaining: float, max_cd: float) -> void:
+	if mobile_controls and mobile_controls.has_method("set_pulse_cooldown"):
+		mobile_controls.set_pulse_cooldown(remaining, max_cd)
+
+func update_inventory_slot(item_id: String, item_info: Dictionary = {}) -> void:
+	_ensure_nodes()
+	_ensure_inventory_ui()
+	_last_item_id = item_id
+	_last_item_info = item_info.duplicate() if not item_info.is_empty() else {}
+	if _inventory_btn == null or _inventory_badge == null:
+		return
+	var is_touch := _is_touch_active()
+	var prefix := "ÍTEM" if is_touch else "ÍTEM [Q]"
+	var mobile_short := ""
+	var col := Color(1.0, 0.88, 0.25)
+	if item_id.is_empty():
+		_inventory_btn.text = "%s: Vacío" % prefix
+		_inventory_btn.modulate = Color(0.75, 0.78, 0.86)
+		_inventory_badge.color = Color(0.32, 0.36, 0.45)
+	else:
+		var item_name := str(item_info.get("short", item_id.to_upper()))
+		col = item_info.get("color", Color(1.0, 0.88, 0.25))
+		_inventory_btn.text = "★ %s" % item_name if is_touch else "%s: %s ★" % [prefix, item_name]
+		_inventory_btn.modulate = col
+		_inventory_badge.color = col
+		match item_id:
+			"esperanza": mobile_short = "ESP★"
+			"heart": mobile_short = "VIDA"
+			"shield": mobile_short = "ESC"
+			_: mobile_short = item_name.substr(0, mini(5, item_name.length()))
+	if _inventory_panel:
+		_inventory_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE if is_touch else Control.MOUSE_FILTER_PASS
+	if _inventory_btn:
+		_inventory_btn.mouse_filter = Control.MOUSE_FILTER_IGNORE if is_touch else Control.MOUSE_FILTER_STOP
+	if mobile_controls:
+		if mobile_controls.has_method("set_item_state"):
+			mobile_controls.set_item_state(item_id, mobile_short, col)
+		else:
+			mobile_controls.set("has_item_available", not item_id.is_empty())
+			mobile_controls.queue_redraw()
+
+func update_esperanza_bar(remaining: float, duration: float = 15.0) -> void:
+	_ensure_nodes()
+	_ensure_inventory_ui()
+	if _esperanza_container == null:
+		return
+	if remaining <= 0.01:
+		_esperanza_container.visible = false
+		return
+	_esperanza_container.visible = true
+	if _esperanza_bar:
+		_esperanza_bar.max_value = maxf(1.0, duration)
+		_esperanza_bar.value = remaining
+	if _esperanza_label:
+		_esperanza_label.text = "★ ESPERANZA: %.1fs — JEFE INDEFENSO ★" % remaining
 
 func update_quota(defeated: int, quota: int) -> void:
 	_ensure_nodes()
@@ -508,6 +705,16 @@ func update_quota(defeated: int, quota: int) -> void:
 		else:
 			quota_label.text = "Antivalores: %d/%d" % [defeated, quota]
 			quota_label.modulate = Color(0.88, 0.9, 0.94)
+
+func set_boss_defeated(needs_classroom: bool = false) -> void:
+	_ensure_nodes()
+	if quota_label:
+		if needs_classroom:
+			quota_label.text = "Limpiar salón"
+			quota_label.modulate = Color(1.0, 0.88, 0.38)
+		else:
+			quota_label.text = "¡Meta abierta!"
+			quota_label.modulate = Color(0.45, 0.98, 0.58)
 
 func show_boss_bar(boss_name: String, current_hp: int, max_hp: int) -> void:
 	_ensure_nodes()
@@ -523,11 +730,20 @@ func show_boss_bar(boss_name: String, current_hp: int, max_hp: int) -> void:
 
 func update_boss_bar(current_hp: int, max_hp: int) -> void:
 	_ensure_nodes()
+	var safe_max := maxi(1, max_hp)
+	var ratio := clampf(float(maxi(0, current_hp)) / float(safe_max), 0.0, 1.0)
+	var pct := 0 if current_hp <= 0 else clampi(int(round(ratio * 100.0)), 1, 100)
 	if boss_progress_bar:
-		boss_progress_bar.max_value = max_hp
-		boss_progress_bar.value = current_hp
+		boss_progress_bar.max_value = 100.0
+		boss_progress_bar.value = float(pct)
+		if ratio > 0.50:
+			boss_progress_bar.modulate = Color(0.35, 0.95, 0.65)
+		elif ratio > 0.25:
+			boss_progress_bar.modulate = Color(1.0, 0.78, 0.28)
+		else:
+			boss_progress_bar.modulate = Color(1.0, 0.32, 0.42)
 	if boss_hp_label:
-		boss_hp_label.text = "%d / %d" % [maxi(0, current_hp), max_hp]
+		boss_hp_label.text = "%d%%" % pct
 
 func hide_boss_bar(immediate: bool = false) -> void:
 	_ensure_nodes()
@@ -602,6 +818,12 @@ func show_intro(level_title: String, diff_name: String = "") -> void:
 	_ensure_nodes()
 	if intro_banner == null:
 		return
+	if not _intro_base_y_saved:
+		_intro_base_y = intro_banner.position.y
+		_intro_base_y_saved = true
+	if _intro_tween and _intro_tween.is_valid():
+		_intro_tween.kill()
+	intro_banner.position.y = _intro_base_y
 	if diff_name != "":
 		intro_banner.text = "%s\nDificultad: %s" % [level_title, diff_name]
 	else:
@@ -610,45 +832,53 @@ func show_intro(level_title: String, diff_name: String = "") -> void:
 	intro_banner.modulate.a = 0.0
 	intro_banner.pivot_offset = intro_banner.size * 0.5
 	intro_banner.scale = Vector2(0.96, 0.96)
-	var tw := create_tween()
-	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	tw.tween_interval(0.25)
-	tw.set_parallel(true)
-	tw.tween_property(intro_banner, "modulate:a", 1.0, 0.22)
-	tw.tween_property(intro_banner, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.set_parallel(false)
-	tw.tween_interval(1.4)
-	tw.set_parallel(true)
-	tw.tween_property(intro_banner, "modulate:a", 0.0, 0.35)
-	tw.tween_property(intro_banner, "position:y", intro_banner.position.y - 24.0, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tw.set_parallel(false)
-	tw.tween_callback(intro_banner.hide)
+	_intro_tween = create_tween()
+	_intro_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_intro_tween.tween_interval(0.25)
+	_intro_tween.set_parallel(true)
+	_intro_tween.tween_property(intro_banner, "modulate:a", 1.0, 0.22)
+	_intro_tween.tween_property(intro_banner, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_intro_tween.set_parallel(false)
+	_intro_tween.tween_interval(1.4)
+	_intro_tween.set_parallel(true)
+	_intro_tween.tween_property(intro_banner, "modulate:a", 0.0, 0.35)
+	_intro_tween.tween_property(intro_banner, "position:y", _intro_base_y - 24.0, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_intro_tween.set_parallel(false)
+	_intro_tween.tween_callback(intro_banner.hide)
 
 	if controls_label:
+		if _controls_tween and _controls_tween.is_valid():
+			_controls_tween.kill()
 		controls_label.modulate.a = 1.0
-		var tw2 := create_tween()
-		tw2.tween_interval(6.0)
-		tw2.tween_property(controls_label, "modulate:a", 0.0, 1.0)
+		_controls_tween = create_tween()
+		_controls_tween.tween_interval(6.0)
+		_controls_tween.tween_property(controls_label, "modulate:a", 0.0, 1.0)
 
 ## Cartel de nivel superado
 func show_level_complete(level_name: String) -> void:
 	_ensure_nodes()
 	if intro_banner == null:
 		return
+	if not _intro_base_y_saved:
+		_intro_base_y = intro_banner.position.y
+		_intro_base_y_saved = true
+	if _intro_tween and _intro_tween.is_valid():
+		_intro_tween.kill()
+	intro_banner.position.y = _intro_base_y
 	intro_banner.text = "Zona completada\n%s" % level_name
 	intro_banner.visible = true
 	intro_banner.modulate.a = 0.0
 	intro_banner.pivot_offset = intro_banner.size * 0.5
 	intro_banner.scale = Vector2(0.96, 0.96)
-	var tw := create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(intro_banner, "modulate:a", 1.0, 0.22)
-	tw.tween_property(intro_banner, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.set_parallel(false)
-	tw.tween_interval(1.2)
-	tw.set_parallel(true)
-	tw.tween_property(intro_banner, "modulate:a", 0.0, 0.3)
-	tw.chain().tween_callback(intro_banner.hide)
+	_intro_tween = create_tween()
+	_intro_tween.set_parallel(true)
+	_intro_tween.tween_property(intro_banner, "modulate:a", 1.0, 0.22)
+	_intro_tween.tween_property(intro_banner, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_intro_tween.set_parallel(false)
+	_intro_tween.tween_interval(1.2)
+	_intro_tween.set_parallel(true)
+	_intro_tween.tween_property(intro_banner, "modulate:a", 0.0, 0.3)
+	_intro_tween.chain().tween_callback(intro_banner.hide)
 
 ## `stats` = { "defeated": int, "progress": float }
 func show_game_over(stats: Dictionary = {}) -> void:
@@ -662,35 +892,6 @@ func show_game_over(stats: Dictionary = {}) -> void:
 	game_over_stats.text = "Antivalores vencidos: %d  ·  Progreso: %d %%" % [
 		stats.get("defeated", 0), int(stats.get("progress", _target_progress))]
 	_show_panel(game_over_panel, btn_retry)
-
-## `stats` = { "time": float, "defeated": int, "health": int, "max_health": int }
-func show_victory(stats: Dictionary = {}) -> void:
-	if is_game_finished:
-		return
-	is_game_finished = true
-	if mobile_controls:
-		mobile_controls.deactivate()
-	_target_progress = 100.0
-	_show_panel(victory_panel, btn_play_again)
-
-	# Las estadísticas "cuentan" hacia arriba
-	var total_defeated: int = stats.get("defeated", 0)
-	var time_s: float = stats.get("time", 0.0)
-	var hp: int = stats.get("health", 0)
-	var max_hp: int = stats.get("max_health", 0)
-	var update := func(t: float) -> void:
-		victory_stats.text = "Tiempo: %s  ·  Antivalores vencidos: %d  ·  Corazones: %d/%d" % [
-			_format_time(time_s * t), roundi(total_defeated * t), hp, max_hp]
-	update.call(0.0)
-	var tw := create_tween()
-	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	tw.tween_interval(0.35)
-	tw.tween_method(update, 0.0, 1.0, 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_callback(_pop.bind(victory_stats, 1.15))
-
-func _format_time(seconds: float) -> String:
-	var s := int(seconds)
-	return "%d:%02d" % [s / 60, s % 60]
 
 ## Muestra un panel con fondo oscurecido, "pop" de escala y entrada escalonada de su contenido.
 func _show_panel(panel: Control, focus_button: Button = null) -> void:

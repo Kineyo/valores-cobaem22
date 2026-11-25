@@ -10,6 +10,7 @@ const CUTSCENE_SCENE := preload("res://scenes/story_cutscene.tscn")
 const StoryDataClass := preload("res://scripts/story_data.gd")
 const FINAL_CEREMONY_SCENE := preload("res://scenes/final_ceremony.tscn")
 const LOADING_SCREEN_SCENE := preload("res://scenes/loading_screen.tscn")
+const UNDERTALE_CLIMAX_SCENE := preload("res://scenes/undertale_climax.tscn")
 
 @onready var level_container: Node2D = $LevelContainer
 @onready var hud: HUD = $HUD
@@ -18,6 +19,7 @@ var current_level_index: int = 0
 var levels: Array[Dictionary] = []
 var active_level: Level = null
 var active_ceremony: Node2D = null
+var active_undertale_climax: CanvasLayer = null
 var _final_loading_layer: CanvasLayer = null
 
 var game_finished: bool = false
@@ -38,6 +40,7 @@ var _saved_player_health: int = -1
 var _in_classroom_from_door: bool = false
 var _return_exterior_index: int = 0
 var _returning_from_classroom: bool = false
+var _saved_held_item: String = ""
 
 var _game_settings: Node:
 	get:
@@ -62,6 +65,11 @@ func _ready() -> void:
 
 	hud.restart_game.connect(_on_restart_game)
 	hud.go_to_menu.connect(_on_go_to_menu)
+	if hud.has_signal("use_item_requested"):
+		hud.use_item_requested.connect(_on_use_item_requested)
+	if hud.mobile_controls and hud.mobile_controls.has_signal("aim_vector_changed"):
+		if not hud.mobile_controls.aim_vector_changed.is_connected(_on_mobile_aim_changed):
+			hud.mobile_controls.aim_vector_changed.connect(_on_mobile_aim_changed)
 	var diff_str: String = _game_settings.difficulty_name() if _game_settings and _game_settings.has_method("difficulty_name") else "Normal"
 	hud.set_difficulty_text(diff_str)
 
@@ -88,10 +96,21 @@ func _show_story_cutscene(cutscene_data: Dictionary, on_complete: Callable) -> v
 	if cutscene_data.is_empty():
 		on_complete.call()
 		return
+	var prev_can_pause := hud.can_pause if hud else true
+	if hud:
+		hud.can_pause = false
+		if hud.mobile_controls and hud.mobile_controls.has_method("deactivate"):
+			hud.mobile_controls.deactivate()
 	var cutscene = CUTSCENE_SCENE.instantiate()
 	hud.add_child(cutscene)
 	cutscene.setup_cutscene(cutscene_data)
-	cutscene.cutscene_finished.connect(on_complete)
+	cutscene.cutscene_finished.connect(func():
+		if hud and not game_finished:
+			hud.can_pause = prev_can_pause
+			if not hud.is_paused and active_ceremony == null and hud.mobile_controls and hud.mobile_controls.has_method("activate"):
+				hud.mobile_controls.activate()
+		on_complete.call()
+	)
 
 func _ensure_nodes() -> void:
 	if level_container == null:
@@ -146,7 +165,13 @@ func load_level(index: int) -> void:
 	active_level.boss_spawned.connect(_on_boss_spawned)
 	active_level.boss_health_changed.connect(_on_boss_health_changed)
 	active_level.boss_redeemed.connect(_on_boss_redeemed)
+	if active_level.has_signal("boss_undertale_climax_requested"):
+		active_level.boss_undertale_climax_requested.connect(_on_boss_undertale_climax_requested)
 	active_level.enter_classroom_requested.connect(_on_enter_classroom_requested)
+	if active_level.has_signal("player_inventory_changed"):
+		active_level.player_inventory_changed.connect(_on_player_inventory_changed)
+	if active_level.has_signal("esperanza_timer_updated"):
+		active_level.esperanza_timer_updated.connect(_on_esperanza_timer_updated)
 
 	active_level.setup_level(lvl_data)
 
@@ -154,6 +179,8 @@ func load_level(index: int) -> void:
 		active_level.player.health = mini(active_level.player.max_health, _saved_player_health)
 		_saved_player_health = -1
 	_returning_from_classroom = false
+	if active_level.player and active_level.player.has_method("set_held_item_silently"):
+		active_level.player.set_held_item_silently(_saved_held_item)
 
 	# Cachear la distancia 2D entre el punto de spawn y la meta para la barra de progreso
 	var p_spawn: Vector2 = lvl_data.get("player_spawn", Vector2(100, 400))
@@ -163,16 +190,26 @@ func load_level(index: int) -> void:
 	_max_reached_dist = 0.0
 
 	var title: String = lvl_data.get("title", "Nivel %d" % (current_level_index + 1))
+	hud.can_pause = true
 	hud.set_level_title(title)
 	hud.reset_state()
+	if _game_settings and _game_settings.has_method("play_stage_music"):
+		var b_idx: int = clampi(int(lvl_data.get("building_id", (current_level_index / 2) + 1)) - 1, 0, 5)
+		var is_cls: bool = bool(lvl_data.get("is_classroom", false))
+		_game_settings.play_stage_music(b_idx, is_cls, false, false)
 	if active_level.boss and is_instance_valid(active_level.boss):
 		_on_boss_spawned(active_level.boss)
 	hud.update_hearts(active_level.player.health, active_level.player.max_health)
 	hud.update_progress(0.0, _cached_total_dist)
 	var quota_val: int = active_level.quota_to_boss
 	hud.update_quota(active_level.defeated_in_level, quota_val)
-	var diff_intro: String = _game_settings.difficulty_name() if _game_settings and _game_settings.has_method("difficulty_name") and current_level_index == 0 else ""
-	hud.show_intro(title, diff_intro)
+	if active_level.boss_defeated:
+		hud.set_boss_defeated(active_level.has_classroom and not active_level.is_classroom_cleared)
+	if returning_flag:
+		hud.show_intro("Patio exterior — ¡Salida lista!", "")
+	else:
+		var diff_intro: String = _game_settings.difficulty_name() if _game_settings and _game_settings.has_method("difficulty_name") and current_level_index == 0 else ""
+		hud.show_intro(title, diff_intro)
 
 func _process(delta: float) -> void:
 	if not game_finished:
@@ -184,14 +221,11 @@ func _process(delta: float) -> void:
 		var current_dist := clampf(_cached_total_dist - remaining_dist, 0.0, _cached_total_dist)
 		_max_reached_dist = maxf(_max_reached_dist, current_dist)
 		hud.update_progress(_max_reached_dist, _cached_total_dist)
+		if hud and hud.has_method("update_pulse_cooldown"):
+			hud.update_pulse_cooldown(active_level.player.empathy_cooldown_left, Player.EMPATHY_PULSE_COOLDOWN)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("pause") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
-		if not game_finished and active_ceremony == null and (_final_loading_layer == null or not is_instance_valid(_final_loading_layer)):
-			if hud and hud.has_method("set_paused"):
-				hud.set_paused(not hud.is_paused)
-				get_viewport().set_input_as_handled()
-	elif event is InputEventKey and event.pressed and not event.echo:
+	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_F11 or (event.keycode == KEY_ENTER and event.alt_pressed):
 			_toggle_fullscreen()
 			get_viewport().set_input_as_handled()
@@ -218,12 +252,25 @@ func _on_boss_spawned(boss_inst: CharacterBody2D) -> void:
 	var hp: int = int(boss_inst.get("current_hp") if "current_hp" in boss_inst else 10)
 	var max_hp: int = int(boss_inst.get("max_hp") if "max_hp" in boss_inst else 10)
 	hud.show_boss_bar(b_name, hp, max_hp)
+	if _game_settings and _game_settings.has_method("play_stage_music") and active_level:
+		var lvl_data: Dictionary = active_level.level_data
+		var b_idx: int = clampi(int(lvl_data.get("building_id", (current_level_index / 2) + 1)) - 1, 0, 5)
+		var is_cls: bool = bool(lvl_data.get("is_classroom", false))
+		var is_final: bool = ("boss_type" in boss_inst and int(boss_inst.boss_type) == 5)
+		_game_settings.play_stage_music(b_idx, is_cls, true, is_final)
 
 func _on_boss_health_changed(hp: int, max_hp: int) -> void:
 	hud.update_boss_bar(hp, max_hp)
 
 func _on_boss_redeemed(boss_inst: CharacterBody2D) -> void:
 	hud.hide_boss_bar()
+	if hud and hud.has_method("set_boss_defeated"):
+		hud.set_boss_defeated(active_level != null and active_level.has_classroom and not active_level.is_classroom_cleared)
+	if _game_settings and _game_settings.has_method("play_stage_music") and active_level and (boss_inst == null or int(boss_inst.get("boss_type")) != 5):
+		var lvl_data: Dictionary = active_level.level_data
+		var b_idx: int = clampi(int(lvl_data.get("building_id", (current_level_index / 2) + 1)) - 1, 0, 5)
+		var is_cls: bool = bool(lvl_data.get("is_classroom", false))
+		_game_settings.play_stage_music(b_idx, is_cls, false, false)
 	# Al derrotar al Jefe Final (Titanor, BossType.BULLYING = 5), disipa la niebla y libera a los alumnos para la celebración de 7s antes de desbloquear la meta
 	if boss_inst != null and boss_inst.get("boss_type") == 5:
 		if active_level:
@@ -233,8 +280,70 @@ func _on_boss_redeemed(boss_inst: CharacterBody2D) -> void:
 			active_level.set_classroom_cleared(true)
 		_cleared_classrooms[5] = true
 
+func _on_boss_undertale_climax_requested(boss_inst: CharacterBody2D) -> void:
+	if game_finished or active_undertale_climax != null:
+		return
+	var epoch := _transition_epoch
+	if hud:
+		hud.can_pause = false
+		hud.hide_boss_bar(true)
+		if hud.mobile_controls and hud.mobile_controls.has_method("deactivate"):
+			hud.mobile_controls.deactivate()
+	if get_tree():
+		get_tree().paused = true
+	active_undertale_climax = UNDERTALE_CLIMAX_SCENE.instantiate()
+	add_child(active_undertale_climax)
+	active_undertale_climax.climax_finished.connect(func():
+		active_undertale_climax = null
+		if is_inside_tree() and get_tree():
+			get_tree().paused = false
+		if epoch != _transition_epoch or not is_inside_tree():
+			return
+		if boss_inst != null and is_instance_valid(boss_inst) and boss_inst.has_method("finish_undertale_climax"):
+			boss_inst.finish_undertale_climax()
+		# Completar campaña y fluir hacia el Epílogo y la Ceremonia Final
+		_complete_final_campaign_after_climax()
+	)
+
+func _complete_final_campaign_after_climax() -> void:
+	if game_finished:
+		return
+	_is_stage_transitioning = true
+	game_finished = true
+	_campaign_completed = true
+	var epoch := _transition_epoch
+	if _game_settings:
+		if _game_settings.has_method("unlock_stage"):
+			_game_settings.unlock_stage(5)
+		if _game_settings.has_method("record_campaign_completion"):
+			var d_idx: int = int(_game_settings.get("initial_difficulty")) if _game_settings.get("initial_difficulty") != null else int(_game_settings.difficulty)
+			_game_settings.record_campaign_completion(d_idx, elapsed_time, enemies_defeated)
+	await get_tree().create_timer(0.8).timeout
+	if is_inside_tree() and epoch == _transition_epoch:
+		if _is_story_mode():
+			_show_epilogue_and_victory()
+		else:
+			_show_final_loading_screen_then_ceremony()
+
 func _on_player_health_changed(current: int, max_hp: int) -> void:
 	hud.update_hearts(current, max_hp)
+
+func _on_player_inventory_changed(item_id: String, item_info: Dictionary) -> void:
+	_saved_held_item = item_id
+	if hud and hud.has_method("update_inventory_slot"):
+		hud.update_inventory_slot(item_id, item_info)
+
+func _on_esperanza_timer_updated(remaining: float, duration: float) -> void:
+	if hud and hud.has_method("update_esperanza_bar"):
+		hud.update_esperanza_bar(remaining, duration)
+
+func _on_use_item_requested() -> void:
+	if active_level and active_level.player and is_instance_valid(active_level.player) and active_level.player.has_method("use_held_item"):
+		active_level.player.use_held_item()
+
+func _on_mobile_aim_changed(aim_vec: Vector2) -> void:
+	if active_level and active_level.player and is_instance_valid(active_level.player):
+		active_level.player.mobile_aim_vector = aim_vec
 
 func _on_enter_classroom_requested(classroom_idx: int) -> void:
 	if game_finished or _is_stage_transitioning:
@@ -272,8 +381,6 @@ func _on_level_completed() -> void:
 
 	if is_cur_classroom and cur_c_idx >= 0:
 		_cleared_classrooms[cur_c_idx] = true
-		if _return_exterior_index >= 0 and _return_exterior_index < levels.size():
-			levels[_return_exterior_index]["is_classroom_cleared"] = true
 
 	# Si el jugador entró al salón desde la puerta exterior, regresar al exterior con el salón ya limpio
 	if is_cur_classroom and _in_classroom_from_door:
@@ -350,6 +457,8 @@ func _show_epilogue_and_victory() -> void:
 
 func _show_final_loading_screen_then_ceremony() -> void:
 	_ensure_nodes()
+	if hud:
+		hud.can_pause = false
 	if _final_loading_layer and is_instance_valid(_final_loading_layer):
 		_final_loading_layer.queue_free()
 	_final_loading_layer = CanvasLayer.new()
@@ -376,6 +485,8 @@ func _finish_final_loading_to_ceremony() -> void:
 
 func _show_final_ceremony() -> void:
 	_ensure_nodes()
+	if hud:
+		hud.can_pause = false
 	active_level = null
 	for child in level_container.get_children():
 		level_container.remove_child(child)
@@ -407,20 +518,14 @@ func _set_hud_gameplay_visible(visible_flag: bool) -> void:
 	var ctrl_label := hud.get_node_or_null("%ControlsLabel") as Control
 	if ctrl_label:
 		ctrl_label.visible = visible_flag
+	if hud.has_method("set_gameplay_ui_visible"):
+		hud.set_gameplay_ui_visible(visible_flag)
 	if not visible_flag:
 		hud.hide_boss_bar(true)
 		if hud.mobile_controls and hud.mobile_controls.has_method("deactivate"):
 			hud.mobile_controls.deactivate()
 	elif hud.mobile_controls and MobileControls.is_touch_device() and hud.mobile_controls.has_method("activate"):
 		hud.mobile_controls.activate()
-
-func _show_victory_screen() -> void:
-	hud.show_victory({
-		"time": elapsed_time,
-		"defeated": enemies_defeated,
-		"health": active_level.player.health if active_level and active_level.player else 3,
-		"max_health": active_level.player.max_health if active_level and active_level.player else 3,
-	})
 
 func _on_player_died() -> void:
 	if game_finished:
@@ -449,8 +554,12 @@ func _on_restart_game() -> void:
 	if _final_loading_layer and is_instance_valid(_final_loading_layer):
 		_final_loading_layer.queue_free()
 	_final_loading_layer = null
+	if active_undertale_climax and is_instance_valid(active_undertale_climax):
+		active_undertale_climax.queue_free()
+	active_undertale_climax = null
 	_set_hud_gameplay_visible(true)
 	if finished_campaign:
+		levels = LevelManager.get_all_campaign_stages()
 		var restart_stage := 0 if _is_story_mode() else (clampi(int(_game_settings.get("selected_start_stage")) if _game_settings else 0, 0, 5))
 		current_level_index = clampi(restart_stage * 2, 0, maxi(0, levels.size() - 1))
 		elapsed_time = 0.0
@@ -459,6 +568,7 @@ func _on_restart_game() -> void:
 		_saved_exterior_boss_defeated.clear()
 		_saved_exterior_defeated_count.clear()
 		_saved_player_health = -1
+		_saved_held_item = ""
 		_in_classroom_from_door = false
 		_returning_from_classroom = false
 	if _game_settings and _game_settings.has_method("play_game_music"):
@@ -470,6 +580,9 @@ func _on_go_to_menu() -> void:
 	if _final_loading_layer and is_instance_valid(_final_loading_layer):
 		_final_loading_layer.queue_free()
 	_final_loading_layer = null
+	if active_undertale_climax and is_instance_valid(active_undertale_climax):
+		active_undertale_climax.queue_free()
+	active_undertale_climax = null
 	if _scene_transition and _scene_transition.has_method("change_scene") and not _scene_transition.get("is_busy"):
 		_scene_transition.change_scene(MENU_SCENE)
 	else:
@@ -493,6 +606,7 @@ func setup_inputs() -> void:
 	_ensure_joy_button("attack", JOY_BUTTON_A)
 	_ensure_joy_button("attack", JOY_BUTTON_RIGHT_SHOULDER)
 	_ensure_joy_button("empathy_pulse", JOY_BUTTON_X)
+	_ensure_joy_button("use_item", JOY_BUTTON_Y)
 
 	# Botones de navegación y menú en gamepad (Start para Pausa, B para Cancelar, A para Aceptar)
 	_ensure_joy_button("pause", JOY_BUTTON_START)

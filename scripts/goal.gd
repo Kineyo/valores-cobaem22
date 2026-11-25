@@ -63,7 +63,10 @@ func _on_body_entered(body: Node2D) -> void:
 			var push_dir: Vector2 = (body.global_position - global_position).normalized()
 			if push_dir == Vector2.ZERO:
 				push_dir = Vector2.LEFT
-			body.position += push_dir * 32.0
+			if body is CharacterBody2D and body.is_inside_tree() and PhysicsServer2D.body_get_space(body.get_rid()).is_valid():
+				(body as CharacterBody2D).move_and_collide(push_dir * 32.0)
+			else:
+				body.position += push_dir * 32.0
 			return
 
 		if is_locked:

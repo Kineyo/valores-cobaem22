@@ -30,6 +30,10 @@ var _chars_per_second: float = 38.0
 var _current_portrait_id: String = ""
 var _last_input_was_gamepad: bool = false
 var _finishing: bool = false
+var _last_pointer_advance_ms: int = -1000
+var _portrait_draw_offset: Vector2 = Vector2.ZERO
+var _portrait_tween: Tween = null
+var _portrait_tex_cache: Dictionary = {}
 
 var _game_settings: Node:
 	get:
@@ -47,6 +51,8 @@ func _ready() -> void:
 	UiJuice.attach_button(btn_skip, sfx_blip)
 
 	if portrait_canvas:
+		portrait_canvas.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		portrait_canvas.clip_contents = true
 		portrait_canvas.draw.connect(_on_portrait_draw)
 
 	get_viewport().size_changed.connect(_adjust_layout_for_viewport)
@@ -109,6 +115,17 @@ func _start_display() -> void:
 
 	_show_node(0)
 
+func _is_female_selected() -> bool:
+	var gs := _game_settings
+	if gs and "selected_character" in gs:
+		return int(gs.selected_character) == 1
+	var ml := Engine.get_main_loop()
+	if ml is SceneTree and (ml as SceneTree).root:
+		var root_gs := (ml as SceneTree).root.get_node_or_null("GameSettings")
+		if root_gs and "selected_character" in root_gs:
+			return int(root_gs.selected_character) == 1
+	return false
+
 func _show_node(idx: int) -> void:
 	if idx < 0 or idx >= _dialogue_nodes.size():
 		_finish()
@@ -116,15 +133,23 @@ func _show_node(idx: int) -> void:
 
 	_current_index = idx
 	var node_data: Dictionary = _dialogue_nodes[_current_index]
+	var is_fem := _is_female_selected()
 
 	var speaker: String = node_data.get("speaker", "Voz Escolar")
 	_full_text = node_data.get("text", "")
+	if is_fem:
+		if speaker == "Guardián de los Valores":
+			speaker = "Guardiana de los Valores"
+		elif speaker == "Guardián":
+			speaker = "Guardiana"
+		if node_data.has("text_f"):
+			_full_text = str(node_data.get("text_f", _full_text))
 	_current_portrait_id = node_data.get("portrait", "narrator")
 
 	if speaker_name_label:
 		speaker_name_label.text = speaker
 		# Color temático según el orador
-		if "Guardián" in speaker:
+		if "Guardián" in speaker or "Guardiana" in speaker:
 			speaker_name_label.modulate = Color(1.0, 0.90, 0.40)
 		elif "Narrador" in speaker:
 			speaker_name_label.modulate = Color(0.85, 0.85, 0.95)
@@ -152,6 +177,37 @@ func _show_node(idx: int) -> void:
 			v_scroll.value = 0.0
 
 	if portrait_canvas:
+		portrait_canvas.queue_redraw()
+		_animate_portrait_emotion(str(node_data.get("emotion", "neutral")))
+
+func _animate_portrait_emotion(emotion: String) -> void:
+	if portrait_canvas == null or not is_inside_tree():
+		return
+	if _portrait_tween and _portrait_tween.is_valid():
+		_portrait_tween.kill()
+	_portrait_draw_offset = Vector2.ZERO
+	portrait_canvas.queue_redraw()
+	var emo := emotion.to_lower()
+	if emo in ["scared", "angry", "fearful", "menacing_fury"]:
+		_portrait_tween = portrait_canvas.create_tween()
+		_portrait_tween.tween_method(_set_portrait_offset, Vector2(-4.0, 0.0), Vector2(4.0, 0.0), 0.06)
+		_portrait_tween.tween_method(_set_portrait_offset, Vector2(4.0, 0.0), Vector2(-3.0, 0.0), 0.05)
+		_portrait_tween.tween_method(_set_portrait_offset, Vector2(-3.0, 0.0), Vector2.ZERO, 0.05)
+	elif emo in ["happy", "joyful", "proud_firm", "determined"]:
+		_portrait_tween = portrait_canvas.create_tween()
+		_portrait_tween.tween_method(_set_portrait_offset, Vector2.ZERO, Vector2(0.0, -5.0), 0.09).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_portrait_tween.tween_method(_set_portrait_offset, Vector2(0.0, -5.0), Vector2.ZERO, 0.12)
+	if sfx_blip:
+		if emo in ["angry", "menacing_fury", "solemn"]:
+			sfx_blip.pitch_scale = 0.85
+		elif emo in ["happy", "joyful"]:
+			sfx_blip.pitch_scale = 1.45
+		else:
+			sfx_blip.pitch_scale = 1.25
+
+func _set_portrait_offset(off: Vector2) -> void:
+	_portrait_draw_offset = off
+	if portrait_canvas and is_instance_valid(portrait_canvas):
 		portrait_canvas.queue_redraw()
 
 func _update_button_prompts() -> void:
@@ -193,10 +249,12 @@ func _process(delta: float) -> void:
 			_is_typing = false
 
 func _gui_input(event: InputEvent) -> void:
-	# Clic o toque en el fondo para avanzar
-	if (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+	# 1. Teclado / Clic / Toque físico en panel (filtrando emulación de ratón desde toque)
+	var is_real_mouse: bool = event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION
+	var is_real_touch: bool = event is InputEventScreenTouch and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION
+	if is_real_mouse or is_real_touch:
 		_last_input_was_gamepad = false
-		_advance_dialogue()
+		_advance_dialogue(true)
 		accept_event()
 
 func _mark_input_handled() -> void:
@@ -240,16 +298,23 @@ func _unhandled_input(event: InputEvent) -> void:
 		_mark_input_handled()
 		return
 
-	# 4. Toque / Ratón genérico no capturado por botones
-	if (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+	# 4. Toque / Ratón genérico no capturado por botones (filtrando emulación touch->mouse)
+	var is_real_mouse: bool = event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION
+	var is_real_touch: bool = event is InputEventScreenTouch and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION
+	if is_real_mouse or is_real_touch:
 		_last_input_was_gamepad = false
-		_advance_dialogue()
+		_advance_dialogue(true)
 		_mark_input_handled()
 		return
 
-func _advance_dialogue() -> void:
+func _advance_dialogue(from_pointer: bool = false) -> void:
 	if _finishing:
 		return
+	if from_pointer:
+		var now_ms := Time.get_ticks_msec()
+		if (now_ms - _last_pointer_advance_ms) < 120:
+			return
+		_last_pointer_advance_ms = now_ms
 	if _is_typing:
 		# Completar inmediatamente el texto en pantalla
 		_is_typing = false
@@ -286,10 +351,8 @@ func _finish() -> void:
 
 func _get_portrait_texture(p: String) -> Texture2D:
 	var path := ""
-	if "guardian" in p or "player" in p or "heroe" in p or "protagonista" in p:
-		var is_fem: bool = false
-		if _game_settings and _game_settings.get("selected_character") == 1:
-			is_fem = true
+	if "guardian" in p or "guardiana" in p or "player" in p or "heroe" in p or "heroina" in p or "protagonista" in p:
+		var is_fem := _is_female_selected()
 		path = "res://assets/portraits/player_femenino.png" if is_fem else "res://assets/portraits/player_masculino.png"
 	elif "mateo" in p:
 		path = "res://assets/portraits/mateo_laboratorio.png"
@@ -311,15 +374,29 @@ func _get_portrait_texture(p: String) -> Texture2D:
 		else:
 			path = "res://assets/portraits/maestro_desinteres.png"
 	elif "coordinador" in p:
-		path = "res://assets/characters/coordinador/hablando_frente.png"
+		path = "res://assets/portraits/coordinador.png"
 
 	if path != "":
+		if _portrait_tex_cache.has(path):
+			return _portrait_tex_cache[path] as Texture2D
+		var loaded_tex: Texture2D = null
 		if ResourceLoader.exists(path):
-			return load(path)
-		elif FileAccess.file_exists(path):
+			loaded_tex = ResourceLoader.load(path) as Texture2D
+		if loaded_tex == null and FileAccess.file_exists(path):
 			var img := Image.load_from_file(ProjectSettings.globalize_path(path))
-			if img:
-				return ImageTexture.create_from_image(img)
+			if img and not img.is_empty():
+				loaded_tex = ImageTexture.create_from_image(img)
+		if loaded_tex != null:
+			_portrait_tex_cache[path] = loaded_tex
+			return loaded_tex
+		if "guardian" in p or "player" in p or "heroe" in p or "protagonista" in p:
+			var fallback_guardian := "res://assets/portraits/guardian.png"
+			if ResourceLoader.exists(fallback_guardian):
+				return ResourceLoader.load(fallback_guardian) as Texture2D
+			elif FileAccess.file_exists(fallback_guardian):
+				var fb_img := Image.load_from_file(ProjectSettings.globalize_path(fallback_guardian))
+				if fb_img and not fb_img.is_empty():
+					return ImageTexture.create_from_image(fb_img)
 	return null
 
 ## Renderizado pixel-art de los retratos de personajes y antivalores
@@ -330,43 +407,51 @@ func _on_portrait_draw() -> void:
 	var cx: float = size.x * 0.5
 	var cy: float = size.y * 0.5
 
-	# Marco base oscuro con borde guinda y oro
-	portrait_canvas.draw_rect(Rect2(Vector2.ZERO, size), Color(0.12, 0.06, 0.09, 0.95))
-	portrait_canvas.draw_rect(Rect2(Vector2(2, 2), size - Vector2(4, 4)), Color(0.77, 0.63, 0.35), false, 2.0)
+	# Fondo pizarra claro institucional para que cabellos negros y trazos pixel-art contrasten nítidos
+	portrait_canvas.draw_rect(Rect2(Vector2.ZERO, size), Color(0.24, 0.27, 0.36, 1.0))
+	portrait_canvas.draw_rect(Rect2(Vector2(0.0, size.y * 0.58), Vector2(size.x, size.y * 0.42)), Color(0.18, 0.20, 0.28, 1.0))
+	portrait_canvas.draw_rect(Rect2(Vector2(2, 2), size - Vector2(4, 4)), Color(0.84, 0.69, 0.36), false, 2.0)
+	portrait_canvas.draw_rect(Rect2(Vector2(5, 5), size - Vector2(10, 10)), Color(0.48, 0.14, 0.22, 0.85), false, 1.0)
 
 	var p := _current_portrait_id.to_lower()
 
-	# 0. Si existe un archivo PNG de retrato pixel art en assets/portraits/, dibujarlo directamente
+	# 0. Si existe un archivo PNG de retrato pixel art en assets/portraits/, dibujarlo centrado conservando proporción
 	var portrait_png := _get_portrait_texture(p)
-	if portrait_png == null:
-		# Respaldo por defecto a retrato de alta resolución del guardián
-		var fallback_path: String = "res://assets/portraits/guardian.png"
-		if ResourceLoader.exists(fallback_path):
-			portrait_png = load(fallback_path)
-		elif FileAccess.file_exists(fallback_path):
-			var img := Image.load_from_file(ProjectSettings.globalize_path(fallback_path))
-			if img:
-				portrait_png = ImageTexture.create_from_image(img)
-
 	if portrait_png:
-		portrait_canvas.draw_texture_rect(portrait_png, Rect2(4, 4, size.x - 8, size.y - 8), false)
+		var inner_pad := 6.0
+		var box_w := maxf(8.0, size.x - inner_pad * 2.0)
+		var box_h := maxf(8.0, size.y - inner_pad * 2.0)
+		var tex_sz := portrait_png.get_size()
+		var tw := maxf(1.0, tex_sz.x)
+		var th := maxf(1.0, tex_sz.y)
+		var sc := minf(box_w / tw, box_h / th)
+		var draw_w := tw * sc
+		var draw_h := th * sc
+		var dst_x := (size.x - draw_w) * 0.5 + _portrait_draw_offset.x
+		var dst_y := size.y - inner_pad - draw_h + _portrait_draw_offset.y
+		portrait_canvas.draw_texture_rect(portrait_png, Rect2(dst_x, dst_y, draw_w, draw_h), false)
 		return
 
 	# -------------------------------------------------------------------------
-	# 1. HÉROE COBAEM (Guardián de los Valores)
+	# 1. HÉROE / HEROÍNA COBAEM (Guardián / Guardiana de los Valores)
 	# -------------------------------------------------------------------------
-	if "player" in p or "guardian" in p:
+	if "player" in p or "guardian" in p or "guardiana" in p:
+		var is_fem_draw := _is_female_selected()
 		# Hombros y suéter guinda institucional
 		portrait_canvas.draw_rect(Rect2(cx - 30, size.y - 32, 60, 30), Color(0.48, 0.12, 0.20))
-		# Cuello camisa blanca y corbata oro
+		# Cuello camisa blanca y corbata / moño escolar oro
 		portrait_canvas.draw_polygon(PackedVector2Array([Vector2(cx - 10, size.y - 32), Vector2(cx + 10, size.y - 32), Vector2(cx, size.y - 18)]), [Color(0.95, 0.95, 0.95)])
-		portrait_canvas.draw_rect(Rect2(cx - 3, size.y - 28, 6, 18), Color(0.90, 0.75, 0.25))
+		if is_fem_draw:
+			portrait_canvas.draw_rect(Rect2(cx - 8, size.y - 28, 16, 6), Color(0.90, 0.75, 0.25))
+		else:
+			portrait_canvas.draw_rect(Rect2(cx - 3, size.y - 28, 6, 18), Color(0.90, 0.75, 0.25))
 		# Rostro
 		portrait_canvas.draw_rect(Rect2(cx - 20, cy - 24, 40, 38), Color(0.95, 0.78, 0.62))
-		# Cabello castaño
+		# Cabello castaño (mechones largos si es femenino)
 		portrait_canvas.draw_rect(Rect2(cx - 24, cy - 36, 48, 18), Color(0.28, 0.16, 0.10))
-		portrait_canvas.draw_rect(Rect2(cx - 24, cy - 24, 8, 20), Color(0.28, 0.16, 0.10))
-		portrait_canvas.draw_rect(Rect2(cx + 16, cy - 24, 8, 20), Color(0.28, 0.16, 0.10))
+		var lock_h := 34.0 if is_fem_draw else 20.0
+		portrait_canvas.draw_rect(Rect2(cx - 24, cy - 24, 8, lock_h), Color(0.28, 0.16, 0.10))
+		portrait_canvas.draw_rect(Rect2(cx + 16, cy - 24, 8, lock_h), Color(0.28, 0.16, 0.10))
 		# Ojos y expresión según emoción
 		if "celebrate" in p:
 			# Ojos de arco jubiloso

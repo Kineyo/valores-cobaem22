@@ -12,6 +12,8 @@ class_name ScenarioDecor
 @export var ambient_light_color: Color = Color(1.0, 0.96, 0.82)
 
 var _time: float = 0.0
+var _redraw_accum: float = 0.0
+var _is_mobile_throttle: bool = false
 var _particles: Array[Dictionary] = []
 var _accents: Array[Dictionary] = []
 var _sun_zones: Array[Dictionary] = []
@@ -20,6 +22,7 @@ func _ready() -> void:
 	# Se posiciona justo después de Background en z_index = 0 para dibujar encima del fondo
 	# y siempre debajo de Entities (z_index = 0 posterior) y FogOverlay (z_index = 65).
 	z_index = 0
+	_is_mobile_throttle = MobileControls.is_touch_device()
 	_align_above_background()
 	if _particles.is_empty():
 		_rebuild_decor()
@@ -217,7 +220,13 @@ func _process(delta: float) -> void:
 
 		p["pos"] = pos
 
-	queue_redraw()
+	if _is_mobile_throttle:
+		_redraw_accum += delta
+		if _redraw_accum >= 0.033:
+			_redraw_accum = 0.0
+			queue_redraw()
+	else:
+		queue_redraw()
 
 func _draw() -> void:
 	# 1. Bandas sutiles de luz solar diagonal

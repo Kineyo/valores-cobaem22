@@ -8,8 +8,31 @@ signal health_changed(current_health: int, max_health: int)
 signal died
 signal reached_goal
 signal empathy_pulse_triggered(cooldown: float)
+signal inventory_changed(item_id: String, item_info: Dictionary)
+signal esperanza_activated(duration: float)
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile.tscn")
+const ESPERANZA_DURATION: float = 15.0
+const ITEM_DATA := {
+	"esperanza": {
+		"name": "Esperanza",
+		"short": "ESPERANZA",
+		"desc": "15s sin clones ni niebla; jefe indefenso",
+		"color": Color(1.0, 0.88, 0.25),
+	},
+	"heart": {
+		"name": "Corazón",
+		"short": "CORAZÓN",
+		"desc": "Restaura +1 vida",
+		"color": Color(1.0, 0.35, 0.50),
+	},
+	"shield": {
+		"name": "Escudo",
+		"short": "ESCUDO",
+		"desc": "Protección temporal 4s",
+		"color": Color(0.35, 0.85, 1.0),
+	},
+}
 const EMPATHY_PULSE_COOLDOWN: float = 10.0
 const EMPATHY_PULSE_RADIUS: float = 140.0
 const EMPATHY_PULSE_RADIUS_SQ: float = 19600.0
@@ -70,6 +93,12 @@ var _hit_this_attack: Array[int] = []
 var empathy_cooldown_left: float = 0.0
 var _empathy_wave_timer: float = 0.0
 var _empathy_key_was_pressed: bool = false
+var _use_item_key_was_pressed: bool = false
+var _danmaku_check_timer: float = 0.0
+var _puddle_slow_timer: float = 0.0
+var _graze_boost_timer: float = 0.0
+var mobile_aim_vector: Vector2 = Vector2.ZERO
+var held_item: String = ""
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var attack_area: Area2D = $AttackArea
@@ -122,8 +151,9 @@ func on_graze(bullet_pos: Vector2) -> void:
 	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
 	if fx and get_parent():
 		fx.burst(get_parent(), bullet_pos, Color(0.4, 0.9, 1.0, 0.8), 4, 60.0)
-		if graze_count % 10 == 0:
-			fx.floating_text(get_parent(), global_position + Vector2(0, -32), "¡GRAZE x%d!" % graze_count, Color(0.5, 0.9, 1.0), 11)
+		if graze_count % 12 == 0:
+			_graze_boost_timer = 3.0
+			fx.floating_text(get_parent(), global_position + Vector2(0, -32), "¡GRAZE x%d! +IMPULSO" % graze_count, Color(0.5, 0.95, 1.0), 12)
 	# Recompensa táctica por maestría: cada 35 rozaduras recupera un corazón si está herido
 	if graze_count % 35 == 0 and health < max_health:
 		health = mini(max_health, health + 1)
@@ -230,6 +260,8 @@ func _physics_process(delta: float) -> void:
 	_shot_cooldown_left = maxf(0.0, _shot_cooldown_left - delta)
 	_knockback_left = maxf(0.0, _knockback_left - delta)
 	empathy_cooldown_left = maxf(0.0, empathy_cooldown_left - delta)
+	if _graze_boost_timer > 0.0:
+		_graze_boost_timer = maxf(0.0, _graze_boost_timer - delta)
 	if _empathy_wave_timer > 0.0:
 		_empathy_wave_timer = maxf(0.0, _empathy_wave_timer - delta)
 		queue_redraw()
@@ -239,23 +271,39 @@ func _physics_process(delta: float) -> void:
 		trigger_empathy_pulse()
 	_empathy_key_was_pressed = empathy_pressed_now
 
+	var use_item_now: bool = Input.is_physical_key_pressed(KEY_Q) or Input.is_physical_key_pressed(KEY_F) or (InputMap.has_action("use_item") and Input.is_action_pressed("use_item"))
+	if use_item_now and not _use_item_key_was_pressed:
+		use_held_item()
+	_use_item_key_was_pressed = use_item_now
+
 	# Modo Enfoque Touhou (Precisión micrométrica con Shift, acción focus o controles móviles)
 	is_focusing = Input.is_key_pressed(KEY_SHIFT) or (InputMap.has_action("focus") and Input.is_action_pressed("focus"))
 	var effective_speed: float = speed * 0.52 if is_focusing else speed
+	if _puddle_slow_timer > 0.0:
+		_puddle_slow_timer = maxf(0.0, _puddle_slow_timer - delta)
+		effective_speed *= 0.55
 
-	var enemy_shots: Array = get_tree().get_nodes_in_group("enemy_projectiles") if is_inside_tree() else []
-	_danmaku_mode = is_focusing or (enemy_shots.size() > 6)
+	_danmaku_check_timer -= delta
+	if _danmaku_check_timer <= 0.0:
+		_danmaku_check_timer = 0.2
+		var shot_count := get_tree().get_nodes_in_group("enemy_projectiles").size() if is_inside_tree() else 0
+		_danmaku_mode = is_focusing or (shot_count > 6)
+	elif is_focusing:
+		_danmaku_mode = true
+
 	if is_focusing or _danmaku_mode:
 		queue_redraw()
 
 	# Entrada direccional en 8 direcciones (WASD, Flechas o Joystick Izquierdo)
 	var input_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 
-	# Puntería direccional (Joystick Derecho táctil o stick derecho de Gamepad)
+	# Puntería direccional (Joystick Derecho táctil o stick derecho / IJKL)
 	var joy_aim := Input.get_vector("aim_left", "aim_right", "aim_up", "aim_down")
 	if joy_aim.length_squared() > 0.08:
 		aim_vector = joy_aim
-	elif not Input.is_action_pressed("attack"):
+	elif mobile_aim_vector.length_squared() > 0.08:
+		aim_vector = mobile_aim_vector
+	else:
 		aim_vector = Vector2.ZERO
 
 	# Si se apunta con joystick derecho, orientar al personaje hacia ese ángulo; si no, por movimiento
@@ -357,7 +405,7 @@ func _animate_procedural(delta: float, input_vector: Vector2) -> void:
 func perform_attack() -> void:
 	is_attacking = true
 	_hit_this_attack.clear()
-	_shot_cooldown_left = shot_cooldown
+	_shot_cooldown_left = shot_cooldown * (0.78 if _graze_boost_timer > 0.0 else 1.0)
 	if sfx_attack:
 		sfx_attack.pitch_scale = randf_range(0.94, 1.06)
 		sfx_attack.play()
@@ -379,9 +427,9 @@ func spawn_projectile() -> void:
 	if shot_dir.length_squared() < 0.001:
 		shot_dir = Vector2.DOWN
 	var shot: Projectile = PROJECTILE_SCENE.instantiate()
-	shot.direction = shot_dir
 	shot.speed = shot_speed
 	shot.scale = Vector2(shot_scale, shot_scale)
+	shot.z_index = 25
 
 	# Origen centrado en el pecho/manos del personaje
 	var origin := global_position + Vector2(0, -10.0)
@@ -395,14 +443,20 @@ func spawn_projectile() -> void:
 			query.exclude = [self.get_rid()]
 			var hit := space_state.intersect_ray(query)
 			if hit:
-				var hit_dist: float = origin.distance_to(hit.position)
-				desired_dist = maxf(2.0, hit_dist - 4.0)
-
-	shot.global_position = origin + shot_dir * desired_dist
+				var hit_d_sq := origin.distance_squared_to(hit.position)
+				if hit_d_sq < 144.0:
+					desired_dist = 0.0
+				else:
+					desired_dist = 6.0
 
 	var target_parent: Node = get_parent()
 	if target_parent == null and is_inside_tree() and get_tree():
 		target_parent = get_tree().current_scene
+	var world_spawn := origin + shot_dir * desired_dist
+	var local_spawn: Vector2 = (target_parent as Node2D).to_local(world_spawn) if target_parent is Node2D else world_spawn
+	shot.position = local_spawn
+	shot.set_direction(shot_dir)
+
 	if target_parent:
 		target_parent.add_child(shot)
 
@@ -412,7 +466,7 @@ func check_attack_hits() -> void:
 	for area in attack_area.get_overlapping_areas():
 		_hit_enemy_area(area)
 	for body in attack_area.get_overlapping_bodies():
-		if (body.is_in_group("enemies") or body is Enemy) and body.has_method("hit_by_attack"):
+		if body.has_method("hit_by_attack"):
 			var body_id := body.get_instance_id()
 			if body_id not in _hit_this_attack:
 				_hit_this_attack.append(body_id)
@@ -450,6 +504,80 @@ func grant_spawn_protection(duration: float = 2.0) -> void:
 	if invulnerable_timer:
 		invulnerable_timer.start(duration)
 
+func apply_puddle_slow(duration: float = 0.15) -> void:
+	_puddle_slow_timer = maxf(_puddle_slow_timer, duration)
+
+## Inventario de 1 solo espacio: recoge un ítem (si ya hay otro distinto, lo reemplaza)
+func pickup_item(item_id: String) -> bool:
+	var key := item_id.strip_edges().to_lower()
+	if not ITEM_DATA.has(key):
+		return false
+	if held_item == key:
+		return false
+	var had_previous := not held_item.is_empty()
+	held_item = key
+	var info: Dictionary = ITEM_DATA[key]
+	inventory_changed.emit(held_item, info)
+	var fx := get_node_or_null("/root/Fx") if is_inside_tree() else null
+	if fx and is_inside_tree():
+		var p := get_parent() if get_parent() else self
+		var msg := "¡%s equipado [Q]!" % str(info["name"]) if not had_previous else "¡Cambiado a %s [Q]!" % str(info["name"])
+		fx.floating_text(p, global_position + Vector2(0, -48), msg, info["color"], 13)
+	return true
+
+func set_held_item_silently(item_id: String) -> void:
+	var key := item_id.strip_edges().to_lower()
+	if key.is_empty() or not ITEM_DATA.has(key):
+		held_item = ""
+		inventory_changed.emit("", {})
+	else:
+		held_item = key
+		inventory_changed.emit(held_item, ITEM_DATA[held_item])
+
+func use_held_item() -> bool:
+	if not can_control or held_item.is_empty():
+		return false
+	var item := held_item
+	var fx := get_node_or_null("/root/Fx") if is_inside_tree() else null
+	var p := get_parent() if get_parent() else self
+	match item:
+		"esperanza":
+			held_item = ""
+			inventory_changed.emit("", {})
+			esperanza_activated.emit(ESPERANZA_DURATION)
+			if fx and is_inside_tree():
+				fx.burst(p, global_position + Vector2(0, -16), Color(1.0, 0.90, 0.30), 20, 170.0)
+				fx.floating_text(p, global_position + Vector2(0, -54), "¡ESPERANZA ACTIVA (15s)!", Color(1.0, 0.92, 0.35), 15)
+				if fx.has_method("vibrate_mobile"):
+					fx.vibrate_mobile(22)
+			return true
+		"heart":
+			if health >= max_health:
+				if fx and is_inside_tree():
+					fx.floating_text(p, global_position + Vector2(0, -44), "¡Salud al máximo!", Color(1.0, 0.75, 0.8), 12)
+				return false
+			held_item = ""
+			inventory_changed.emit("", {})
+			health = mini(max_health, health + 1)
+			health_changed.emit(health, max_health)
+			if fx and is_inside_tree():
+				fx.burst(p, global_position + Vector2(0, -16), Color(1.0, 0.4, 0.6), 12, 120.0)
+				fx.floating_text(p, global_position + Vector2(0, -48), "¡+1 Vida!", Color(1.0, 0.55, 0.72), 14)
+				if fx.has_method("vibrate_mobile"):
+					fx.vibrate_mobile(14)
+			return true
+		"shield":
+			held_item = ""
+			inventory_changed.emit("", {})
+			grant_spawn_protection(4.0)
+			if fx and is_inside_tree():
+				fx.burst(p, global_position + Vector2(0, -16), Color(0.45, 0.95, 1.0), 14, 130.0)
+				fx.floating_text(p, global_position + Vector2(0, -48), "¡Escudo de Respeto (4s)!", Color(0.45, 0.95, 1.0), 14)
+				if fx.has_method("vibrate_mobile"):
+					fx.vibrate_mobile(14)
+			return true
+	return false
+
 ## Habilidad activa de apoyo: disipa proyectiles cercanos y ralentiza antivalores sin violencia
 func trigger_empathy_pulse() -> bool:
 	if empathy_cooldown_left > 0.0 or not can_control or health <= 0:
@@ -461,6 +589,7 @@ func trigger_empathy_pulse() -> bool:
 	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
 	var parent_node := get_parent()
 
+	var slowed_ids: Dictionary = {}
 	if is_inside_tree() and get_tree():
 		for shot in get_tree().get_nodes_in_group("enemy_projectiles"):
 			if is_instance_valid(shot) and shot is Node2D:
@@ -472,22 +601,27 @@ func trigger_empathy_pulse() -> bool:
 		for e in get_tree().get_nodes_in_group("enemies"):
 			if is_instance_valid(e) and e is Node2D and e.has_method("apply_empathy_slow"):
 				if global_position.distance_squared_to(e.global_position) <= EMPATHY_SLOW_RADIUS_SQ:
+					slowed_ids[e.get_instance_id()] = true
 					e.apply_empathy_slow(2.0)
 
 	if parent_node:
 		for sib in parent_node.get_children():
 			if sib != self and sib is Node2D and sib.has_method("apply_empathy_slow"):
-				if global_position.distance_squared_to(sib.global_position) <= EMPATHY_SLOW_RADIUS_SQ:
+				if not slowed_ids.has(sib.get_instance_id()) and global_position.distance_squared_to(sib.global_position) <= EMPATHY_SLOW_RADIUS_SQ:
+					slowed_ids[sib.get_instance_id()] = true
 					sib.apply_empathy_slow(2.0)
 			elif sib.name == "Enemies":
 				for e in sib.get_children():
 					if e is Node2D and e.has_method("apply_empathy_slow"):
-						if global_position.distance_squared_to(e.global_position) <= EMPATHY_SLOW_RADIUS_SQ:
+						if not slowed_ids.has(e.get_instance_id()) and global_position.distance_squared_to(e.global_position) <= EMPATHY_SLOW_RADIUS_SQ:
+							slowed_ids[e.get_instance_id()] = true
 							e.apply_empathy_slow(2.0)
 
 	if fx and parent_node:
 		fx.burst(parent_node, global_position + Vector2(0, -12), Color(0.45, 0.95, 1.0), 14, 150.0)
 		fx.floating_text(parent_node, global_position + Vector2(0, -36), "¡Pulso de Empatía!", Color(0.45, 0.95, 1.0), 14)
+		if fx.has_method("vibrate_mobile"):
+			fx.vibrate_mobile(20)
 	if sfx_attack:
 		sfx_attack.pitch_scale = 1.25
 		sfx_attack.play()
@@ -523,6 +657,8 @@ func take_damage(amount: int, from_pos: Variant = null) -> void:
 	if fx:
 		fx.shake(5.0, 0.25)
 		fx.hitstop(0.06)
+		if fx.has_method("vibrate_mobile"):
+			fx.vibrate_mobile(28)
 
 	if health <= 0:
 		_die(push_dir)

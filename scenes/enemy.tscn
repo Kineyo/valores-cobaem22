@@ -45,3 +45,4 @@ horizontal_alignment = 1
 
 [node name="SFXHit" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("3_sfx_hit")
+bus = &"SFX"

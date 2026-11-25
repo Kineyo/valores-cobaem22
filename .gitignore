@@ -2,7 +2,10 @@
 .godot/
 /android/
 *.translation
-*.uid
+
+# Keystores and signing secrets
+*.keystore
+*.jks
 
 # Build exports and compiled binaries
 build/
@@ -67,3 +70,9 @@ reports/
 # Generated recognition PDFs (local user/test exports)
 certificados/
 /certificados/
+docs/Plan_de_Desarrollo_Campeones_de_los_Valores_APA.docx
+docs/Plan_de_Desarrollo_Campeones_de_los_Valores_APA.pdf
+
+# Local archived clutter / one-off helpers (never uploaded)
+_local_archive/
+/_local_archive/

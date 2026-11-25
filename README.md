@@ -18,7 +18,7 @@
 [![Escala Arquitectónica](https://img.shields.io/badge/Escala%20Real-1%20m%20%3D%2040%20px-2EA043?style=for-the-badge)](https://github.com/Kineyo/valores-cobaem22)
 [![BIM CAD 3D](https://img.shields.io/badge/Planimetr%C3%ADa-BIM%20%2F%20CAD%203D-FF7043?style=for-the-badge&logo=three.js&logoColor=white)](planos/plano_3d.html)
 [![Plantel](https://img.shields.io/badge/Plantel-CEMSaD%2022%20ENTHAVI-7A1C3C?style=for-the-badge)](https://cobaem.edomex.gob.mx/)
-[![Licencia](https://img.shields.io/badge/Licencia-MIT-00B4D8?style=for-the-badge)](LICENSE)
+[![Licencia](https://img.shields.io/badge/Licencia-GPL%20v3.0-00B4D8?style=for-the-badge)](LICENSE)
 
 <br/>
 
@@ -144,6 +144,8 @@ El juego cuenta con un esquema de control arcade responsivo diseñado para tecla
 | **Moverse (8 Direcciones)** | <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> / <kbd>Flechas</kbd> | Stick Izquierdo / D-Pad | **Joystick Dinámico Izquierdo** | Desplazamiento analógico fluido 8D con muescas cardinales y guías en reposo. |
 | **Modo Enfoque (Focus Mode)** | <kbd>Shift</kbd> (Izquierdo/Derecho) | Gatillo <kbd>L1</kbd> / <kbd>LB</kbd> | Arrastre preciso en joystick | Reduce velocidad al 52% para micro-esquivas e ilumina el núcleo vital Touhou de 5.5 px. |
 | **Disparo de Virtud** | <kbd>Espacio</kbd> | Clic Izquierdo / Botón <kbd>A</kbd> / <kbd>R1</kbd> | **Joystick Dinámico Derecho "VIRTUD"** | Emite haces de luz en 360° con halo guinda/oro y flecha de puntería. |
+| **Pulso de Empatía** | <kbd>E</kbd> | Botón <kbd>X</kbd> | **Botón Táctil `PULSO`** | Emite una onda de apoyo que disipa proyectiles enemigos cercanos y ralentiza antivalores (10s CD). |
+| **Usar Ítem Equipado** | <kbd>Q</kbd> / <kbd>F</kbd> | Botón <kbd>Y</kbd> | **Botón Táctil `ÍTEM`** / Clic en Slot | Usa el único ítem equipado en el inventario (como la estrella **Esperanza** de 15s). |
 | **Apuntado Cardinal / 360°** | <kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> | Cursor del Ratón / Stick Der. | Arrastre de Joystick Derecho | Orienta la dirección del proyectil de virtud hacia los antivalores. |
 | **Pausar / Reanudar** | <kbd>Escape</kbd> / <kbd>P</kbd> | Botón <kbd>Start</kbd> | **Botón `⏸`** (Superior Derecho) | Abre el modal de pausa institucional sin interrumpir la música de fondo. |
 | **Pantalla Completa (Toggle)** | <kbd>F11</kbd> / <kbd>Alt + Enter</kbd> | — | Automático en Móviles | Alterna instantáneamente entre modo ventana y pantalla completa en PC. |
@@ -193,7 +195,7 @@ flowchart TD
 1. **Cero Distorsión de Aspecto:** Los sprites se dibujan siempre con relación de aspecto $1:1$ mediante `snap_2d_transforms_to_pixel = true`.
 2. **Blindaje de Safe Area en Móviles:** La barra de corazones, el progreso de la meta y el botón de pausa se ajustan automáticamente a los márgenes seguros reportados por el sistema operativo, impidiendo que queden ocultos tras la muesca de la cámara.
 3. **Desacoplamiento Inteligente de Dispositivos:** Si el juego se abre en una PC sin pantalla táctil, los joysticks virtuales permanecen invisibles para no ensuciar la pantalla; en cuanto se detecta un toque de hardware en una pantalla táctil o dispositivo móvil, los controles se activan con opacidad en reposo (`resting_alpha = 0.18`) y se expanden dinámicamente al apoyar los pulgares.
-4. **Exportación Llave en Mano:** Incluye presets listos para compilar en Linux (`.x86_64`), Windows (`.exe`), Android (`.apk` con keystore de depuración autofirmado incluido) y Web (`index.html` PWA monohilo para compatibilidad universal).
+4. **Exportación Multiplataforma:** Incluye presets configurados para compilar en Linux (`.x86_64`), Windows (`.exe`), Android (`.apk` / Google Play configurando keystore propia de firma) y Web (`index.html` PWA monohilo para compatibilidad universal).
 
 ---
 
@@ -255,6 +257,8 @@ El juego cuenta con dos modos principales seleccionables desde la pantalla de in
 - **Sistema de Cuotas y Límites de Reaparición:** Para cada nivel, el jugador debe vencer una cantidad establecida de antivalores (`quota_to_boss`, entre 3 y 5). Los antivalores poseen un límite estricto de reaparición (`max_respawns = 2`). Al alcanzar la cuota, cesan las reapariciones normales y aparece el Jefe Final del escenario.
 - **Salida Bloqueada:** La meta permanece bloqueada y protegida hasta que el Jefe Final del nivel es redimido pacíficamente.
 - **Proyectiles de Energía Positiva:** El ataque del jugador emite orbes resplandecientes que viajan en línea recta. Mantener presionada la barra espaciadora o el botón táctil activa el disparo continuo.
+- **Sistema de Aliados con IA (`AllyBrain`):** Al rescatar y alegrar a los estudiantes secundarios (`Mateo`, `María`, `Valeria`, `Fernanda`, `Diego`, `Sofía` y `Alejandro`), cada personaje cambia dinámicamente entre sus **5 poses animadas** (`idle`, `walk_right`, `walk_left`, `back`, `attack`), esquiva proyectiles enemigos, prioriza atacar al jefe activo con orbes de virtud sin violencia y acude unido a ayudarte frente a **Titanor**.
+- **Inventario de 1 Solo Ítem & Ventaja "Esperanza" (15s):** El héroe cuenta con un espacio único en el HUD (`[Q]`/`[F]` en PC, `Y` en mando, `ÍTEM` en móvil) para portar un objeto de apoyo (`Corazón`, `Escudo` o la estrella **Esperanza**). Al activar **Esperanza**, durante **15 segundos** se destruyen y bloquean los clones del jefe final, se disipa e impide la niebla oscura y el jefe queda completamente indefenso bajo un aura dorada.
 
 ---
 
@@ -610,7 +614,11 @@ campeones-de-los-valores/
 │   ├── projectile.tscn         # Disparo de valores y virtudes
 │   └── story_cutscene.tscn     # Cinemáticas ilustradas del Modo Historia
 ├── scripts/                    # Lógica de programación en GDScript (.gd)
-│   ├── boss.gd                 # Los 6 Jefes Finales con patrones telegrafiados 3/4
+│   ├── ally_brain.gd           # Cerebro de combate y esquive para aliados rescatados
+│   ├── boss.gd                 # Los 7 Jefes Finales con Danmaku Touhou y estado Esperanza
+│   ├── boss_data.gd            # Catálogo de diálogos, HP por dificultad y datos de jefes
+│   ├── boss_fake_clone.gd      # Clones de sombra no letales de Titanor
+│   ├── boss_renderer.gd        # Renderizado procedural 3/4 de jefes y halo de Esperanza
 │   ├── enemy.gd                # Inteligencia artificial, cuotas y límites de reaparición
 │   ├── fx.gd                   # Singleton de efectos, sonido procedural y screen shake
 │   ├── game_settings.gd        # Singleton de configuración persistente y balance
@@ -641,7 +649,7 @@ campeones-de-los-valores/
 │   └── CEMSaD 22 ENTHAVI...pdf # Planos arquitectónicos vectoriales en PDF
 ├── icon.jpeg                   # Icono oficial y emblema del juego para el lanzador
 ├── project.godot               # Archivo maestro de configuración de Godot Engine 4
-├── LICENSE                     # Licencia de código abierto MIT
+├── LICENSE                     # Licencia de software libre GNU GPL v3.0
 ├── AGENTS.md                   # Guía técnica para agentes de IA y resolución de errores
 └── README.md                   # Esta guía integral del proyecto
 ```
@@ -714,10 +722,17 @@ El proyecto está diseñado desde los cimientos para ejecutarse de manera fluida
 6. Envía tu rama a tu fork y abre un **Pull Request** detallado.
 
 ---
+## Aviso
+
+Este juego no esta dedicado a ser jugado, es mas bien algo pequeño que sirve para simbolizar la institucion.
+
+<img src="assets/end_reader.gif" width="600" controls></img>
+
+Que lo disfruten y se diviertan, este juego tiene demasiado esfuerzo por detras :)
 
 ## 📜 Licencia y Reconocimientos
 
-Este proyecto está distribuido bajo la licencia de código abierto **MIT**. Consulta el archivo `LICENSE` para conocer más detalles sobre el uso libre, modificación y distribución con fines educativos.
+Este proyecto es software libre educativo distribuido bajo la licencia **GNU General Public License v3.0 (GPL-3.0)**. Esto garantiza que el código fuente permanezca siempre abierto para la comunidad estudiantil, docente y desarrolladora, asegurando que cualquier mejora o trabajo derivado conserve las mismas libertades y no pueda cerrarse con fines privativos. Consulta el archivo [`LICENSE`](LICENSE) para conocer el texto íntegro de la licencia. Los escudos, nombres y emblemas institucionales pertenecen al **COBAEM** y al **Plantel CEMSaD 22 ENTHAVI**.
 
 ### 🏛️ Reconocimientos Institucionales
 

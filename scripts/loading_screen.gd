@@ -8,7 +8,7 @@ class_name LoadingScreen
 ## sin riesgos de interbloqueos (deadlocks) de hilos ni estancamientos.
 
 @export var target_scene: String = "res://scenes/main.tscn"
-@export var min_display_time: float = 2.2
+@export var min_display_time: float = 1.2
 
 @onready var progress_bar: ProgressBar = %ProgressBar
 @onready var percent_label: Label = %PercentLabel
@@ -40,6 +40,7 @@ const STATUS_MESSAGES: Array[String] = [
 ]
 
 var _preloaded_scene: PackedScene = null
+var _threaded_requested: bool = false
 var _elapsed: float = 0.0
 var _tip_timer: float = 0.0
 var _tip_index: int = 0
@@ -154,10 +155,12 @@ func _update_prompt_text() -> void:
 func _start_loading() -> void:
 	if on_complete_callback.is_valid():
 		return
-	# Precarga síncrona inmediata en memoria: 'scenes/main.tscn' pesa apenas unos bytes
-	# y se carga en ~2 ms, evitando cualquier bloqueo o interbloqueo de hilos (deadlock en 54%).
 	if ResourceLoader.exists(target_scene):
-		_preloaded_scene = load(target_scene) as PackedScene
+		var err := ResourceLoader.load_threaded_request(target_scene)
+		if err == OK:
+			_threaded_requested = true
+		else:
+			_preloaded_scene = load(target_scene) as PackedScene
 
 func _process(delta: float) -> void:
 	_elapsed += delta
@@ -169,9 +172,23 @@ func _process(delta: float) -> void:
 		_tip_index = (_tip_index + 1) % TIPS.size()
 		_update_tip_text(true)
 
-	# Progreso fluido, orgánico y continuo (0% -> 100%) sin bloqueos ni llamadas a hilos síncronos
-	var time_ratio := clampf((_elapsed / min_display_time) * 100.0, 0.0, 100.0)
-	_current_progress = move_toward(_current_progress, time_ratio, delta * 85.0)
+	var real_ratio := 100.0
+	if _threaded_requested and _preloaded_scene == null:
+		var prog := []
+		var status := ResourceLoader.load_threaded_get_status(target_scene, prog)
+		if status == ResourceLoader.THREAD_LOAD_LOADED:
+			_preloaded_scene = ResourceLoader.load_threaded_get(target_scene) as PackedScene
+			real_ratio = 100.0
+		elif status == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			real_ratio = clampf(float(prog[0]) * 100.0, 10.0, 95.0) if not prog.is_empty() else 50.0
+		else:
+			_threaded_requested = false
+			if ResourceLoader.exists(target_scene):
+				_preloaded_scene = load(target_scene) as PackedScene
+
+	var time_ratio := clampf((_elapsed / maxf(0.2, min_display_time)) * 100.0, 0.0, 100.0)
+	var target_pct := minf(time_ratio, real_ratio) if _threaded_requested and _preloaded_scene == null else time_ratio
+	_current_progress = move_toward(_current_progress, target_pct, delta * 95.0)
 
 	if progress_bar:
 		progress_bar.value = _current_progress
@@ -184,8 +201,9 @@ func _process(delta: float) -> void:
 	if status_label:
 		status_label.text = messages[status_idx]
 
+	var ready_in_mem := on_complete_callback.is_valid() or _preloaded_scene != null or not _threaded_requested
 	# Al completar el 100% y el tiempo mínimo de lectura
-	if _current_progress >= 99.5 and _elapsed >= min_display_time and not _can_proceed:
+	if ready_in_mem and _current_progress >= 99.5 and _elapsed >= min_display_time and not _can_proceed:
 		_can_proceed = true
 		_on_loading_completed()
 
@@ -220,7 +238,9 @@ func _on_loading_completed() -> void:
 
 func _gui_input(event: InputEvent) -> void:
 	if _can_proceed and not _transition_triggered:
-		if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+		var is_real_mouse: bool = event is InputEventMouseButton and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION
+		var is_real_touch: bool = event is InputEventScreenTouch and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION
+		if is_real_mouse or is_real_touch:
 			accept_event()
 			_transition_to_target()
 
@@ -238,8 +258,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _can_proceed and not _transition_triggered:
 		var should_proceed: bool = (
 			(event is InputEventKey and event.is_pressed() and not event.is_echo())
-			or (event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed)
-			or (event is InputEventMouseButton and (event as InputEventMouseButton).pressed)
+			or (event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed and event.device != InputEvent.DEVICE_ID_EMULATION)
+			or (event is InputEventMouseButton and (event as InputEventMouseButton).pressed and event.device != InputEvent.DEVICE_ID_EMULATION)
 			or (event is InputEventJoypadButton and event.is_pressed() and not event.is_echo())
 			or event.is_action_pressed("ui_accept")
 			or event.is_action_pressed("attack")

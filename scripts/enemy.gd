@@ -34,7 +34,7 @@ signal defeated(enemy: Enemy)
 @export var enemy_type: Type = Type.GROSERIA
 @export var speed: float = 110.0
 @export var wander_radius: float = 140.0
-@export var detection_range: float = 280.0
+@export var detection_range: float = -1.0
 @export var respawn_delay: float = 3.2
 @export var max_respawns: int = 2 ## Límite de reapariciones por nivel antes de descansar
 
@@ -55,6 +55,10 @@ var _wander_timer: float = 0.0
 var _respawn_timer: float = 0.0
 var _detection_range_sq: float = 0.0
 var _empathy_slow_timer: float = 0.0
+var max_hp: int = 1
+var current_hp: int = 1
+var active_hp_anim_state: String = "normal"
+var _hurt_jitter_timer: float = 0.0
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var hitbox: Area2D = $Hitbox
@@ -72,7 +76,7 @@ func _ready() -> void:
 	spawn_position = global_position
 	_target_wander = global_position
 	hitbox.body_entered.connect(_on_body_entered)
-	var custom_range := detection_range if (not is_equal_approx(detection_range, 280.0) and detection_range > 0.0) else -1.0
+	var custom_range := detection_range if detection_range > 0.0 else -1.0
 	setup_type()
 	if custom_range > 0.0:
 		detection_range = custom_range
@@ -80,9 +84,27 @@ func _ready() -> void:
 	var gs = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
 	if gs and gs.has_method("get_param"):
 		speed *= gs.get_param("enemy_speed_mult")
+	if gs and int(gs.get("difficulty")) == 2 and enemy_type == Type.BULLYING:
+		max_hp = 2
+	else:
+		max_hp = 1
+	current_hp = max_hp
+	active_hp_anim_state = "normal"
 	_anim_time = randf() * TAU
 	_wander_timer = randf_range(0.5, 2.0)
 	queue_redraw()
+
+## Proporción de vida restante [0.0 .. 1.0]
+func get_hp_ratio() -> float:
+	if max_hp <= 0:
+		return 0.0
+	return clampf(float(current_hp) / float(max_hp), 0.0, 1.0)
+
+## Porcentaje entero de vida restante [0 .. 100]
+func get_hp_percent() -> int:
+	if current_hp <= 0:
+		return 0
+	return clampi(int(round(get_hp_ratio() * 100.0)), 1, 100)
 
 func _draw() -> void:
 	# Sombra elíptica pixel-art para anclar al enemigo al suelo en perspectiva 3/4
@@ -135,11 +157,8 @@ func _physics_process(delta: float) -> void:
 			modulate = Color.WHITE
 
 	_animate(delta)
-	var base_speed := speed
-	if _empathy_slow_timer > 0.0:
-		speed *= 0.45
-	_update_ai(delta)
-	speed = base_speed
+	var eff_speed := speed * 0.45 if _empathy_slow_timer > 0.0 else speed
+	_update_ai(delta, eff_speed)
 	move_and_slide()
 
 ## Ralentiza pacíficamente al antivalor tras recibir un Pulso de Empatía
@@ -160,7 +179,9 @@ func alert_allies(range_px: float = 340.0) -> void:
 				e.is_alerted = true
 
 ## Inteligencia artificial: persigue si el héroe está en rango; si no, patrulla
-func _update_ai(delta: float) -> void:
+func _update_ai(delta: float, eff_speed: float = -1.0) -> void:
+	if eff_speed < 0.0:
+		eff_speed = speed
 	var move_dir := Vector2.ZERO
 
 	# Persecución directa si el jugador entra al radio de detección o hay alerta de grupo
@@ -185,7 +206,7 @@ func _update_ai(delta: float) -> void:
 						tangent = -tangent
 					move_dir = (move_dir * 0.3 + tangent * 0.85).normalized()
 
-				velocity = velocity.move_toward(move_dir * speed, 600.0 * delta)
+				velocity = velocity.move_toward(move_dir * eff_speed, 600.0 * delta)
 				if move_dir.x != 0.0:
 					sprite.flip_h = move_dir.x < 0.0
 				return
@@ -209,7 +230,7 @@ func _update_ai(delta: float) -> void:
 				tangent = -tangent
 			move_dir = (move_dir * 0.3 + tangent * 0.85).normalized()
 
-		velocity = velocity.move_toward(move_dir * (speed * 0.65), 400.0 * delta)
+		velocity = velocity.move_toward(move_dir * (eff_speed * 0.65), 400.0 * delta)
 		if move_dir.x != 0.0:
 			sprite.flip_h = move_dir.x < 0.0
 	else:
@@ -217,6 +238,15 @@ func _update_ai(delta: float) -> void:
 
 func _animate(delta: float) -> void:
 	_anim_time += delta * 1.2
+	if _hurt_jitter_timer > 0.0:
+		_hurt_jitter_timer = maxf(0.0, _hurt_jitter_timer - delta)
+	var hp_ratio := get_hp_ratio()
+	var is_injured_half := (current_hp > 0 and hp_ratio <= 0.50)
+	if is_injured_half:
+		active_hp_anim_state = "hurt_50"
+	elif current_hp > 0:
+		active_hp_anim_state = "normal"
+
 	match enemy_type:
 		Type.GROSERIA:
 			var hop := absf(sin(_anim_time * 6.5))
@@ -226,16 +256,27 @@ func _animate(delta: float) -> void:
 			sprite.position.y = _base_sprite_y - 4.0 + sin(_anim_time * 3.0) * 4.0
 			sprite.self_modulate.a = 0.8 + sin(_anim_time * 4.5) * 0.2
 		Type.BULLYING:
-			var step := sin(_anim_time * 3.8)
-			sprite.rotation = step * 0.05
-			sprite.scale = Vector2(1.0 + absf(step) * 0.06, 1.0 - absf(step) * 0.06)
-	label.position.y = -44.0 + sin(_anim_time * 2.5) * 1.5
+			var step := sin(_anim_time * (6.4 if is_injured_half else 3.8))
+			sprite.rotation = step * (0.10 if is_injured_half else 0.05)
+			sprite.scale = Vector2(1.0 + absf(step) * 0.08, 1.0 - absf(step) * 0.08)
+
+	if is_injured_half or _hurt_jitter_timer > 0.0:
+		sprite.position.x = sin(_anim_time * 38.0) * 2.0
+		if _empathy_slow_timer <= 0.0:
+			sprite.modulate = Color(1.15, 0.72, 0.72, 1.0)
+	else:
+		sprite.position.x = 0.0
+		if _empathy_slow_timer <= 0.0:
+			sprite.modulate = Color.WHITE
+
+	label.position.y = -54.0 + sin(_anim_time * 2.5) * 1.5
 
 ## Invocado al ser impactado por un ataque o proyectil de valores
 func hit_by_attack(attacker_pos: Variant = null) -> void:
 	if not is_active:
 		return
 	alert_allies(400.0)
+	current_hp = maxi(0, current_hp - 1)
 	if sfx_hit:
 		sfx_hit.pitch_scale = randf_range(0.9, 1.1)
 		sfx_hit.play()
@@ -243,14 +284,25 @@ func hit_by_attack(attacker_pos: Variant = null) -> void:
 	var fx_parent := get_parent()
 	var hit_pos := global_position + Vector2(0, -16)
 	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+
+	if current_hp > 0:
+		_hurt_jitter_timer = 0.35
+		if get_hp_ratio() <= 0.50:
+			active_hp_anim_state = "hurt_50"
+		if attacker_pos != null and attacker_pos is Vector2:
+			velocity = (global_position - (attacker_pos as Vector2)).normalized() * 140.0
+		if fx:
+			fx.burst(fx_parent, hit_pos, _color, 10, 110.0)
+			fx.floating_text(fx_parent, hit_pos + Vector2(0, -24), "¡%d%%! ¡Cede!" % get_hp_percent(), Color(1.0, 0.85, 0.45), 13)
+			fx.shake(1.8, 0.09)
+		return
+
 	if fx:
 		fx.burst(fx_parent, hit_pos, _color, 16, 160.0)
 		fx.burst(fx_parent, hit_pos, Color.WHITE, 6, 110.0)
 		fx.floating_text(fx_parent, hit_pos + Vector2(0, -20), _value_text, Color(1.0, 0.95, 0.55), 15)
 		fx.shake(2.5, 0.12)
-	defeated.emit(self)
-
-	# Se oculta temporalmente y arranca el temporizador de reaparición
+	# Se oculta temporalmente y arranca el temporizador de reaparición antes de emitir defeated
 	is_active = false
 	visible = false
 	velocity = Vector2.ZERO
@@ -258,12 +310,16 @@ func hit_by_attack(attacker_pos: Variant = null) -> void:
 	hitbox.set_deferred("monitorable", false)
 	$CollisionShape2D.set_deferred("disabled", true)
 	_respawn_timer = respawn_delay
+	defeated.emit(self)
 
 ## Reaparece en el punto de spawn con animación pop
 func respawn() -> void:
 	if not allow_respawn or current_respawns >= max_respawns:
 		return
 	current_respawns += 1
+	current_hp = max_hp
+	active_hp_anim_state = "normal"
+	_hurt_jitter_timer = 0.0
 	global_position = spawn_position
 	if has_method("reset_physics_interpolation"):
 		call("reset_physics_interpolation")
@@ -273,6 +329,9 @@ func respawn() -> void:
 	hitbox.set_deferred("monitorable", true)
 	$CollisionShape2D.set_deferred("disabled", false)
 	modulate = Color.WHITE
+	if sprite:
+		sprite.modulate = Color.WHITE
+		sprite.position.x = 0.0
 
 	if _spawn_tween and _spawn_tween.is_valid():
 		_spawn_tween.kill()
@@ -286,5 +345,5 @@ func stop_respawns() -> void:
 	allow_respawn = false
 
 func _on_body_entered(body: Node2D) -> void:
-	if body is Player and is_active and spawn_grace_timer <= 0.0:
+	if body.is_in_group("player") and is_active and spawn_grace_timer <= 0.0:
 		body.take_damage(1, global_position)

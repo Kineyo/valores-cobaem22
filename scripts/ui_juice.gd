@@ -5,19 +5,22 @@ class_name UiJuice
 ## Añade respuesta elástica al posar el ratón, cambiar el foco o pulsar.
 
 static func attach_button(btn: Button, sfx: AudioStreamPlayer = null) -> void:
-	if btn == null:
+	if btn == null or btn.has_meta("_juice_attached"):
 		return
+	btn.set_meta("_juice_attached", true)
 	btn.resized.connect(func() -> void: btn.pivot_offset = btn.size * 0.5)
 	btn.pivot_offset = btn.size * 0.5
 
 	btn.mouse_entered.connect(func() -> void:
-		_scale_to(btn, Vector2(1.015, 1.015), 0.12)
+		if not MobileControls.is_touch_device():
+			_scale_to(btn, Vector2(1.015, 1.015), 0.12)
 	)
 	btn.mouse_exited.connect(func() -> void:
 		_scale_to(btn, Vector2.ONE, 0.12)
 	)
 	btn.focus_entered.connect(func() -> void:
-		_scale_to(btn, Vector2(1.015, 1.015), 0.12)
+		if not MobileControls.is_touch_device():
+			_scale_to(btn, Vector2(1.015, 1.015), 0.12)
 	)
 	btn.focus_exited.connect(func() -> void:
 		_scale_to(btn, Vector2.ONE, 0.12)
@@ -26,11 +29,15 @@ static func attach_button(btn: Button, sfx: AudioStreamPlayer = null) -> void:
 		_scale_to(btn, Vector2(0.985, 0.985), 0.06)
 	)
 	btn.button_up.connect(func() -> void:
-		_scale_to(btn, Vector2(1.015, 1.015), 0.12)
-		if sfx and sfx.is_inside_tree():
-			sfx.pitch_scale = randf_range(0.96, 1.06)
-			sfx.play()
+		var rest := Vector2(1.015, 1.015) if (btn.is_hovered() and not MobileControls.is_touch_device()) else Vector2.ONE
+		_scale_to(btn, rest, 0.12)
 	)
+	if sfx != null:
+		btn.pressed.connect(func() -> void:
+			if sfx and sfx.is_inside_tree():
+				sfx.pitch_scale = randf_range(0.96, 1.06)
+				sfx.play()
+		)
 
 static func _scale_to(control: Control, target: Vector2, duration: float) -> void:
 	if not is_instance_valid(control) or not control.is_inside_tree():

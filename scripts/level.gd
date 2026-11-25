@@ -11,9 +11,14 @@ signal enemy_defeated(enemy: Enemy)
 signal boss_spawned(boss: CharacterBody2D)
 signal boss_health_changed(current: int, max_hp: int)
 signal boss_redeemed(boss: CharacterBody2D)
+signal boss_undertale_climax_requested(boss: CharacterBody2D)
 signal quota_updated(defeated: int, quota: int)
 signal enter_classroom_requested(classroom_idx: int)
 signal level_completed
+signal player_inventory_changed(item_id: String, item_info: Dictionary)
+signal esperanza_timer_updated(remaining: float, duration: float)
+
+const ESPERANZA_DURATION: float = 15.0
 
 const PLAYER_SCENE := preload("res://scenes/player.tscn")
 const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
@@ -55,6 +60,8 @@ var _hard_wave_active_count: int = 0
 var _boss_battle_timer: float = 0.0
 var _fog_triggered_by_timeout: bool = false
 var _redeemed_count: int = 0
+var esperanza_timer: float = 0.0
+var _titanor_esperanza_drop_timer: float = 0.0
 
 var is_final_boss_celebrating: bool = false
 var final_boss_celebration_completed: bool = false
@@ -129,6 +136,10 @@ func setup_level(data: Dictionary) -> void:
 
 	player.health_changed.connect(func(c, m): player_health_changed.emit(c, m))
 	player.died.connect(func(): player_died.emit())
+	if player.has_signal("inventory_changed"):
+		player.inventory_changed.connect(func(id, info): player_inventory_changed.emit(id, info))
+	if player.has_signal("esperanza_activated"):
+		player.esperanza_activated.connect(_on_esperanza_activated)
 
 	# Ajustar límites de cámara a las dimensiones del mapa
 	if player.camera:
@@ -171,6 +182,7 @@ func setup_level(data: Dictionary) -> void:
 		student.gender = s_info.get("gender", 0)
 		student.initial_state = s_info.get("initial_state", 0)
 		student.player = player
+		student.level_ref = self
 		if entities:
 			entities.add_child(student)
 		students.append(student)
@@ -251,7 +263,7 @@ func setup_level(data: Dictionary) -> void:
 						# En el salón de clases, rodean al alumno y atacan de inmediato al ver al héroe
 						enemy.wander_radius = 25.0
 						enemy.detection_range = 360.0
-					enemy.defeated.connect(_on_enemy_defeated)
+					enemy.defeated.connect(_on_enemy_defeated, CONNECT_DEFERRED)
 					if enemies_container:
 						enemies_container.add_child(enemy)
 
@@ -319,7 +331,7 @@ func _spawn_hard_wave(count: int, grace_sec: float = 0.0) -> void:
 		if is_classroom:
 			enemy.wander_radius = 25.0
 			enemy.detection_range = 380.0
-		enemy.defeated.connect(_on_enemy_defeated)
+		enemy.defeated.connect(_on_enemy_defeated, CONNECT_DEFERRED)
 		if enemies_container:
 			enemies_container.add_child(enemy)
 		_hard_enemies_spawned += 1
@@ -329,8 +341,20 @@ func _physics_process(delta: float) -> void:
 	if is_final_boss_celebrating:
 		_update_final_boss_celebration(delta)
 
-	# En Fácil/Normal: si la batalla contra el Maestro tarda 1 minuto (60s) o más, aparece la Niebla del Desinterés
-	if not is_hard_mode and boss != null and is_instance_valid(boss) and not boss_defeated:
+	if esperanza_timer > 0.0:
+		esperanza_timer = maxf(0.0, esperanza_timer - delta)
+		esperanza_timer_updated.emit(esperanza_timer, ESPERANZA_DURATION)
+		if fog_overlay and is_instance_valid(fog_overlay) and fog_overlay.is_fog_active:
+			fog_overlay.set_fog(false, false)
+
+	if boss != null and is_instance_valid(boss) and not boss_defeated and boss.boss_type == BossClass.BossType.BULLYING and esperanza_timer <= 0.0:
+		_titanor_esperanza_drop_timer -= delta
+		if _titanor_esperanza_drop_timer <= 0.0:
+			_titanor_esperanza_drop_timer = 26.0
+			_ensure_esperanza_pickup_available()
+
+	# En Fácil/Normal: si la batalla contra el Maestro Desinterés tarda 1 minuto (60s) o más, aparece la Niebla del Desinterés
+	if not is_hard_mode and esperanza_timer <= 0.0 and boss != null and is_instance_valid(boss) and not boss_defeated and boss.boss_type == BossClass.BossType.DESINTERES:
 		_boss_battle_timer += delta
 		if _boss_battle_timer >= 60.0 and not _fog_triggered_by_timeout:
 			_fog_triggered_by_timeout = true
@@ -392,12 +416,15 @@ func _on_enemy_defeated(enemy: Node2D) -> void:
 
 	# Si es un salón de clases y se liberó al alumno acorralado
 	if level_data.get("is_classroom", false) and defeated_in_level >= quota_to_boss:
+		var gs_cls = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+		var is_fem_cls := gs_cls != null and int(gs_cls.get("selected_character")) == 1
+		var thank_msg := "¡Gracias por defenderme, compañera!" if is_fem_cls else "¡Gracias por defenderme, compañero!"
 		for s in students:
 			if is_instance_valid(s):
 				s.cheer_up()
 				var fx_s = get_node_or_null("/root/Fx") if is_inside_tree() else null
 				if fx_s:
-					fx_s.floating_text(self, s.global_position + Vector2(0, -55), "¡Gracias por defenderme!", Color(1.0, 0.95, 0.4), 14)
+					fx_s.floating_text(self, s.global_position + Vector2(0, -55), thank_msg, Color(1.0, 0.95, 0.4), 14)
 
 	# Si se cumple la cuota requerida y aún no hay jefe, invocar al Jefe de Escenario
 	if defeated_in_level >= quota_to_boss and boss == null and not boss_defeated:
@@ -427,56 +454,136 @@ func _spawn_virtue_pickup(pos: Vector2, kind: String = "") -> Area2D:
 	shape.shape = circle
 	pickup.add_child(shape)
 
-	var visual := Polygon2D.new()
-	if pickup_kind == "heart":
-		visual.polygon = PackedVector2Array([
-			Vector2(0, 9), Vector2(-9, 0), Vector2(-9, -6), Vector2(-4, -9),
-			Vector2(0, -5), Vector2(4, -9), Vector2(9, -6), Vector2(9, 0)
-		])
-		visual.color = Color(0.98, 0.36, 0.52, 0.96)
+	var visual_root := Node2D.new()
+	visual_root.name = "PickupVisual"
+	if pickup_kind == "esperanza":
+		var star_pts := PackedVector2Array()
+		for i in range(10):
+			var ang := -PI * 0.5 + float(i) * (TAU / 10.0)
+			var r := 13.0 if (i % 2 == 0) else 6.0
+			star_pts.append(Vector2(cos(ang), sin(ang)) * r)
+		var star := Polygon2D.new()
+		star.polygon = star_pts
+		star.color = Color(1.0, 0.90, 0.26, 0.98)
+		visual_root.add_child(star)
+		var core := Polygon2D.new()
+		core.polygon = PackedVector2Array([Vector2(0, -5), Vector2(5, 0), Vector2(0, 5), Vector2(-5, 0)])
+		core.color = Color(1.0, 0.98, 0.86, 1.0)
+		visual_root.add_child(core)
+		var halo := Line2D.new()
+		halo.points = star_pts
+		halo.closed = true
+		halo.width = 1.6
+		halo.default_color = Color(1.0, 0.96, 0.70, 0.92)
+		visual_root.add_child(halo)
+	elif pickup_kind == "heart":
+		var heart_spr := Sprite2D.new()
+		var htex: Texture2D = load("res://assets/sprites/corazon_lleno.png")
+		if htex:
+			heart_spr.texture = htex
+			heart_spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			heart_spr.scale = Vector2(0.75, 0.75)
+		visual_root.add_child(heart_spr)
+		var halo_pts := PackedVector2Array()
+		for i in range(16):
+			var a := float(i) * (TAU / 16.0)
+			halo_pts.append(Vector2(cos(a), sin(a)) * 13.5)
+		var halo := Line2D.new()
+		halo.points = halo_pts
+		halo.closed = true
+		halo.width = 1.3
+		halo.default_color = Color(1.0, 0.62, 0.74, 0.75)
+		visual_root.add_child(halo)
 	else:
-		visual.polygon = PackedVector2Array([
-			Vector2(0, -10), Vector2(8, -6), Vector2(7, 4), Vector2(0, 10), Vector2(-7, 4), Vector2(-8, -6)
+		var shield_pts := PackedVector2Array([
+			Vector2(0, -11), Vector2(9, -7), Vector2(8, 3), Vector2(0, 11), Vector2(-8, 3), Vector2(-9, -7)
 		])
-		visual.color = Color(0.38, 0.90, 1.0, 0.96)
-	pickup.add_child(visual)
-
-	var ring := Line2D.new()
-	ring.points = visual.polygon
-	ring.closed = true
-	ring.width = 1.6
-	ring.default_color = Color(1.0, 0.95, 0.65, 0.9)
-	pickup.add_child(ring)
+		var sh := Polygon2D.new()
+		sh.polygon = shield_pts
+		sh.color = Color(0.24, 0.68, 0.98, 0.96)
+		visual_root.add_child(sh)
+		var crest := Polygon2D.new()
+		crest.polygon = PackedVector2Array([Vector2(0, -6), Vector2(4, 0), Vector2(0, 6), Vector2(-4, 0)])
+		crest.color = Color(0.98, 0.92, 0.45, 0.98)
+		visual_root.add_child(crest)
+		var ring := Line2D.new()
+		ring.points = shield_pts
+		ring.closed = true
+		ring.width = 1.8
+		ring.default_color = Color(1.0, 0.88, 0.36, 0.95)
+		visual_root.add_child(ring)
+	pickup.add_child(visual_root)
 
 	var parent_node: Node = entities if entities else self
 	parent_node.add_child(pickup)
 
 	var bob_tw := pickup.create_tween().set_loops()
-	bob_tw.tween_property(visual, "position:y", -4.0, 0.65).set_trans(Tween.TRANS_SINE)
-	bob_tw.tween_property(visual, "position:y", 0.0, 0.65).set_trans(Tween.TRANS_SINE)
+	bob_tw.tween_property(visual_root, "position:y", -4.0, 0.65).set_trans(Tween.TRANS_SINE)
+	bob_tw.tween_property(visual_root, "position:y", 0.0, 0.65).set_trans(Tween.TRANS_SINE)
 
 	pickup.body_entered.connect(func(body: Node2D):
 		if not is_instance_valid(pickup) or pickup.get_meta("collected", false):
 			return
 		if body is Player and body.can_control and body.health > 0:
-			pickup.set_meta("collected", true)
 			var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+			if pickup_kind == "esperanza":
+				if body.has_method("pickup_item") and body.pickup_item("esperanza"):
+					pickup.set_meta("collected", true)
+					if fx:
+						fx.burst(parent_node, pickup.global_position, Color(1.0, 0.90, 0.30), 14, 140.0)
+					pickup.queue_free()
+				return
+			pickup.set_meta("collected", true)
 			if pickup_kind == "heart":
-				body.health = mini(body.max_health, body.health + 1)
-				body.health_changed.emit(body.health, body.max_health)
-				if fx:
-					fx.burst(parent_node, pickup.global_position, Color(1.0, 0.45, 0.65), 10, 110.0)
-					fx.floating_text(parent_node, pickup.global_position + Vector2(0, -18), "¡+1 Esperanza!", Color(1.0, 0.55, 0.72), 14)
+				if body.health < body.max_health:
+					body.health = mini(body.max_health, body.health + 1)
+					body.health_changed.emit(body.health, body.max_health)
+					if fx:
+						fx.burst(parent_node, pickup.global_position, Color(1.0, 0.45, 0.65), 10, 110.0)
+						fx.floating_text(parent_node, pickup.global_position + Vector2(0, -18), "¡+1 Esperanza!", Color(1.0, 0.55, 0.72), 14)
+				elif body.has_method("pickup_item") and str(body.get("held_item")).is_empty():
+					body.pickup_item("heart")
 			else:
-				body.grant_spawn_protection(2.5)
-				if fx:
-					fx.burst(parent_node, pickup.global_position, Color(0.45, 0.95, 1.0), 10, 110.0)
-					fx.floating_text(parent_node, pickup.global_position + Vector2(0, -18), "¡Escudo de Respeto!", Color(0.45, 0.95, 1.0), 14)
+				if body.has_method("pickup_item") and str(body.get("held_item")).is_empty():
+					body.pickup_item("shield")
+				else:
+					body.grant_spawn_protection(2.5)
+					if fx:
+						fx.burst(parent_node, pickup.global_position, Color(0.45, 0.95, 1.0), 10, 110.0)
+						fx.floating_text(parent_node, pickup.global_position + Vector2(0, -18), "¡Escudo de Respeto!", Color(0.45, 0.95, 1.0), 14)
 			pickup.queue_free()
 	)
 	return pickup
 
+func _on_esperanza_activated(duration: float = ESPERANZA_DURATION) -> void:
+	esperanza_timer = maxf(esperanza_timer, duration)
+	esperanza_timer_updated.emit(esperanza_timer, ESPERANZA_DURATION)
+	set_boss_desperation_fog(false)
+	if fog_overlay and is_instance_valid(fog_overlay):
+		fog_overlay.set_desperation_darkness(false)
+		fog_overlay.set_fog(false, false)
+	if boss and is_instance_valid(boss) and boss.has_method("apply_esperanza_debuff"):
+		boss.apply_esperanza_debuff(duration)
+
+func _ensure_esperanza_pickup_available() -> void:
+	if player and is_instance_valid(player) and str(player.get("held_item")) == "esperanza":
+		return
+	if is_inside_tree() and get_tree():
+		for pk in get_tree().get_nodes_in_group("virtue_pickups"):
+			if is_instance_valid(pk) and str(pk.get_meta("pickup_kind", "")) == "esperanza" and not bool(pk.get_meta("collected", false)):
+				return
+	var spawn_pos := map_size * 0.5
+	if player and is_instance_valid(player):
+		spawn_pos = player.position + Vector2(56.0, -32.0)
+	spawn_pos.x = clampf(spawn_pos.x, 75.0, map_size.x - 75.0)
+	spawn_pos.y = clampf(spawn_pos.y, 95.0, map_size.y - 75.0)
+	if _is_point_blocked_by_obstacle(spawn_pos, 14.0):
+		spawn_pos = map_size * 0.5
+	_spawn_virtue_pickup(spawn_pos, "esperanza")
+
 func set_boss_desperation_fog(active: bool) -> void:
+	if active and esperanza_timer > 0.0:
+		return
 	if active:
 		if fog_overlay == null or not is_instance_valid(fog_overlay):
 			fog_overlay = FogOverlayClass.new()
@@ -516,12 +623,60 @@ func _spawn_boss() -> void:
 	boss.player = player
 	boss.health_changed.connect(func(c, m): boss_health_changed.emit(c, m))
 	boss.redeemed.connect(_on_boss_redeemed)
+	if boss.has_signal("undertale_climax_requested"):
+		boss.undertale_climax_requested.connect(func(b): boss_undertale_climax_requested.emit(b))
 	if entities:
 		entities.add_child(boss)
-	boss.setup_boss_type(boss.boss_type)
+	if not boss.is_node_ready():
+		boss.setup_boss_type(boss.boss_type)
 	if fog_overlay and is_instance_valid(fog_overlay):
 		fog_overlay.boss_node = boss
+	if esperanza_timer > 0.0 and boss.has_method("apply_esperanza_debuff"):
+		boss.apply_esperanza_debuff(esperanza_timer)
+	if boss.boss_type == BossClass.BossType.BULLYING:
+		_summon_titanor_campaign_allies()
+		_titanor_esperanza_drop_timer = 18.0
+		_ensure_esperanza_pickup_available()
 	boss_spawned.emit(boss)
+
+func _summon_titanor_campaign_allies() -> void:
+	var existing_names: Dictionary = {}
+	for s in students:
+		if is_instance_valid(s):
+			existing_names[StudentClass.normalize_name(str(s.student_name))] = true
+			if s.has_method("cheer_up"):
+				s.cheer_up()
+	var allies_to_summon := [
+		{ "name": "Mateo", "gender": 0, "offset": Vector2(-58.0, -44.0) },
+		{ "name": "Valeria", "gender": 1, "offset": Vector2(58.0, -44.0) },
+		{ "name": "Sofía", "gender": 1, "offset": Vector2(0.0, 56.0) },
+	]
+	var anchor := player.position if (player and is_instance_valid(player)) else map_size * 0.35
+	var summoned_any := false
+	for info: Dictionary in allies_to_summon:
+		var cname := StudentClass.normalize_name(str(info["name"]))
+		if existing_names.has(cname):
+			continue
+		var spawn_pos: Vector2 = anchor + info["offset"]
+		spawn_pos.x = clampf(spawn_pos.x, 70.0, map_size.x - 70.0)
+		spawn_pos.y = clampf(spawn_pos.y, 90.0, map_size.y - 70.0)
+		if _is_point_blocked_by_obstacle(spawn_pos, 12.0):
+			spawn_pos = anchor
+		var ally = StudentClass.new()
+		ally.position = spawn_pos
+		ally.student_name = str(info["name"])
+		ally.gender = int(info["gender"])
+		ally.initial_state = StudentClass.State.HAPPY
+		ally.player = player
+		ally.level_ref = self
+		if entities:
+			entities.add_child(ally)
+		students.append(ally)
+		summoned_any = true
+	if summoned_any:
+		var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+		if fx and is_inside_tree():
+			fx.floating_text(self, anchor + Vector2(0, -68), "¡Tus compañeros del CEMSaD 22 acuden a ayudarte!", Color(0.45, 0.95, 1.0), 14)
 
 	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
 	if fx:
@@ -529,7 +684,7 @@ func _spawn_boss() -> void:
 		if level_data.get("boss_type", 0) == 6: # Boss.BossType.DESINTERES
 			boss_title = "¡MAESTRO DESINTERÉS CONFRONTADO!"
 		fx.shake(5.0, 0.45)
-		fx.floating_text(self, boss.position + Vector2(0, -50), boss_title, Color(1.0, 0.35, 0.45), 16)
+		fx.floating_text(self, boss.global_position + Vector2(0, -50), boss_title, Color(1.0, 0.35, 0.45), 16)
 
 func _on_boss_redeemed(b: CharacterBody2D) -> void:
 	boss_defeated = true
@@ -567,7 +722,7 @@ func _on_boss_redeemed(b: CharacterBody2D) -> void:
 			banner_text = "¡MAESTRO DESINTERÉS REDIMIDO!"
 		elif is_final_titanor:
 			banner_text = "¡TITANOR REDIMIDO! ¡ESCUELA EN PAZ!"
-		var banner_pos := b.position if (b != null and is_instance_valid(b)) else (player.position if (player != null and is_instance_valid(player)) else map_size * 0.5)
+		var banner_pos := b.global_position if (b != null and is_instance_valid(b)) else (player.global_position if (player != null and is_instance_valid(player)) else map_size * 0.5)
 		fx.floating_text(self, banner_pos + Vector2(0, -60), banner_text, Color(1.0, 0.95, 0.40), 16)
 		fx.shake(4.0, 0.3)
 
@@ -706,8 +861,8 @@ func _update_final_boss_celebration(delta: float) -> void:
 		var actor := celebration_students[idx]
 		if is_instance_valid(actor) and fx:
 			var col: Color = actor.get_meta("celebration_color", Color(0.95, 0.98, 0.55))
-			fx.floating_text(self, actor.position + Vector2(0, -86), FINAL_VICTORY_STUDENT_PHRASE, col, 11)
-			fx.burst(self, actor.position + Vector2(0, -24), col, 8, 90.0)
+			fx.floating_text(self, actor.global_position + Vector2(0, -86), FINAL_VICTORY_STUDENT_PHRASE, col, 11)
+			fx.burst(self, actor.global_position + Vector2(0, -24), col, 8, 90.0)
 
 	var secs_left := maxi(1, ceili(_final_boss_celebration_timer))
 	if secs_left != _last_celebration_sec and goal and is_instance_valid(goal):

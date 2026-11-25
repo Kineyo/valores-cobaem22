@@ -19,6 +19,7 @@ var is_busy: bool = false
 var _rect: ColorRect
 var _mat: ShaderMaterial
 var _logo_rect: TextureRect
+var _pending_action: Callable = Callable()
 
 func _ready() -> void:
 	layer = 100
@@ -67,6 +68,7 @@ func transition_call(action: Callable) -> void:
 ## Cubre la pantalla con el shader, ejecuta la acción (callback) y luego revela la escena
 func _run(action: Callable) -> void:
 	if is_busy:
+		_pending_action = action
 		return
 	is_busy = true
 	_rect.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -106,6 +108,10 @@ func _reveal() -> void:
 	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	is_busy = false
 	transition_finished.emit()
+	if _pending_action.is_valid():
+		var next_act := _pending_action
+		_pending_action = Callable()
+		_run(next_act)
 
 func _set_progress(value: float) -> void:
 	_rect.visible = value > 0.0

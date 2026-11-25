@@ -55,13 +55,29 @@ const CP1252_EXTRA := {
 	8212: 151, # —
 }
 
-## Construye el texto oficial exacto usando la dificultad inicial (o la provista) y nombre opcional
-static func build_certificate_text(difficulty_name: String = "", recipient_name: String = "") -> String:
+## Extrae si el personaje seleccionado es femenino desde GameSettings (o usa override_gender si >= 0)
+static func resolve_is_female(override_gender: int = -1) -> bool:
+	if override_gender >= 0:
+		return override_gender == 1
+	var ml := Engine.get_main_loop()
+	if ml is SceneTree:
+		var root := (ml as SceneTree).root
+		if root:
+			var gs := root.get_node_or_null("GameSettings")
+			if gs and "selected_character" in gs:
+				return int(gs.selected_character) == 1
+	return false
+
+## Construye el texto oficial exacto usando la dificultad inicial, nombre opcional y género seleccionado
+static func build_certificate_text(difficulty_name: String = "", recipient_name: String = "", override_gender: int = -1) -> String:
 	var diff := difficulty_name.strip_edges()
 	if diff.is_empty():
 		diff = resolve_initial_difficulty()
+	var is_fem := resolve_is_female(override_gender)
 	var clean_name := recipient_name.strip_edges()
 	var holder := ":%s" % (" " + clean_name if not clean_name.is_empty() else "_______")
+	if is_fem:
+		return "La alumna/Madre de familia/Maestra%s ha logrado completar el juego en modo: %s y es reconocida como una asesora de los valores en el Cobaem Cemsad Plantel 22 Enthavi. Felicidades por el logro!" % [holder, diff]
 	return "El alumno/Padre de familia/Maestro%s ha logrado completar el juego en modo: %s y es reconocido como un asesor de los valores en el Cobaem Cemsad Plantel 22 Enthavi. Felicidades por el logro!" % [holder, diff]
 
 ## Extrae la dificultad inicial desde GameSettings cuando está disponible en el árbol de escena
@@ -79,31 +95,24 @@ static func resolve_initial_difficulty() -> String:
 	return "Normal"
 
 ## Genera ambos archivos PDF (Tamaño Carta y Tamaño 5x7) y los guarda en almacenamiento / galería
-static func generate_certificates(difficulty_name: String = "", extra_dir: String = "", recipient_name: String = "") -> Dictionary:
+static func generate_certificates(difficulty_name: String = "", extra_dir: String = "", recipient_name: String = "", override_gender: int = -1) -> Dictionary:
 	var diff := difficulty_name.strip_edges()
 	if diff.is_empty():
 		diff = resolve_initial_difficulty()
 
-	var body_text := build_certificate_text(diff, recipient_name)
-	var bytes_carta := build_pdf_bytes(LETTER_WIDTH_PT, LETTER_HEIGHT_PT, diff, body_text, "Tamaño Carta (8.5 x 11 in)")
-	var bytes_5x7 := build_pdf_bytes(SIZE_5X7_WIDTH_PT, SIZE_5X7_HEIGHT_PT, diff, body_text, "Tamaño 5x7 (5 x 7 in)")
+	var body_text := build_certificate_text(diff, recipient_name, override_gender)
+	var bytes_carta := build_pdf_bytes(LETTER_WIDTH_PT, LETTER_HEIGHT_PT, diff, body_text, "Tamaño Carta (8.5 x 11 in)", recipient_name, override_gender)
+	var bytes_5x7 := build_pdf_bytes(SIZE_5X7_WIDTH_PT, SIZE_5X7_HEIGHT_PT, diff, body_text, "Tamaño 5x7 (5 x 7 in)", recipient_name, override_gender)
 
 	var candidate_dirs: Array[String] = []
 	if not extra_dir.strip_edges().is_empty():
 		candidate_dirs.append(extra_dir.strip_edges())
-
-	# Directorios de almacenamiento del sistema (Documentos, Imágenes/Galería, Descargas)
-	for sys_dir_type in [OS.SYSTEM_DIR_DOCUMENTS, OS.SYSTEM_DIR_PICTURES, OS.SYSTEM_DIR_DOWNLOADS]:
-		var base_dir := OS.get_system_dir(sys_dir_type)
-		if not base_dir.is_empty() and DirAccess.dir_exists_absolute(base_dir):
-			candidate_dirs.append(base_dir.path_join("COBAEM22_Certificados"))
-
-	# Almacenamiento interno persistente de Godot y carpeta local del proyecto si es escribible
-	candidate_dirs.append(ProjectSettings.globalize_path("user://certificados"))
-	if not OS.has_feature("web") and (OS.has_feature("editor") or DirAccess.dir_exists_absolute(ProjectSettings.globalize_path("res://"))):
-		var proj_cert_dir := ProjectSettings.globalize_path("res://certificados")
-		if DirAccess.dir_exists_absolute(ProjectSettings.globalize_path("res://")):
-			candidate_dirs.append(proj_cert_dir)
+	else:
+		# Directorio Documentos del sistema y respaldo en almacenamiento interno user://
+		var docs_dir := OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS)
+		if not docs_dir.is_empty() and DirAccess.dir_exists_absolute(docs_dir):
+			candidate_dirs.append(docs_dir.path_join("COBAEM22_Certificados"))
+		candidate_dirs.append(ProjectSettings.globalize_path("user://certificados"))
 
 	var saved_dirs: Array[String] = []
 	var carta_paths: Array[String] = []
@@ -154,7 +163,7 @@ static func _write_bytes(abs_path: String, bytes: PackedByteArray) -> bool:
 	return FileAccess.file_exists(abs_path)
 
 ## Construye los bytes completos de un documento PDF 1.4 de 1 página con tabla xref exacta e imágenes incrustadas
-static func build_pdf_bytes(width_pt: float, height_pt: float, difficulty_name: String, body_text: String, format_label: String) -> PackedByteArray:
+static func build_pdf_bytes(width_pt: float, height_pt: float, difficulty_name: String, body_text: String, format_label: String, recipient_name: String = "", override_gender: int = -1) -> PackedByteArray:
 	var left_logo := _get_logo_pdf_data(LOGO_TOP_LEFT_PATH, 240)
 	var right_logo := _get_logo_pdf_data(LOGO_TOP_RIGHT_PATH, 240)
 	var center_logo := _get_logo_pdf_data(LOGO_CENTER_PATH, 240)
@@ -164,7 +173,7 @@ static func build_pdf_bytes(width_pt: float, height_pt: float, difficulty_name: 
 		"ImCenter": Vector2(float(center_logo.get("width", 1)), float(center_logo.get("height", 1))),
 	}
 
-	var stream := _build_page_stream(width_pt, height_pt, difficulty_name, body_text, format_label, logo_dims)
+	var stream := _build_page_stream(width_pt, height_pt, difficulty_name, body_text, format_label, logo_dims, recipient_name, override_gender)
 	var subject_enc := _encode_pdf_winansi(body_text)
 
 	var obj1 := "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"
@@ -220,6 +229,14 @@ static func _get_logo_pdf_data(res_path: String, max_dim: int = 240) -> Dictiona
 	if img.is_compressed():
 		img.decompress()
 
+	var orig_w := img.get_width()
+	var orig_h := img.get_height()
+	if orig_w > max_dim or orig_h > max_dim:
+		var scale_f := float(max_dim) / float(maxi(orig_w, orig_h))
+		var nw := maxi(1, int(roundf(float(orig_w) * scale_f)))
+		var nh := maxi(1, int(roundf(float(orig_h) * scale_f)))
+		img.resize(nw, nh, Image.INTERPOLATE_LANCZOS)
+
 	if img.detect_alpha() != Image.ALPHA_NONE:
 		img.convert(Image.FORMAT_RGBA8)
 		var iw := img.get_width()
@@ -237,14 +254,6 @@ static func _get_logo_pdf_data(res_path: String, max_dim: int = 240) -> Dictiona
 
 	if img.get_format() != Image.FORMAT_RGB8:
 		img.convert(Image.FORMAT_RGB8)
-
-	var orig_w := img.get_width()
-	var orig_h := img.get_height()
-	if orig_w > max_dim or orig_h > max_dim:
-		var scale_f := float(max_dim) / float(maxi(orig_w, orig_h))
-		var nw := maxi(1, int(roundf(float(orig_w) * scale_f)))
-		var nh := maxi(1, int(roundf(float(orig_h) * scale_f)))
-		img.resize(nw, nh, Image.INTERPOLATE_LANCZOS)
 
 	var raw_rgb: PackedByteArray = img.get_data()
 	var compressed: PackedByteArray = raw_rgb.compress(FileAccess.COMPRESSION_DEFLATE)
@@ -270,7 +279,7 @@ static func _build_image_xobject(obj_num: int, data: Dictionary) -> String:
 	return "%d 0 obj\n<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter [/ASCIIHexDecode /FlateDecode] /Length %d >>\nstream\n%s\nendstream\nendobj\n" % [obj_num, w, h, hex_str.length(), hex_str]
 
 ## Construye el stream de dibujo vectorial, logos y tipografía ajustada sin desbordamientos
-static func _build_page_stream(w: float, h: float, difficulty_name: String, _body_text: String, format_label: String, logo_dims: Dictionary = {}) -> String:
+static func _build_page_stream(w: float, h: float, difficulty_name: String, body_text: String, format_label: String, logo_dims: Dictionary = {}, recipient_name: String = "", override_gender: int = -1) -> String:
 	var compact := w < 450.0
 	var margin := 20.0 if compact else 36.0
 	var inner_m := margin + (7.0 if compact else 10.0)
@@ -351,26 +360,46 @@ static func _build_page_stream(w: float, h: float, difficulty_name: String, _bod
 	lines.append("%.2f %.2f m %.2f %.2f l S" % [cx - sep_half, sep_y, cx + sep_half, sep_y])
 
 	# Cuadro central del cuerpo del certificado con autoajuste para evitar desbordamientos
+	var is_fem := resolve_is_female(override_gender) or body_text.begins_with("La alumna/")
+	var role_prefix := "La alumna/Madre de familia/Maestra" if is_fem else "El alumno/Padre de familia/Maestro"
 	var f_body := 9.4 if compact else 13.6
 	var line_step := 18.0 if compact else 26.0
-	var wrapped: Array[String] = [
-		"El alumno/Padre de familia/Maestro:_______",
-		"ha logrado completar el juego en modo: %s" % difficulty_name,
-		"y es reconocido como un asesor de los valores",
-		"en el Cobaem Cemsad Plantel 22 Enthavi.",
-		"Felicidades por el logro!"
-	]
+	var clean_name := recipient_name.strip_edges()
+	if clean_name.is_empty():
+		var marker := role_prefix + ":"
+		var marker_idx := body_text.find(marker)
+		var ha_idx := body_text.find(" ha logrado")
+		if marker_idx != -1 and ha_idx > marker_idx + marker.length():
+			var extracted := body_text.substr(marker_idx + marker.length(), ha_idx - (marker_idx + marker.length())).strip_edges()
+			if extracted != "_______":
+				clean_name = extracted
 
-	var body_start_y := sep_y - (26.0 if compact else 44.0)
+	var wrapped: Array[String] = []
+	if clean_name.is_empty():
+		wrapped.append("%s:_______" % role_prefix)
+	else:
+		for name_line in _wrap_text("%s: %s" % [role_prefix, clean_name], 44):
+			wrapped.append(name_line)
+	var extra_lines := maxi(0, wrapped.size() - 1)
+	wrapped.append("ha logrado completar el juego en modo: %s" % difficulty_name)
+	wrapped.append("y es reconocida como una asesora de los valores" if is_fem else "y es reconocido como un asesor de los valores")
+	wrapped.append("en el Cobaem Cemsad Plantel 22 Enthavi.")
+	wrapped.append("Felicidades por el logro!")
+
+	var body_start_y := sep_y - (24.0 if compact else 42.0)
+	if extra_lines > 0:
+		line_step = 16.0 if compact else 23.0
 	for i in range(wrapped.size()):
-		var font_choice := "F2" if (i == 0 or i == wrapped.size() - 1) else "F1"
+		var is_highlight := (i <= extra_lines) or (i == wrapped.size() - 1)
+		var font_choice := "F2" if is_highlight else "F1"
 		lines.append(_pdf_centered_text(cx, body_start_y - float(i) * line_step, wrapped[i], font_choice, f_body, "0.10 0.12 0.16", content_max_w))
 
 	# Recuadro destacado de dificultad con ancho adaptado al texto interno
 	var badge_y := body_start_y - float(wrapped.size()) * line_step - (14.0 if compact else 26.0)
 	var badge_w := icw * (0.90 if compact else 0.84)
 	var badge_h := 26.0 if compact else 36.0
-	var badge_text := "Nivel Completado: %s   |   Asesor de Valores CEMSaD 22" % difficulty_name
+	var advisor_lbl := "Asesora de Valores CEMSaD 22" if is_fem else "Asesor de Valores CEMSaD 22"
+	var badge_text := "Nivel Completado: %s   |   %s" % [difficulty_name, advisor_lbl]
 	lines.append("0.93 0.91 0.85 rg")
 	lines.append("%.2f %.2f %.2f %.2f re f" % [cx - badge_w * 0.5, badge_y - badge_h * 0.5, badge_w, badge_h])
 	lines.append("0.78 0.63 0.28 RG 1.0 w")

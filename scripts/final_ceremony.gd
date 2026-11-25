@@ -23,6 +23,7 @@ const SFX_BLIP_PATH := "res://assets/audio/ataque.wav"
 const THEME_PATH := "res://themes/pixel_theme.tres"
 
 const FINAL_EXEMPLARY_TEXT := "Felicidades, ahora eres un alumno ejemplar. Gracias por jugar!"
+const FINAL_EXEMPLARY_TEXT_F := "Felicidades, ahora eres una alumna ejemplar. Gracias por jugar!"
 
 const PODIUM_POS := Vector2(1144, 368)
 const COORDINATOR_POS := Vector2(1180, 360)
@@ -32,22 +33,29 @@ const SPEECH_CAMERA_POS := Vector2(940, 368)
 const HERO_WALK_SPEED := 165.0
 
 const COORDINATOR_SPEECH: Array[String] = [
-	"Estimados alumnos y docente del plantel CEMSaD 22 Enthavi: como su Coordinador, hoy nos reunimos en nuestra cancha con profunda alegría y gratitud.",
-	"Gracias a ustedes, nuestra escuela es hoy un lugar de paz, respeto y armonía entre todos los alumnos.",
-	"Donde antes el desgano, las burlas y el aislamiento apagaban los pasillos, ahora brillan la empatía, el compañerismo y la amistad sincera.",
-	"Cada compañero aquí presente recuerda que dialogar con respeto y tender la mano nos fortalece como verdadera comunidad escolar.",
-	"Por tu valentía y noble ejemplo al defender nuestros valores, pasa al podio para recibir el reconocimiento de todo el plantel."
+	"Estimados estudiantes y docentes del CEMSaD 22 Enthavi: como su Coordinador, hoy nos reunimos en nuestra cancha con el corazón lleno de gratitud.",
+	"Gracias a su valentía y apoyo mutuo, nuestra escuela es hoy un lugar de paz, respeto y armonía entre todos los alumnos.",
+	"Donde antes el desgano, los rumores o el miedo apagaban los pasillos, hoy brillan la amistad sincera, la escucha y el juego limpio.",
+	"Cada compañero aquí de pie recuerda que tender la mano a tiempo transforma una escuela entera en un hogar digno.",
+	"Por defender nuestros valores y unir al plantel como verdadero campeón solidario, pasa al podio para recibir el reconocimiento del CEMSaD 22."
+]
+const COORDINATOR_SPEECH_F: Array[String] = [
+	"Estimados estudiantes y docentes del CEMSaD 22 Enthavi: como su Coordinador, hoy nos reunimos en nuestra cancha con el corazón lleno de gratitud.",
+	"Gracias a su valentía y apoyo mutuo, nuestra escuela es hoy un lugar de paz, respeto y armonía entre todos los alumnos.",
+	"Donde antes el desgano, los rumores o el miedo apagaban los pasillos, hoy brillan la amistad sincera, la escucha y el juego limpio.",
+	"Cada compañero aquí de pie recuerda que tender la mano a tiempo transforma una escuela entera en un hogar digno.",
+	"Por defender nuestros valores y unir al plantel como verdadera campeona solidaria, pasa al podio para recibir el reconocimiento del CEMSaD 22."
 ]
 const DIRECTOR_SPEECH: Array[String] = COORDINATOR_SPEECH
 
 const RESCUED_STUDENTS_DATA: Array[Dictionary] = [
-	{ "name": "Mateo", "primary": "res://assets/characters/mateo_laboratorio/idle.png", "fallback": "res://assets/characters/mateo_laboratorio/idle.png", "pos": Vector2(700, 285), "cheer": "¡Gracias por ayudarnos!" },
-	{ "name": "María", "primary": "res://assets/characters/maria_cafeteria/idle.png", "fallback": "res://assets/characters/maria_cafeteria/idle.png", "pos": Vector2(780, 285), "cheer": "¡Paz en todo el plantel!" },
-	{ "name": "Valeria", "primary": "res://assets/characters/valeria_plaza/idle.png", "fallback": "res://assets/characters/valeria_plaza/idle.png", "pos": Vector2(860, 285), "cheer": "¡Orgullo CEMSaD 22!" },
-	{ "name": "Fernanda", "primary": "res://assets/characters/fernanda_biblioteca/idle.png", "fallback": "res://assets/characters/fernanda_biblioteca/idle.png", "pos": Vector2(940, 285), "cheer": "¡Bravo, campeón!" },
-	{ "name": "Diego", "primary": "res://assets/characters/diego_computo/idle.png", "fallback": "res://assets/characters/diego_computo/idle.png", "pos": Vector2(700, 452), "cheer": "¡Compañerismo siempre!" },
-	{ "name": "Sofía", "primary": "res://assets/characters/sofia_direccion/idle.png", "fallback": "res://assets/characters/sofia_direccion/idle.png", "pos": Vector2(780, 452), "cheer": "¡Gracias por unirnos!" },
-	{ "name": "Alejandro", "primary": "res://assets/characters/alejandro_cancha/idle.png", "fallback": "res://assets/characters/alejandro_cancha/idle.png", "pos": Vector2(860, 452), "cheer": "¡Juego limpio en la cancha!" },
+	{ "name": "Mateo", "primary": "res://assets/characters/mateo_laboratorio/idle.png", "fallback": "res://assets/characters/mateo_laboratorio/idle.png", "pos": Vector2(700, 285), "cheer": "¡Gracias por ayudarnos, amigo!", "cheer_f": "¡Gracias por ayudarnos, amiga!" },
+	{ "name": "María", "primary": "res://assets/characters/maria_cafeteria/idle.png", "fallback": "res://assets/characters/maria_cafeteria/idle.png", "pos": Vector2(780, 285), "cheer": "¡Paz en todo el plantel!", "cheer_f": "¡Paz en todo el plantel!" },
+	{ "name": "Valeria", "primary": "res://assets/characters/valeria_plaza/idle.png", "fallback": "res://assets/characters/valeria_plaza/idle.png", "pos": Vector2(860, 285), "cheer": "¡Orgullo CEMSaD 22!", "cheer_f": "¡Orgullo CEMSaD 22!" },
+	{ "name": "Fernanda", "primary": "res://assets/characters/fernanda_biblioteca/idle.png", "fallback": "res://assets/characters/fernanda_biblioteca/idle.png", "pos": Vector2(940, 285), "cheer": "¡Bravo, campeón!", "cheer_f": "¡Bravo, campeona!" },
+	{ "name": "Diego", "primary": "res://assets/characters/diego_computo/idle.png", "fallback": "res://assets/characters/diego_computo/idle.png", "pos": Vector2(700, 452), "cheer": "¡Compañerismo siempre!", "cheer_f": "¡Compañerismo siempre!" },
+	{ "name": "Sofía", "primary": "res://assets/characters/sofia_direccion/idle.png", "fallback": "res://assets/characters/sofia_direccion/idle.png", "pos": Vector2(780, 452), "cheer": "¡Gracias por unirnos, compañero!", "cheer_f": "¡Gracias por unirnos, compañera!" },
+	{ "name": "Alejandro", "primary": "res://assets/characters/alejandro_cancha/idle.png", "fallback": "res://assets/characters/alejandro_cancha/idle.png", "pos": Vector2(860, 452), "cheer": "¡Juego limpio en la cancha!", "cheer_f": "¡Juego limpio en la cancha!" },
 ]
 
 const TEACHER_DATA: Dictionary = {
@@ -55,7 +63,8 @@ const TEACHER_DATA: Dictionary = {
 	"primary": "res://assets/characters/maestro_desinteres_redeemed/idle.png",
 	"fallback": "res://assets/characters/maestro_desinteres_redeemed/idle.png",
 	"pos": Vector2(940, 452),
-	"cheer": "¡Digno ejemplo estudiantil!"
+	"cheer": "¡Digno ejemplo estudiantil!",
+	"cheer_f": "¡Digna representante estudiantil!"
 }
 
 const COORDINATOR_SPRITES: Dictionary = {
@@ -112,12 +121,14 @@ var _btn_next: Button = null
 var _btn_skip: Button = null
 
 var _final_overlay: ColorRect = null
+var _final_center: CenterContainer = null
 var _final_panel: PanelContainer = null
 var _final_message_label: Label = null
 var _final_stats_label: Label = null
 var _btn_play_again: Button = null
 var _btn_menu: Button = null
 var _recipient_name_input: LineEdit = null
+var _last_pointer_advance_ms: int = -1000
 
 var _himno_player: AudioStreamPlayer = null
 var _sfx_victory: AudioStreamPlayer = null
@@ -177,6 +188,8 @@ func _ready() -> void:
 	_start_speech_phase()
 
 func _exit_tree() -> void:
+	if is_inside_tree() and get_viewport() and get_viewport().size_changed.is_connected(_adjust_mobile_layout):
+		get_viewport().size_changed.disconnect(_adjust_mobile_layout)
 	if _medal_tween and _medal_tween.is_valid():
 		_medal_tween.kill()
 	if _himno_player:
@@ -228,6 +241,7 @@ func _build_world() -> void:
 	)
 	entities_layer.add_child(coordinator_node)
 
+	var is_fem_crowd := is_female_hero()
 	for s_info: Dictionary in RESCUED_STUDENTS_DATA:
 		var actor := _create_actor_node(
 			str(s_info["name"]),
@@ -238,7 +252,8 @@ func _build_world() -> void:
 			51.2,
 			Color(0.90, 0.95, 1.0)
 		)
-		actor.set_meta("cheer_text", str(s_info["cheer"]))
+		var s_cheer := str(s_info.get("cheer_f", s_info["cheer"])) if is_fem_crowd else str(s_info["cheer"])
+		actor.set_meta("cheer_text", s_cheer)
 		entities_layer.add_child(actor)
 		rescued_student_nodes.append(actor)
 		crowd_nodes.append(actor)
@@ -252,7 +267,8 @@ func _build_world() -> void:
 		53.0,
 		Color(0.84, 0.94, 0.82)
 	)
-	teacher_node.set_meta("cheer_text", str(TEACHER_DATA["cheer"]))
+	var t_cheer := str(TEACHER_DATA.get("cheer_f", TEACHER_DATA["cheer"])) if is_fem_crowd else str(TEACHER_DATA["cheer"])
+	teacher_node.set_meta("cheer_text", t_cheer)
 	entities_layer.add_child(teacher_node)
 	crowd_nodes.append(teacher_node)
 
@@ -370,12 +386,14 @@ func _create_actor_node(
 func _build_audio() -> void:
 	_himno_player = AudioStreamPlayer.new()
 	_himno_player.name = "HimnoPlayer"
-	_himno_player.volume_db = -6.0
+	_himno_player.bus = "Music"
+	_himno_player.volume_db = 0.0
 	_himno_player.finished.connect(_on_local_himno_finished)
 	add_child(_himno_player)
 
 	_sfx_victory = AudioStreamPlayer.new()
 	_sfx_victory.name = "SFXVictory"
+	_sfx_victory.bus = "SFX"
 	if ResourceLoader.exists(SFX_VICTORY_PATH):
 		_sfx_victory.stream = load(SFX_VICTORY_PATH)
 	_sfx_victory.volume_db = -4.0
@@ -383,6 +401,7 @@ func _build_audio() -> void:
 
 	_sfx_blip = AudioStreamPlayer.new()
 	_sfx_blip.name = "SFXBlip"
+	_sfx_blip.bus = "SFX"
 	if ResourceLoader.exists(SFX_BLIP_PATH):
 		_sfx_blip.stream = load(SFX_BLIP_PATH)
 	_sfx_blip.volume_db = -14.0
@@ -467,14 +486,14 @@ func _build_ui() -> void:
 
 	_btn_skip = Button.new()
 	_btn_skip.text = "Saltar discurso"
-	_btn_skip.custom_minimum_size = Vector2(124, 30)
+	_btn_skip.custom_minimum_size = Vector2(124, 38)
 	_btn_skip.pressed.connect(_start_walking_phase)
 	UiJuice.attach_button(_btn_skip, _sfx_blip)
 	btn_row.add_child(_btn_skip)
 
 	_btn_next = Button.new()
-	_btn_next.text = "Continuar (Espacio)"
-	_btn_next.custom_minimum_size = Vector2(158, 30)
+	_btn_next.text = "Continuar" if MobileControls.is_touch_device() else "Continuar (Espacio)"
+	_btn_next.custom_minimum_size = Vector2(158, 38)
 	_btn_next.pressed.connect(_advance_speech)
 	UiJuice.attach_button(_btn_next, _sfx_blip)
 	btn_row.add_child(_btn_next)
@@ -490,6 +509,7 @@ func _build_ui() -> void:
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_final_overlay.add_child(center)
+	_final_center = center
 
 	_final_panel = PanelContainer.new()
 	_final_panel.name = "FinalPanel"
@@ -517,7 +537,7 @@ func _build_ui() -> void:
 
 	_final_message_label = Label.new()
 	_final_message_label.name = "FinalMessageLabel"
-	_final_message_label.text = FINAL_EXEMPLARY_TEXT
+	_final_message_label.text = get_final_exemplary_text()
 	_final_message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_final_message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_final_message_label.custom_minimum_size = Vector2(460, 0)
@@ -540,7 +560,7 @@ func _build_ui() -> void:
 	_cert_status_label.custom_minimum_size = Vector2(460, 0)
 	_cert_status_label.add_theme_font_size_override("font_size", 11)
 	_cert_status_label.add_theme_color_override("font_color", Color(0.70, 0.92, 0.78))
-	_cert_status_label.text = "Generando reconocimientos PDF (Tamaño Carta y 5x7)..."
+	_cert_status_label.text = "Escribe tu nombre (opcional) y pulsa Guardar para generar tus PDFs (Carta y 5x7)."
 	f_vbox.add_child(_cert_status_label)
 
 	_recipient_name_input = LineEdit.new()
@@ -554,7 +574,7 @@ func _build_ui() -> void:
 	_btn_export_pdf = Button.new()
 	_btn_export_pdf.name = "BtnExportCertPdf"
 	_btn_export_pdf.text = "Guardar Certificado PDF (Carta y 5x7)"
-	_btn_export_pdf.custom_minimum_size = Vector2(280, 34)
+	_btn_export_pdf.custom_minimum_size = Vector2(280, 38)
 	_btn_export_pdf.pressed.connect(_generate_completion_pdfs)
 	UiJuice.attach_button(_btn_export_pdf, _sfx_blip)
 	f_vbox.add_child(_btn_export_pdf)
@@ -567,18 +587,65 @@ func _build_ui() -> void:
 	_btn_play_again = Button.new()
 	_btn_play_again.name = "BtnPlayAgainCeremony"
 	_btn_play_again.text = "Jugar de nuevo"
-	_btn_play_again.custom_minimum_size = Vector2(148, 36)
+	_btn_play_again.custom_minimum_size = Vector2(138, 38)
 	_btn_play_again.pressed.connect(_on_restart_pressed)
 	UiJuice.attach_button(_btn_play_again, _sfx_blip)
 	f_btns.add_child(_btn_play_again)
 
+	var btn_credits_cer := Button.new()
+	btn_credits_cer.name = "BtnCreditsCeremony"
+	btn_credits_cer.text = "Créditos (3:4)"
+	btn_credits_cer.custom_minimum_size = Vector2(130, 38)
+	btn_credits_cer.pressed.connect(_open_credits_overlay)
+	UiJuice.attach_button(btn_credits_cer, _sfx_blip)
+	f_btns.add_child(btn_credits_cer)
+
 	_btn_menu = Button.new()
 	_btn_menu.name = "BtnMenuCeremony"
 	_btn_menu.text = "Menú principal"
-	_btn_menu.custom_minimum_size = Vector2(148, 36)
+	_btn_menu.custom_minimum_size = Vector2(138, 38)
 	_btn_menu.pressed.connect(_on_menu_pressed)
 	UiJuice.attach_button(_btn_menu, _sfx_blip)
 	f_btns.add_child(_btn_menu)
+
+	if is_inside_tree() and get_viewport():
+		if not get_viewport().size_changed.is_connected(_adjust_mobile_layout):
+			get_viewport().size_changed.connect(_adjust_mobile_layout)
+	_adjust_mobile_layout()
+
+func _open_credits_overlay() -> void:
+	var cs_res := load("res://scenes/credits_screen.tscn") as PackedScene
+	if cs_res == null:
+		return
+	var cs := cs_res.instantiate()
+	var layer := CanvasLayer.new()
+	layer.layer = 125
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	layer.add_child(cs)
+	cs.closed.connect(func():
+		layer.queue_free()
+		_start_himno()
+	)
+	add_child(layer)
+
+func _adjust_mobile_layout() -> void:
+	if not is_inside_tree() or get_viewport() == null:
+		return
+	var vp_size := get_viewport().get_visible_rect().size
+	var insets := MobileControls.get_safe_insets_for_viewport(get_viewport(), 10.0)
+	var avail_w := maxf(280.0, vp_size.x - insets.position.x - insets.size.x)
+	var avail_h := maxf(220.0, vp_size.y - insets.position.y - insets.size.y)
+
+	if _speech_panel:
+		_speech_panel.offset_left = maxf(24.0, insets.position.x)
+		_speech_panel.offset_right = -maxf(24.0, insets.size.x)
+		_speech_panel.offset_bottom = -maxf(12.0, insets.size.y)
+		_speech_panel.offset_top = -maxf(12.0, insets.size.y) - 144.0
+
+	if _final_panel:
+		var safe_s := clampf(minf(avail_w / 540.0, avail_h / 410.0), 0.62, 1.0)
+		_final_panel.pivot_offset = _final_panel.size * 0.5
+		_final_panel.scale = Vector2(safe_s, safe_s)
 
 func _make_slate_panel_style(bg: Color, border: Color, radius: int) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
@@ -641,25 +708,51 @@ func _start_speech_phase() -> void:
 		camera.position = SPEECH_CAMERA_POS
 	_show_speech_node(0)
 
+func is_female_hero() -> bool:
+	var gs := _get_game_settings()
+	if gs != null and "selected_character" in gs:
+		return int(gs.selected_character) == 1
+	var ml := Engine.get_main_loop()
+	if ml is SceneTree and (ml as SceneTree).root:
+		var root_gs := (ml as SceneTree).root.get_node_or_null("GameSettings")
+		if root_gs != null and "selected_character" in root_gs:
+			return int(root_gs.selected_character) == 1
+	return false
+
+func get_final_exemplary_text() -> String:
+	return FINAL_EXEMPLARY_TEXT_F if is_female_hero() else FINAL_EXEMPLARY_TEXT
+
+func get_active_coordinator_speech() -> Array[String]:
+	return COORDINATOR_SPEECH_F if is_female_hero() else COORDINATOR_SPEECH
+
 func _show_speech_node(idx: int) -> void:
 	_speech_index = idx
-	if _speech_index >= COORDINATOR_SPEECH.size():
+	var speech_lines := get_active_coordinator_speech()
+	if _speech_index >= speech_lines.size():
 		_start_walking_phase()
 		return
-	var line := COORDINATOR_SPEECH[_speech_index]
+	var line := speech_lines[_speech_index]
 	_visible_chars = 0.0
 	_is_typing = true
 	if _speech_text_label:
 		_speech_text_label.text = line
 		_speech_text_label.visible_characters = 0
 	if _speech_progress_label:
-		_speech_progress_label.text = "%d / %d" % [_speech_index + 1, COORDINATOR_SPEECH.size()]
+		_speech_progress_label.text = "%d / %d" % [_speech_index + 1, speech_lines.size()]
 	if _btn_next:
-		_btn_next.text = "Ir al podio (Espacio)" if _speech_index == COORDINATOR_SPEECH.size() - 1 else "Continuar (Espacio)"
+		if MobileControls.is_touch_device():
+			_btn_next.text = "Ir al podio" if _speech_index == speech_lines.size() - 1 else "Continuar"
+		else:
+			_btn_next.text = "Ir al podio (Espacio)" if _speech_index == speech_lines.size() - 1 else "Continuar (Espacio)"
 
-func _advance_speech() -> void:
+func _advance_speech(from_pointer: bool = false) -> void:
 	if current_phase != Phase.SPEECH:
 		return
+	if from_pointer:
+		var now_ms := Time.get_ticks_msec()
+		if (now_ms - _last_pointer_advance_ms) < 120:
+			return
+		_last_pointer_advance_ms = now_ms
 	if _is_typing and _speech_text_label:
 		_is_typing = false
 		_speech_text_label.visible_characters = -1
@@ -681,7 +774,8 @@ func _start_walking_phase() -> void:
 	_cheer_idx = 0
 	var fx := _get_fx()
 	if fx and coordinator_node:
-		fx.floating_text(entities_layer, coordinator_node.position + Vector2(0, -64), "¡Un aplauso para nuestro representante!", Color(0.88, 0.94, 1.0), 12)
+		var rep_applause := "¡Un aplauso para nuestra representante!" if is_female_hero() else "¡Un aplauso para nuestro representante!"
+		fx.floating_text(entities_layer, coordinator_node.position + Vector2(0, -64), rep_applause, Color(0.88, 0.94, 1.0), 12)
 
 func _start_medal_phase() -> void:
 	if current_phase == Phase.MEDAL or current_phase == Phase.FINAL_MESSAGE:
@@ -719,8 +813,11 @@ func _show_final_message_phase() -> void:
 	if current_phase == Phase.FINAL_MESSAGE:
 		return
 	current_phase = Phase.FINAL_MESSAGE
+	if _final_message_label:
+		_final_message_label.text = get_final_exemplary_text()
 	_refresh_stats_label()
-	_generate_completion_pdfs()
+	if _cert_status_label:
+		_cert_status_label.text = "Escribe tu nombre (opcional) y pulsa Guardar para generar tus PDFs (Carta y 5x7)."
 	if _final_overlay:
 		_final_overlay.visible = true
 		_final_overlay.modulate.a = 0.0
@@ -753,7 +850,8 @@ func _process(delta: float) -> void:
 	match current_phase:
 		Phase.SPEECH:
 			if _is_typing and _speech_text_label:
-				var line := COORDINATOR_SPEECH[_speech_index]
+				var speech_lines := get_active_coordinator_speech()
+				var line := speech_lines[_speech_index]
 				_visible_chars += _chars_per_second * delta
 				var count := int(_visible_chars)
 				if count != _speech_text_label.visible_characters:
@@ -797,7 +895,12 @@ func _process(delta: float) -> void:
 				_show_final_message_phase()
 
 		Phase.FINAL_MESSAGE:
-			pass
+			if _final_center != null and _recipient_name_input != null:
+				var kb_h := DisplayServer.virtual_keyboard_get_height() if DisplayServer.has_method("virtual_keyboard_get_height") else 0
+				if _recipient_name_input.has_focus() and kb_h > 0:
+					_final_center.position.y = -minf(120.0, float(kb_h) * 0.35)
+				else:
+					_final_center.position.y = 0.0
 
 func _animate_crowd() -> void:
 	_update_coordinator_sprite()
@@ -851,14 +954,17 @@ func _update_coordinator_sprite() -> void:
 func _on_speech_panel_gui_input(event: InputEvent) -> void:
 	if current_phase != Phase.SPEECH:
 		return
-	if (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed) or (event is InputEventScreenTouch and event.pressed):
-		_advance_speech()
+	var is_real_mouse: bool = event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION
+	var is_real_touch: bool = event is InputEventScreenTouch and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION
+	if is_real_mouse or is_real_touch:
+		_advance_speech(true)
 		_speech_panel.accept_event()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if current_phase != Phase.SPEECH:
 		return
 	var accept_pressed := false
+	var from_pointer := false
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode in [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER]:
 			accept_pressed = true
@@ -873,11 +979,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_start_walking_phase()
 			get_viewport().set_input_as_handled()
 			return
-	elif (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+	elif (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION) or (event is InputEventScreenTouch and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION):
 		accept_pressed = true
+		from_pointer = true
 
 	if accept_pressed:
-		_advance_speech()
+		_advance_speech(from_pointer)
 		if is_inside_tree() and get_viewport():
 			get_viewport().set_input_as_handled()
 
@@ -933,13 +1040,13 @@ func _load_newest_texture(primary_path: String, fallback_path: String) -> Textur
 	return tex
 
 func _load_texture_direct(path: String) -> Texture2D:
+	if ResourceLoader.exists(path):
+		var res := load(path)
+		if res is Texture2D:
+			return res
 	var global_p := ProjectSettings.globalize_path(path)
 	if FileAccess.file_exists(global_p):
 		var img := Image.load_from_file(global_p)
 		if img and not img.is_empty():
 			return ImageTexture.create_from_image(img)
-	if ResourceLoader.exists(path):
-		var res := load(path)
-		if res is Texture2D:
-			return res
 	return null

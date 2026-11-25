@@ -21,6 +21,9 @@ var enemies_container: Node2D = null
 
 var _fog_alpha: float = 0.0
 var _anim_time: float = 0.0
+var _needs_restore: bool = false
+var _active_light_positions: Array[Vector2] = []
+var _active_light_radii: Array[float] = []
 
 var _color_rect: ColorRect
 var _shader_mat: ShaderMaterial
@@ -36,6 +39,7 @@ func _ready() -> void:
 	_color_rect = ColorRect.new()
 	_color_rect.material = _shader_mat
 	_color_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_color_rect.show_behind_parent = true
 	add_child(_color_rect)
 	_update_rect_geometry()
 
@@ -65,7 +69,7 @@ func set_desperation_darkness(enabled: bool) -> void:
 func _update_rect_geometry() -> void:
 	if not _color_rect:
 		return
-	var margin := 300.0
+	var margin := 80.0
 	_color_rect.position = Vector2(-margin, -margin)
 	_color_rect.size = map_size + Vector2(margin * 2.0, margin * 2.0)
 	if _shader_mat:
@@ -79,13 +83,16 @@ func _process(delta: float) -> void:
 
 	if _fog_alpha > 0.001:
 		visible = true
+		_needs_restore = true
 		_update_shader_uniforms()
 		_update_enemies_visibility()
 		if boss_node != null and is_instance_valid(boss_node):
 			queue_redraw()
 	else:
 		visible = false
-		_restore_all_enemies_visibility()
+		if _needs_restore:
+			_needs_restore = false
+			_restore_all_enemies_visibility()
 
 func _update_shader_uniforms() -> void:
 	if not _shader_mat:
@@ -126,18 +133,20 @@ func _update_enemies_visibility() -> void:
 	if container == null or not is_instance_valid(container):
 		return
 
-	var active_lights: Array[Dictionary] = []
+	_active_light_positions.clear()
+	_active_light_radii.clear()
 	for i in range(light_sources.size()):
 		var node = light_sources[i]
-		if node != null and is_instance_valid(node):
+		if node != null and is_instance_valid(node) and node is Node2D:
 			var r: float = light_radius if i == 0 else 80.0
-			active_lights.append({ "pos": (node as Node2D).global_position, "radius": r })
+			_active_light_positions.append((node as Node2D).global_position)
+			_active_light_radii.append(r)
 
-	if active_lights.is_empty():
+	if _active_light_positions.is_empty():
 		return
 
 	for child in container.get_children():
-		if not (child is Node2D):
+		if not (child is Node2D) or not child.has_method("hit_by_attack"):
 			continue
 
 		if not is_fog_active or _fog_alpha <= 0.01:
@@ -146,9 +155,9 @@ func _update_enemies_visibility() -> void:
 
 		var best_vis: float = 0.0
 		var e_pos: Vector2 = (child as Node2D).global_position
-		for l_data in active_lights:
-			var l_pos: Vector2 = l_data["pos"]
-			var l_rad: float = l_data["radius"]
+		for li in range(_active_light_positions.size()):
+			var l_pos: Vector2 = _active_light_positions[li]
+			var l_rad: float = _active_light_radii[li]
 			var inner: float = maxf(0.0, l_rad - 22.0)
 			var outer: float = l_rad + 18.0
 			var d_sq: float = e_pos.distance_squared_to(l_pos)

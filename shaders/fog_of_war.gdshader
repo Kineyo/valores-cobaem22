@@ -29,15 +29,19 @@ void fragment() {
 	// 1. Coordenadas de mundo 2D exactas dentro del escenario
 	vec2 world_pos = rect_pos + UV * rect_size;
 
-	// 2. Distancia euclidiana hacia cada fuente de virtud (héroe y alumnos)
+	// 2. Distancia euclidiana hacia cada fuente de virtud activa (omitiendo luces fuera de escena)
 	float d1 = distance(world_pos, light_pos_1);
-	float d2 = distance(world_pos, light_pos_2);
-	float d3 = distance(world_pos, light_pos_3);
-
-	// Gradiente de luz natural con caída suave (smoothstep sin cortes duros)
 	float mask1 = smoothstep(light_radius_1 * 0.48, light_radius_1 * 1.05, d1);
-	float mask2 = smoothstep(light_radius_2 * 0.45, light_radius_2 * 1.00, d2);
-	float mask3 = smoothstep(light_radius_3 * 0.45, light_radius_3 * 1.00, d3);
+	float mask2 = 1.0;
+	if (light_pos_2.x > -1500.0) {
+		float d2 = distance(world_pos, light_pos_2);
+		mask2 = smoothstep(light_radius_2 * 0.45, light_radius_2 * 1.00, d2);
+	}
+	float mask3 = 1.0;
+	if (light_pos_3.x > -1500.0) {
+		float d3 = distance(world_pos, light_pos_3);
+		mask3 = smoothstep(light_radius_3 * 0.45, light_radius_3 * 1.00, d3);
+	}
 
 	float base_mask = min(mask1, min(mask2, mask3));
 
@@ -55,10 +59,11 @@ void fragment() {
 	// 4. Mezcla de color: niebla profunda de alta densidad con nubes de vapor flotante
 	vec3 mist_rgb = mix(fog_color.rgb, mist_color.rgb, mist_cloud * 0.52);
 
-	// 5. Halo cálido de virtud en el borde de disipación de la luz
-	float rim1 = smoothstep(light_radius_1 * 0.35, light_radius_1 * 0.72, d1) * (1.0 - smoothstep(light_radius_1 * 0.72, light_radius_1 * 1.15, d1));
-	float rim2 = smoothstep(light_radius_2 * 0.30, light_radius_2 * 0.68, d2) * (1.0 - smoothstep(light_radius_2 * 0.68, light_radius_2 * 1.10, d2));
-	float rim_glow = max(rim1, rim2);
+	// 5. Halo cálido de virtud reutilizando máscaras existentes (sin smoothstep redundantes)
+	float rim1 = 4.0 * mask1 * (1.0 - mask1);
+	float rim2 = 4.0 * mask2 * (1.0 - mask2);
+	float rim3 = 4.0 * mask3 * (1.0 - mask3);
+	float rim_glow = max(rim1, max(rim2, rim3));
 
 	vec3 final_rgb = mix(mist_rgb, rim_glow_color.rgb, rim_glow * rim_glow_color.a);
 	float final_a = final_mask * fog_alpha * fog_color.a;

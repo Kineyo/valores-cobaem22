@@ -8,9 +8,13 @@ const FinalCeremonyScript := preload("res://scripts/final_ceremony.gd")
 const CertificateGeneratorScript := preload("res://scripts/certificate_generator.gd")
 
 var _post_init_tests_done: bool = false
+var _settings_existed: bool = false
+var _settings_backup: PackedByteArray = PackedByteArray()
 
 func _init() -> void:
 	print("--- INICIANDO TEST AUTOMÁTICO DE CAMPEONES DE LOS VALORES (CEMSaD 22 ENTHAVI) ---")
+	_settings_existed = FileAccess.file_exists("user://settings.cfg")
+	_settings_backup = FileAccess.get_file_as_bytes("user://settings.cfg") if _settings_existed else PackedByteArray()
 
 	# Inicializar singletons requeridos si se ejecuta en modo standalone (-s)
 	if root.get_node_or_null("GameSettings") == null:
@@ -619,7 +623,6 @@ func _init() -> void:
 		"res://assets/characters/alejandro_cancha/idle.png",
 		"res://assets/characters/maestro_desinteres/idle.png",
 		"res://assets/characters/maestro_desinteres_redeemed/idle.png",
-		"res://assets/coordinador.png",
 		"res://assets/characters/coordinador/normal_frente.png",
 		"res://assets/characters/coordinador/hablando_frente.png",
 		"res://assets/characters/coordinador/normal_izquierda.png",
@@ -779,16 +782,17 @@ func _process(_delta: float) -> bool:
 	first_clone.hit_by_attack(Vector2.ZERO)
 	assert(titanor.current_hp == hp_before_clone_hit, "Golpear un clon falso NO debe restar vida al Titanor real")
 
-	# 16.3 Fase de 10 HP: Neblina + oscurecimiento + pausa 'Aun me queda un ataque' + max 5 enemigos + Danmaku 5s/7s + cubrir 3s
+	# 16.3 Fase de Desesperación al 18%: Neblina + oscurecimiento + pausa 'Aun me queda un ataque' + max 5 enemigos + Danmaku 5s/7s + cubrir 3s
 	titanor._is_spell_transition = false
-	titanor.current_hp = 11
+	var desp_hp := maxi(2, int(floor(float(titanor.max_hp) * Boss.TITANOR_DESPERATION_RATIO)))
+	titanor.current_hp = desp_hp + 1
 	titanor.hit_by_attack(Vector2.ZERO, 1)
-	assert(titanor.current_hp == 10, "Al bajar a 10 HP debe quedar en 10 para la fase de desesperación")
-	assert(titanor._ten_hp_triggered == true, "Debe activarse la fase de 10 HP")
-	assert(titanor.last_special_message == "Aun me queda un ataque", "Debe mostrar el mensaje exacto a 10 HP")
-	assert(titanor.desperation_fog_active == true, "Debe activar neblina a 10 HP")
-	assert(audit_lvl.fog_overlay != null and audit_lvl.fog_overlay.is_fog_active == true, "FogOverlay del nivel debe activarse a 10 HP")
-	assert(audit_lvl.fog_overlay.desperation_darkness == true, "Debe activarse el oscurecimiento total a 10 HP")
+	assert(titanor.current_hp == desp_hp, "Al bajar a 18%% debe quedar en %d HP para la fase de desesperación" % desp_hp)
+	assert(titanor._ten_hp_triggered == true, "Debe activarse la fase de desesperación (18%%)")
+	assert(titanor.last_special_message == "Aun me queda un ataque", "Debe mostrar el mensaje exacto de desesperación")
+	assert(titanor.desperation_fog_active == true, "Debe activar neblina al 18%%")
+	assert(audit_lvl.fog_overlay != null and audit_lvl.fog_overlay.is_fog_active == true, "FogOverlay del nivel debe activarse al 18%%")
+	assert(audit_lvl.fog_overlay.desperation_darkness == true, "Debe activarse el oscurecimiento total al 18%%")
 	assert(titanor.summoned_enemies_count <= 5 and titanor.get_summoned_enemy_count() <= 5, "Solo debe invocar máximo 5 enemigos")
 	titanor._summon_desperation_enemies(8)
 	assert(titanor.get_summoned_enemy_count() <= 5, "No debe superar el tope estricto de 5 enemigos invocados")
@@ -803,19 +807,29 @@ func _process(_delta: float) -> bool:
 		titanor._physics_process(0.5)
 	assert(titanor._is_covered_and_vanished == false and titanor.modulate.a > 0.9, "Tras 3 segundos debe reaparecer")
 
-	# 16.4 Fase de 5 HP: 'No dejare que liberes tan facil a la escuela' + transformación + ataque no violento de alumnos rescatados
-	titanor.current_hp = 6
+	# 16.4 Fase Clímax al 8% -> pausa a 1 HP -> resquebrajamiento -> clímax Undertale -> redención pacífica
+	var rescue_hp := maxi(2, int(floor(float(titanor.max_hp) * Boss.TITANOR_RESCUE_RATIO)))
+	titanor.current_hp = rescue_hp + 1
 	titanor.hit_by_attack(Vector2.ZERO, 1)
-	assert(titanor.current_hp == 5, "Al bajar a 5 HP debe activar el clímax final")
-	assert(titanor._five_hp_triggered == true and titanor._is_transforming == true, "Debe iniciar animación de transformación a 5 HP")
-	assert(titanor.last_special_message == "No dejare que liberes tan facil a la escuela", "Debe mostrar el mensaje exacto de 5 HP")
+	assert(titanor.current_hp == rescue_hp, "Al bajar a 8%% debe activar el clímax estudiantil en %d HP" % rescue_hp)
+	assert(titanor._five_hp_triggered == true and titanor._is_transforming == true, "Debe iniciar animación de transformación al 8%")
+	assert(titanor.last_special_message == "No dejare que liberes tan facil a la escuela", "Debe mostrar el mensaje exacto de clímax")
 
-	for _climax in range(32):
-		if titanor.current_state == Boss.State.REDEEMED:
+	var ut_signal_box := [false]
+	titanor.undertale_climax_requested.connect(func(_b): ut_signal_box[0] = true)
+	for _climax in range(35):
+		if titanor.is_shattering_at_one_hp:
 			break
 		titanor._physics_process(0.1)
+	assert(titanor.current_hp == 1 and titanor.is_shattering_at_one_hp == true, "Tras la ofensiva estudiantil Titanor debe detenerse en 1 HP resquebrajándose")
 	assert(titanor.rescued_attack_students.size() == 7, "Deben aparecer los 7 alumnos rescatados alrededor de Titanor")
-	assert(titanor.current_state == Boss.State.REDEEMED and titanor.current_hp == 0, "Los alumnos deben derrotar/redimir pacíficamente a Titanor")
+	for _shatter in range(25):
+		if ut_signal_box[0]:
+			break
+		titanor._physics_process(0.1)
+	assert(ut_signal_box[0] == true and titanor._undertale_climax_emitted == true, "Tras fracturarse en 1 HP debe solicitar el clímax Undertale")
+	titanor.finish_undertale_climax()
+	assert(titanor.current_state == Boss.State.REDEEMED and titanor.current_hp == 0, "Tras el clímax Undertale Titanor debe quedar redimido")
 	assert(titanor.desperation_fog_active == false, "La niebla de Titanor debe desaparecer tras su derrota")
 	assert(audit_lvl.fog_overlay.is_fog_active == false and audit_lvl.background.modulate == Color.WHITE, "La niebla y oscuridad del nivel deben disiparse")
 	assert(audit_lvl.scenario_decor != null, "ScenarioDecor debe estar instanciado en el nivel")
@@ -995,6 +1009,624 @@ func _process(_delta: float) -> bool:
 	var named_cert_text := CertificateGeneratorScript.build_certificate_text("Normal", "Juan Pérez")
 	assert("El alumno/Padre de familia/Maestro: Juan Pérez" in named_cert_text, "Nombre provisto debe insertarse en el certificado")
 	print("  Pulso de Empatía, Pickups, Ajustes de Audio/Selector/Récords y Certificado personalizado verificados.")
+
+	# 18. Regresiones P0-P2, 28 Poses de Aliados, AllyBrain, Inventario 1-Slot y Ventaja Esperanza (15s)
+	var AllyBrainClass := preload("res://scripts/ally_brain.gd")
+
+	# 18.1 Daño único al jefe (mask=2 y sin area_entered duplicado)
+	var b_lvl: Level = level_scene_ref.instantiate()
+	root.add_child(b_lvl)
+	b_lvl.setup_level(LevelManager.get_all_levels()[0])
+	b_lvl._spawn_boss()
+	var b_inst := b_lvl.boss as Boss
+	assert(b_inst != null and b_inst._hitbox.collision_mask == 2, "Hitbox del jefe debe detectar solo jugador (mask 2) para evitar doble daño con Projectile")
+	b_inst.current_state = Boss.State.IDLE
+	var b_hp0 := b_inst.current_hp
+	b_inst.hit_by_attack(Vector2.ZERO, 1)
+	assert(b_inst.current_hp == b_hp0 - 1, "Un impacto debe restar exactamente 1 HP al jefe")
+	root.remove_child(b_lvl)
+	b_lvl.free()
+
+	# 18.2 PDF personalizado renderiza nombre visible en stream y solo escribe en extra_dir
+	var tmp_cert_dir2 := ProjectSettings.globalize_path("user://tmp_cert_test2")
+	DirAccess.make_dir_recursive_absolute(tmp_cert_dir2)
+	var gen_res2: Dictionary = CertificateGeneratorScript.generate_certificates("Normal", tmp_cert_dir2, "Maria Lopez")
+	assert(gen_res2.get("success", false) == true, "Debe generar Carta y 5x7 en extra_dir")
+	var carta_path2 := tmp_cert_dir2.path_join(CertificateGeneratorScript.FILENAME_CARTA)
+	var pdf57_path2 := tmp_cert_dir2.path_join(CertificateGeneratorScript.FILENAME_5X7)
+	assert(FileAccess.file_exists(carta_path2) and FileAccess.file_exists(pdf57_path2), "Ambos PDFs deben crearse dentro de extra_dir")
+	var cert_ascii2 := FileAccess.get_file_as_string(carta_path2)
+	assert("Maria Lopez" in cert_ascii2, "El PDF generado debe incluir el nombre del destinatario en el contenido")
+	DirAccess.remove_absolute(carta_path2)
+	DirAccess.remove_absolute(pdf57_path2)
+	DirAccess.remove_absolute(tmp_cert_dir2)
+
+	# 18.3 Retratos procedurales de jefes/narrador no secuestrados por guardian.png
+	var sc_inst = load("res://scenes/story_cutscene.tscn").instantiate()
+	assert(sc_inst._get_portrait_texture("boss_titanor") == null, "Jefes deben usar retrato procedural en lugar de guardian.png")
+	assert(sc_inst._get_portrait_texture("narrator") == null, "Narrador debe usar retrato procedural en lugar de guardian.png")
+	assert(sc_inst._get_portrait_texture("player_neutral") != null, "Guardián debe cargar textura de retrato")
+	sc_inst.free()
+
+	# 18.4 Projectile.set_direction() y ataque Salón 5
+	var p_dir_test := proj_scene.instantiate() as Projectile
+	p_dir_test.set_direction(Vector2(1.0, -1.0))
+	assert(p_dir_test.direction.is_equal_approx(Vector2(1.0, -1.0).normalized()), "set_direction debe normalizar vector")
+	assert(is_equal_approx(p_dir_test.rotation, p_dir_test.direction.angle()), "set_direction debe actualizar rotation")
+	p_dir_test.free()
+
+	var s5_lvl: Level = level_scene_ref.instantiate()
+	root.add_child(s5_lvl)
+	s5_lvl.setup_level(LevelManager.get_classroom_levels()[4])
+	s5_lvl._spawn_boss()
+	s5_lvl.boss.current_state = Boss.State.IDLE
+	s5_lvl.boss._attack_classroom_digital_glitch()
+	assert(root.get_tree().get_nodes_in_group("enemy_projectiles").size() > 0 or s5_lvl.get_child_count() > 0, "Ataque de Salón 5 debe instanciar proyectiles")
+	root.remove_child(s5_lvl)
+	s5_lvl.free()
+
+	# 18.5 Normalización de acentos en Student
+	assert(Student.normalize_name("María") == "maria" and Student.normalize_name("Sofía") == "sofia", "normalize_name debe quitar acentos")
+	for acc_name: String in ["María", "Sofía"]:
+		var acc_st := Student.new()
+		acc_st.student_name = acc_name
+		acc_st.can_assist_in_combat = false
+		root.add_child(acc_st)
+		assert(acc_st.sprite != null and acc_st.sprite.texture != null, "%s debe cargar su sprite oficial" % acc_name)
+		root.remove_child(acc_st)
+		acc_st.free()
+
+	# 18.6 Integridad de los 28 PNGs nuevos (512x512 RGBA8 con borde transparente)
+	var pose_folders := ["mateo_laboratorio", "maria_cafeteria", "valeria_plaza", "fernanda_biblioteca", "diego_computo", "sofia_direccion", "alejandro_cancha"]
+	var pose_names := ["walk_right.png", "walk_left.png", "back.png", "attack.png"]
+	var checked_poses := 0
+	for pf in pose_folders:
+		for pn in pose_names:
+			var full_p := ProjectSettings.globalize_path("res://assets/characters/%s/%s" % [pf, pn])
+			assert(FileAccess.file_exists(full_p), "Falta sprite de pose: " + full_p)
+			var p_img := Image.load_from_file(full_p)
+			assert(p_img != null and p_img.get_width() == 512 and p_img.get_height() == 512, "Pose %s/%s debe estar estandarizada exactamente a 512x512" % [pf, pn])
+			assert(p_img.get_pixel(0, 0).a < 0.05, "Pose %s/%s debe tener fondo transparente en borde exterior" % [pf, pn])
+			checked_poses += 1
+	assert(checked_poses == 28, "Deben verificarse exactamente 28 PNGs nuevos")
+
+	# 18.7 Sistema de Aliados + Cerebro (AllyBrain)
+	var ally_lvl: Level = level_scene_ref.instantiate()
+	root.add_child(ally_lvl)
+	ally_lvl.setup_level(LevelManager.get_all_levels()[0])
+	ally_lvl._spawn_boss()
+	ally_lvl.boss.current_state = Boss.State.IDLE
+	var combat_ally := Student.new()
+	combat_ally.student_name = "Mateo"
+	combat_ally.initial_state = Student.State.HAPPY
+	combat_ally.level_ref = ally_lvl
+	combat_ally.player = ally_lvl.player
+	combat_ally.position = ally_lvl.boss.position + Vector2(-180, 0)
+	ally_lvl.entities.add_child(combat_ally)
+	assert(combat_ally.is_combat_ally == true and combat_ally.brain != null, "Estudiante HAPPY debe activar cerebro AllyBrain")
+	for _astep in range(30):
+		combat_ally._physics_process(0.1)
+	assert(combat_ally.brain.shots_fired > 0, "AllyBrain debe disparar proyectiles de virtud al jefe dentro del rango")
+	var ally_proj_found: Projectile = null
+	for ap in ally_lvl.entities.get_children():
+		if ap is Projectile and ap.is_ally_projectile:
+			ally_proj_found = ap as Projectile
+			break
+	assert(ally_proj_found != null, "El proyectil disparado por el aliado debe tener is_ally_projectile == true")
+	assert(ally_proj_found.position.distance_squared_to(combat_ally.position) <= 1600.0, "El proyectil aliado debe nacer junto al torso del aliado y no en (0, 0)")
+	var proj_start_pos := ally_proj_found.position
+	for _pstep in range(10):
+		ally_proj_found._physics_process(0.05)
+	assert(not ally_proj_found.is_queued_for_deletion(), "El proyectil aliado NO debe autodestruirse en un muro al nacer")
+	assert(ally_proj_found.position.distance_squared_to(proj_start_pos) > 10000.0, "El proyectil aliado debe desplazarse >100 px hacia su objetivo")
+
+	# Proyectil que se aleja NO debe disparar DODGE; proyectil entrante SÍ debe activar DODGE
+	var away_shot := proj_scene.instantiate() as Projectile
+	away_shot.is_enemy_projectile = true
+	away_shot.direction = Vector2.LEFT
+	away_shot.position = combat_ally.position + Vector2(-36, 0)
+	ally_lvl.entities.add_child(away_shot)
+	away_shot.add_to_group("enemy_projectiles")
+	combat_ally.brain.state = AllyBrainClass.AllyState.POSITION
+	combat_ally.brain._dodge_cooldown = 0.0
+	combat_ally.brain._dodge_check_timer = 0.0
+	var away_res := combat_ally.brain.tick(0.05)
+	assert(away_res.get("state") != AllyBrainClass.AllyState.DODGE, "Proyectil enemigo que ya se aleja NO debe activar DODGE")
+	ally_lvl.entities.remove_child(away_shot)
+	away_shot.free()
+
+	var dodge_shot := proj_scene.instantiate() as Projectile
+	dodge_shot.is_enemy_projectile = true
+	dodge_shot.direction = Vector2.RIGHT
+	dodge_shot.position = combat_ally.position + Vector2(-28, 0)
+	ally_lvl.entities.add_child(dodge_shot)
+	dodge_shot.add_to_group("enemy_projectiles")
+	combat_ally.brain._dodge_cooldown = 0.0
+	combat_ally.brain._dodge_check_timer = 0.0
+	var dodge_res := combat_ally.brain.tick(0.05)
+	assert(dodge_res.get("state") == AllyBrainClass.AllyState.DODGE and dodge_res["velocity"].length_squared() > 10.0, "AllyBrain debe esquivar proyectiles enemigos entrantes cercanos")
+
+	# Verificar recuperación de atascamiento (UNSTUCK) si intenta avanzar pero no progresa
+	combat_ally.brain.state = AllyBrainClass.AllyState.POSITION
+	combat_ally.brain._dodge_cooldown = 1.0
+	combat_ally.velocity = Vector2(120, 0)
+	combat_ally.brain._last_intent_vel = Vector2(120, 0)
+	combat_ally.brain._prev_pos = combat_ally.global_position
+	combat_ally.brain._stuck_accum = 0.24
+	var unstuck_res := combat_ally.brain.tick(0.05)
+	assert(unstuck_res.get("state") == AllyBrainClass.AllyState.UNSTUCK, "AllyBrain debe entrar en UNSTUCK al detectar bloqueo contra pared")
+
+	# Verificar que CPUParticles2D dentro de enemies_container NUNCA es seleccionado como objetivo
+	var stray_fx := CPUParticles2D.new()
+	stray_fx.position = combat_ally.position + Vector2(12, 0)
+	ally_lvl.enemies_container.add_child(stray_fx)
+	var saved_boss = ally_lvl.boss
+	ally_lvl.boss = null
+	var fx_target = combat_ally.brain._find_best_target()
+	assert(fx_target != stray_fx and (fx_target == null or fx_target is Enemy), "AllyBrain._find_best_target() NUNCA debe seleccionar CPUParticles2D en enemies_container")
+	ally_lvl.boss = saved_boss
+	ally_lvl.enemies_container.remove_child(stray_fx)
+	stray_fx.free()
+
+	# Verificar que scripts/projectile.gd es un script hoja sin dependencias cíclicas
+	var proj_src := FileAccess.get_file_as_string("res://scripts/projectile.gd")
+	assert(not ("is Student" in proj_src) and not ("is Player" in proj_src) and not ("is Enemy" in proj_src), "projectile.gd no debe referenciar Student/Player/Enemy para evitar ciclos de carga")
+	for p_scene_ref: PackedScene in [ally_lvl.player.PROJECTILE_SCENE, AllyBrainClass.PROJECTILE_SCENE, Boss.PROJECTILE_SCENE]:
+		var inst_p := p_scene_ref.instantiate()
+		assert(inst_p.get_script() != null and inst_p.has_method("set_direction"), "PROJECTILE_SCENE debe instanciar script Projectile con set_direction activo")
+		inst_p.free()
+
+	root.remove_child(ally_lvl)
+	ally_lvl.free()
+
+	# 18.8 Inventario de 1 solo ítem + Ventaja Esperanza (15.0s) sobre Titanor
+	var esp_lvl: Level = level_scene_ref.instantiate()
+	root.add_child(esp_lvl)
+	esp_lvl.setup_level(LevelManager.get_all_levels()[5])
+	esp_lvl._spawn_boss()
+	var esp_titanor := esp_lvl.boss as Boss
+	esp_titanor.current_state = Boss.State.IDLE
+	esp_titanor._spawn_fake_clones(2)
+	esp_titanor.desperation_fog_active = true
+	esp_lvl.set_boss_desperation_fog(true)
+	assert(esp_titanor.get_active_clone_count() == 2, "Precondición: clones de Titanor activos")
+	assert(esp_lvl.fog_overlay != null and esp_lvl.fog_overlay.is_fog_active == true, "Precondición: niebla activa antes de Esperanza")
+	assert(esp_lvl.player.pickup_item("heart") == true and esp_lvl.player.held_item == "heart", "Debe equipar primer ítem en slot único")
+	assert(esp_lvl.player.pickup_item("esperanza") == true and esp_lvl.player.held_item == "esperanza", "Inventario de 1 slot debe reemplazar ítem previo")
+	assert(esp_lvl.player.use_held_item() == true and esp_lvl.player.held_item == "", "use_held_item debe consumir el ítem del inventario")
+	assert(is_equal_approx(esp_lvl.esperanza_timer, 15.0), "Esperanza debe durar exactamente 15.0s")
+	assert(esp_titanor.is_esperanza_defenseless == true, "Titanor debe quedar indefenso al activar Esperanza")
+	assert(esp_titanor.get_active_clone_count() == 0, "Esperanza debe eliminar de inmediato todos los clones activos")
+	assert(esp_lvl.fog_overlay.is_fog_active == false, "Esperanza debe disipar inmediatamente la niebla")
+	esp_titanor._spawn_fake_clones(2)
+	esp_lvl.set_boss_desperation_fog(true)
+	assert(esp_titanor.get_active_clone_count() == 0 and esp_lvl.fog_overlay.is_fog_active == false, "Durante 15s Esperanza no deben generarse clones ni niebla")
+	for _e_tick in range(31):
+		esp_lvl._physics_process(0.5)
+		esp_titanor._physics_process(0.5)
+	assert(esp_lvl.esperanza_timer == 0.0 and esp_titanor.is_esperanza_defenseless == false, "Tras 15s la ventaja Esperanza debe finalizar limpiamente")
+	if esp_lvl.player and esp_lvl.player.sfx_attack:
+		esp_lvl.player.sfx_attack.stop()
+	root.remove_child(esp_lvl)
+	esp_lvl.free()
+	print("  Regresiones P0-P2, 28 PNGs aliados, AllyBrain, Inventario 1-slot y Esperanza 15s verificados.")
+
+	# 18.9 Auditoría Móvil Extrema (ergonomía, anti-doble toque, cancelación táctil, HUD/Ceremonia)
+	var mob_mc := MobileControls.new()
+	root.add_child(mob_mc)
+	mob_mc._update_positions()
+	assert(mob_mc._focus_pos.distance_to(mob_mc._pulse_pos) >= 54.0, "800x450: FOCUS y PULSO no deben solaparse")
+	assert(mob_mc._pulse_pos.distance_to(mob_mc._item_pos) >= 54.0, "800x450: PULSO e ÍTEM no deben solaparse")
+	assert(mob_mc._focus_pos.distance_to(mob_mc._item_pos) >= 54.0, "800x450: FOCUS e ÍTEM no deben solaparse")
+	assert(mob_mc._focus_pos.x >= 400.0 and mob_mc._pulse_pos.x >= 400.0 and mob_mc._item_pos.x >= 400.0, "Botones derechos deben permanecer en mitad derecha")
+
+	# Verificar en viewport estrecho 640x360 usando SubViewport temporal
+	var narrow_vp := SubViewport.new()
+	narrow_vp.size = Vector2i(640, 360)
+	root.add_child(narrow_vp)
+	var narrow_mc := MobileControls.new()
+	narrow_vp.add_child(narrow_mc)
+	narrow_mc._update_positions()
+	assert(narrow_mc._focus_pos.distance_to(narrow_mc._pulse_pos) >= 54.0, "640x360: FOCUS y PULSO no deben solaparse")
+	assert(narrow_mc._pulse_pos.distance_to(narrow_mc._item_pos) >= 54.0, "640x360: PULSO e ÍTEM no deben solaparse")
+	assert(narrow_mc._focus_pos.distance_to(narrow_mc._item_pos) >= 54.0, "640x360: FOCUS e ÍTEM no deben solaparse")
+	assert(narrow_mc._focus_pos.x >= 320.0 and narrow_mc._pulse_pos.x >= 320.0 and narrow_mc._item_pos.x >= 320.0, "640x360: Botones derechos en mitad derecha")
+	narrow_vp.remove_child(narrow_mc)
+	narrow_mc.free()
+	root.remove_child(narrow_vp)
+	narrow_vp.free()
+
+	# Verificar cancelación táctil de _item_touch_id y helpers visuales
+	mob_mc._ensure_item_action()
+	mob_mc._item_touch_id = 4
+	mob_mc._item_pressed = true
+	Input.action_press("use_item")
+	mob_mc._cancel_touch(4)
+	assert(mob_mc._item_touch_id == -1 and not mob_mc._item_pressed and not Input.is_action_pressed("use_item"), "_cancel_touch debe liberar _item_touch_id y use_item")
+	mob_mc.set_pulse_cooldown(4.2, 10.0)
+	mob_mc.set_item_state("esperanza", "ESP★", Color(1.0, 0.88, 0.25))
+	assert(is_equal_approx(mob_mc.pulse_cooldown_remaining, 4.2) and mob_mc.has_item_available and mob_mc.item_short_label == "ESP★", "MobileControls debe actualizar cooldown de pulso y etiqueta de ítem")
+	root.remove_child(mob_mc)
+	mob_mc.free()
+
+	# Verificar ocultación de UI de combate en HUD al entrar en Ceremonia Final
+	var mob_hud: HUD = preload("res://scenes/hud.tscn").instantiate()
+	root.add_child(mob_hud)
+	mob_hud.update_inventory_slot("esperanza", {"short": "ESPERANZA", "color": Color.GOLD})
+	mob_hud.update_esperanza_bar(8.0, 15.0)
+	mob_hud.set_gameplay_ui_visible(false)
+	assert(not mob_hud._inventory_panel.visible and not mob_hud._esperanza_container.visible, "HUD.set_gameplay_ui_visible(false) debe ocultar inventario y barra Esperanza")
+	root.remove_child(mob_hud)
+	mob_hud.free()
+
+	# Verificar filtro anti-emulación táctil en StoryCutscene y FinalCeremony
+	var emu_click := InputEventMouseButton.new()
+	emu_click.button_index = MOUSE_BUTTON_LEFT
+	emu_click.pressed = true
+	emu_click.device = InputEvent.DEVICE_ID_EMULATION
+
+	var mob_cs: StoryCutscene = preload("res://scenes/story_cutscene.tscn").instantiate()
+	mob_cs.setup_cutscene({
+		"title": "Test Móvil",
+		"dialogue_nodes": [
+			{"speaker": "Guardián", "text": "Línea 1 de prueba móvil.", "portrait": "guardian"},
+			{"speaker": "Guardián", "text": "Línea 2 de prueba móvil.", "portrait": "guardian"}
+		]
+	})
+	root.add_child(mob_cs)
+	mob_cs._is_typing = false
+	mob_cs._gui_input(emu_click)
+	assert(mob_cs._current_index == 0, "StoryCutscene debe ignorar MouseButton con DEVICE_ID_EMULATION")
+	root.remove_child(mob_cs)
+	mob_cs.free()
+
+	var mob_fc: FinalCeremony = FinalCeremonyScript.new()
+	root.add_child(mob_fc)
+	mob_fc._is_typing = false
+	mob_fc._on_speech_panel_gui_input(emu_click)
+	assert(mob_fc._speech_index == 0, "FinalCeremony debe ignorar MouseButton con DEVICE_ID_EMULATION")
+	root.remove_child(mob_fc)
+	mob_fc.free()
+
+	# Verificar tamaño táctil de botones utilitarios del Menú principal (>= 34px)
+	var mob_menu: Control = preload("res://scenes/menu.tscn").instantiate()
+	root.add_child(mob_menu)
+	assert(mob_menu._btn_stage_prev.custom_minimum_size.y >= 34.0 and mob_menu._btn_mute.custom_minimum_size.y >= 34.0 and mob_menu._btn_vol_up.custom_minimum_size.y >= 34.0, "Botones utilitarios de Menu deben tener altura >= 34px para tacto móvil")
+	root.remove_child(mob_menu)
+	mob_menu.free()
+	print("  Auditoría Móvil Extrema (ergonomía, anti-emulación, HUD/Ceremonia y Menú) verificada.")
+
+	# 19. Soundtrack Dinámico, Vida Porcentual, Touhou Titanor, Clímax Undertale 1 HP y Galería ⋮
+	# 19.1 Estandarización estricta 512x512 en TODAS las carpetas de personajes y retratos
+	for char_folder in ["Masculino", "Femenino", "coordinador", "maestro_desinteres", "maestro_desinteres_redeemed", "mateo_laboratorio", "maria_cafeteria", "valeria_plaza", "fernanda_biblioteca", "diego_computo", "sofia_direccion", "alejandro_cancha"]:
+		var d_path := ProjectSettings.globalize_path("res://assets/characters/%s" % char_folder)
+		var d_open := DirAccess.open(d_path)
+		assert(d_open != null, "Debe existir carpeta de personaje: " + d_path)
+		d_open.list_dir_begin()
+		var f_item := d_open.get_next()
+		while f_item != "":
+			if not d_open.current_is_dir() and f_item.to_lower().ends_with(".png"):
+				var im := Image.load_from_file(d_path.path_join(f_item))
+				assert(im != null and im.get_width() == 512 and im.get_height() == 512, "%s/%s debe medir exactamente 512x512" % [char_folder, f_item])
+			f_item = d_open.get_next()
+		d_open.list_dir_end()
+
+	# 19.2 Soundtrack dinámico por nivel, personaje y dificultad + tema Finale Undertale
+	assert(gs_node.SOUNDTRACK_CATALOG.size() == 12, "El catálogo musical debe listar los 12 temas escolares/Touhou")
+	assert(gs_node.get_track_path("stage_1", 0) != gs_node.get_track_path("stage_1", 1), "Masculino y Femenino deben usar arreglos musicales distintos")
+	assert(gs_node.get_track_path("stage_1", 0) != gs_node.get_track_path("stage_4", 0), "Escenarios distintos deben usar música diferente")
+	assert(gs_node.get_difficulty_pitch_scale(0) < gs_node.get_difficulty_pitch_scale(1) and gs_node.get_difficulty_pitch_scale(1) < gs_node.get_difficulty_pitch_scale(2), "Dificultad debe modular energía/tempo musical")
+	assert(gs_node._load_audio_stream(gs_node.FINALE_SOULS_PATH) != null, "Debe cargar tema original clímax Undertale-Finale")
+	assert(gs_node._load_audio_stream(gs_node.HARD_PERC_PATH) != null, "Debe cargar capa de percusión para Difícil")
+	gs_node.set_difficulty(2)
+	gs_node.set_selected_character(1)
+	gs_node.play_stage_music(2, false, false, false)
+	assert(gs_node.current_track_id == "stage_3", "play_stage_music(2) debe seleccionar stage_3")
+	gs_node.play_stage_music(5, false, true, true)
+	assert(gs_node.current_track_id == "boss_final", "play_stage_music final boss debe seleccionar boss_final")
+	gs_node.set_selected_character(0)
+	gs_node.set_difficulty(1)
+
+	# 19.3 Vida porcentual en Jefes, Enemigos y HUD (%)
+	var pct_hud: HUD = preload("res://scenes/hud.tscn").instantiate()
+	root.add_child(pct_hud)
+	pct_hud.show_boss_bar("Apatyx", 16, 32)
+	assert(pct_hud.boss_hp_label.text == "50%", "HUD debe mostrar vida del jefe en porcentaje ('50%')")
+	root.remove_child(pct_hud)
+	pct_hud.free()
+
+	var pct_lvl: Level = level_scene_ref.instantiate()
+	root.add_child(pct_lvl)
+	pct_lvl.setup_level(LevelManager.get_all_levels()[0])
+	pct_lvl._spawn_boss()
+	var pct_boss := pct_lvl.boss as Boss
+	pct_boss.current_state = Boss.State.IDLE
+	var trig_box := [false, false]
+	pct_boss.hp_phase_animation_triggered.connect(func(anim_n, _p):
+		if anim_n == "enraged": trig_box[0] = true
+		elif anim_n == "critical": trig_box[1] = true
+	)
+	pct_boss.hit_by_attack(Vector2.ZERO, int(pct_boss.max_hp / 2))
+	assert(trig_box[0] == true and pct_boss.active_hp_anim_state == "enraged", "Al 50%% de vida debe disparar animación porcentual enraged")
+	pct_boss.hit_by_attack(Vector2.ZERO, int(pct_boss.max_hp / 4))
+	assert(trig_box[1] == true and pct_boss.active_hp_anim_state == "critical" and pct_boss.visual_crack_level >= 0.4, "Al 25%% de vida debe disparar animación critical y grietas")
+
+	# Enemigo Bullying en Difícil usa porcentaje (50% anim hurt_50)
+	gs_node.set_difficulty(2)
+	var pct_enemy := preload("res://scenes/enemy.tscn").instantiate() as Enemy
+	pct_enemy.enemy_type = Enemy.Type.BULLYING
+	pct_lvl.enemies_container.add_child(pct_enemy)
+	assert(pct_enemy.max_hp == 2 and pct_enemy.get_hp_percent() == 100, "Bullying en Difícil debe iniciar al 100% (2 HP)")
+	pct_enemy.hit_by_attack(Vector2.ZERO)
+	assert(pct_enemy.is_active == true and pct_enemy.get_hp_percent() == 50 and pct_enemy.active_hp_anim_state == "hurt_50", "Al bajar a 50% el enemigo debe activar estado animado hurt_50")
+	gs_node.set_difficulty(1)
+	root.remove_child(pct_lvl)
+	pct_lvl.free()
+
+	# 19.4 Nuevos patrones Touhou de escape continuo para Titanor
+	var touhou_lvl: Level = level_scene_ref.instantiate()
+	root.add_child(touhou_lvl)
+	touhou_lvl.setup_level(LevelManager.get_all_levels()[5])
+	touhou_lvl._spawn_boss()
+	var tboss := touhou_lvl.boss as Boss
+	tboss.current_state = Boss.State.IDLE
+	tboss._attack_danmaku_closing_cage(14, 160.0)
+	tboss._attack_danmaku_crisscross_grid(6, 170.0)
+	tboss._attack_danmaku_accelerating_lotus(16, 165.0)
+	assert(root.get_tree().get_nodes_in_group("enemy_projectiles").size() >= 20, "Los nuevos patrones Touhou deben generar múltiples proyectiles de escape")
+	root.remove_child(touhou_lvl)
+	touhou_lvl.free()
+
+	# 19.5 Escena Clímax estilo Undertale (corazones de colores, diálogos exactos, Finale)
+	var ut_scene := preload("res://scenes/undertale_climax.tscn").instantiate()
+	root.add_child(ut_scene)
+	assert(ut_scene.get_hearts_data().size() == 8, "Clímax Undertale debe mostrar los 8 corazones de valores (Héroe + 7 Aliados)")
+	assert(gs_node.current_track_id == "finale_souls", "Clímax Undertale debe activar la música estilo Finale")
+	assert("maestro que ignore a los alumnos" in ut_scene.get_boss_dialogue() and "sere mas fuerte" in ut_scene.get_boss_dialogue().replace("é", "e").replace("á", "a"), "Debe incluir diálogo exacto de Titanor en blanco y negro")
+	assert("lograr erradicarte de nuevo" in ut_scene.get_students_dialogue(), "Debe incluir diálogo final exacto de los alumnos")
+	var ut_done_box := [false]
+	ut_scene.climax_finished.connect(func(): ut_done_box[0] = true)
+	ut_scene.force_finish_for_test()
+	assert(ut_done_box[0] == true, "UndertaleClimax debe emitir climax_finished al concluir")
+	if is_instance_valid(ut_scene) and ut_scene.get_parent() == root:
+		root.remove_child(ut_scene)
+		ut_scene.free()
+
+	# 19.6 Menú de tres puntos (⋮) y Galería de Materiales completa
+	var st_n := root.get_node_or_null("SceneTransition")
+	if st_n:
+		st_n.is_busy = false
+	var gal_menu: Control = preload("res://scenes/menu.tscn").instantiate()
+	root.add_child(gal_menu)
+	var dots_btn := gal_menu.get_node_or_null("BtnMaterialsMenu") as Button
+	assert(dots_btn != null and dots_btn.text == "⋮", "El menú principal debe incluir el botón de tres puntos '⋮'")
+	dots_btn.pressed.emit()
+	assert(gal_menu._materials_gallery != null and is_instance_valid(gal_menu._materials_gallery), "Pulsar '⋮' debe abrir la Galería de Materiales")
+	gal_menu._materials_gallery._select_category("Canciones")
+	gal_menu._materials_gallery._on_jukebox_play_pressed()
+	assert(gal_menu._materials_gallery._is_preview_playing == true, "Jukebox de Galería debe iniciar vista previa musical")
+	gal_menu._close_materials_gallery()
+	assert(gal_menu._materials_gallery == null and gs_node.current_track_id == "menu", "Al cerrar Galería debe restaurar tema del menú")
+	var cats: Dictionary = MaterialsGallery.get_all_categories()
+	for req_cat in ["Personajes", "Canciones", "Escenarios", "Enemigos y Jefes", "Habilidades e Ítems", "Videos"]:
+		assert(cats.has(req_cat) and not (cats[req_cat] as Array).is_empty(), "Galería debe incluir categoría '%s'" % req_cat)
+	for ch_item in cats["Personajes"]:
+		assert(not str(ch_item.get("what", "")).is_empty() and not str(ch_item.get("where", "")).is_empty() and not str(ch_item.get("symbolizes", "")).is_empty(), "Todo personaje en Galería debe explicar qué es, dónde está y qué simboliza")
+	root.remove_child(gal_menu)
+	gal_menu.free()
+	print("  Bloque 19 (Soundtrack Dinámico, HP %, Touhou Titanor, Clímax Undertale 1 HP y Galería ⋮) verificado.")
+
+	# =========================================================================
+	# BLOQUE 20: RETRATOS DE HISTORIA, VIDEOS DE CLÍMAX Y CRÉDITOS 3:4 (README)
+	# =========================================================================
+	# 20.1 Retratos en Modo Historia y Galería
+	var sc_p: Control = preload("res://scenes/story_cutscene.tscn").instantiate()
+	root.add_child(sc_p)
+	assert(sc_p.portrait_canvas != null and sc_p.portrait_canvas.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "PortraitCanvas debe usar filtrado NEAREST para pixel-art")
+	for pid in [
+		"player_neutral", "mateo_sad", "maria_sad", "valeria_sad",
+		"fernanda_sad", "diego_sad", "sofia_sad", "alejandro_sad",
+		"coordinador", "maestro_desinteres", "maestro_desinteres_redeemed",
+	]:
+		assert(sc_p._get_portrait_texture(pid) != null, "StoryCutscene debe resolver textura de retrato para '%s'" % pid)
+	root.remove_child(sc_p)
+	sc_p.free()
+	for ch_p in cats["Personajes"]:
+		var p_img := str(ch_p.get("portrait", ""))
+		assert(not p_img.is_empty() and FileAccess.file_exists(p_img), "Retrato de Galería '%s' debe existir en disco: %s" % [str(ch_p.get("name", "")), p_img])
+
+	# 20.2 Videos finales y créditos 3:4 en recursos del proyecto
+	for v_path in [
+		"res://assets/video/escena_final_corazones.ogv",
+		"res://assets/video/escena_final_corazones.mp4",
+		"res://assets/video/creditos_readme_3x4.ogv",
+		"res://assets/video/creditos_readme_3x4.mp4",
+	]:
+		assert(FileAccess.file_exists(v_path), "Debe existir recurso de video: %s" % v_path)
+		var vf := FileAccess.open(v_path, FileAccess.READ)
+		assert(vf != null and vf.get_length() > 50000, "Archivo de video no debe estar vacío o truncado: %s" % v_path)
+		if vf:
+			vf.close()
+	for ogv_path in [
+		"res://assets/video/escena_final_corazones.ogv",
+		"res://assets/video/creditos_readme_3x4.ogv",
+	]:
+		var vstream := ResourceLoader.load(ogv_path) as VideoStream
+		assert(vstream != null, "Godot debe cargar el VideoStreamTheora para %s" % ogv_path)
+	var gal_vids := cats["Videos"] as Array
+	assert(gal_vids.size() >= 3, "Galería debe listar al menos 3 videos en la pestaña 'Videos'")
+
+	# 20.3 Pantalla CreditsScreen 3:4 basada en README.md y botón en Menú
+	for use_vid_mode in [false, true]:
+		var cr_inst := preload("res://scenes/credits_screen.tscn").instantiate()
+		cr_inst.use_video_file = use_vid_mode
+		root.add_child(cr_inst)
+		assert(cr_inst._aspect_box != null and is_equal_approx(cr_inst._aspect_box.ratio, 0.75), "CreditsScreen debe mantener proporción estricta 3:4 (0.75)")
+		assert(not cr_inst.get_parsed_entries().is_empty(), "CreditsScreen debe extraer entradas desde README.md")
+		if not use_vid_mode:
+			assert(cr_inst._roll_container != null and absf(cr_inst._roll_end_y - cr_inst._roll_start_y) > 400.0, "Roll en vivo debe calcular límites completos sin salir disparado")
+		root.remove_child(cr_inst)
+		cr_inst.free()
+
+	if st_n:
+		st_n.is_busy = false
+	var cr_menu: Control = preload("res://scenes/menu.tscn").instantiate()
+	root.add_child(cr_menu)
+	var btn_cred := cr_menu.get_node_or_null("BtnCredits") as Button
+	assert(btn_cred != null and btn_cred.visible, "Menú Principal debe incluir botón visible 'Créditos'")
+	btn_cred.pressed.emit()
+	assert(cr_menu._credits_screen != null and is_instance_valid(cr_menu._credits_screen), "Pulsar 'Créditos' debe abrir CreditsScreen")
+	cr_menu._close_credits_screen()
+	assert(cr_menu._credits_screen == null, "Cerrar CreditsScreen debe limpiar referencia en Menú")
+	root.remove_child(cr_menu)
+	cr_menu.free()
+	print("  Bloque 20 (Retratos Historia, Videos Clímax/Créditos 3:4 y CreditsScreen) verificado.")
+
+	# =========================================================================
+	# BLOQUE 21: REDISEÑO ÚNICO DE JEFES/PODERES, FONDO, ICONO Y PANTALLA COMPLETA
+	# =========================================================================
+	# 21.1 Menú sin imágenes de logos y fondo escolar 800x450 + icon.jpeg global
+	var clean_menu: Control = preload("res://scenes/menu.tscn").instantiate()
+	root.add_child(clean_menu)
+	assert(clean_menu.find_child("CobaemLogo", true, false) == null, "El menú principal no debe contener CobaemLogo")
+	assert(clean_menu.find_child("GameIcon", true, false) == null, "El menú principal no debe contener GameIcon")
+	root.remove_child(clean_menu)
+	clean_menu.free()
+	assert(str(ProjectSettings.get_setting("application/config/icon", "")) == "res://icon.jpeg", "El icono de la aplicación debe ser res://icon.jpeg")
+	var bg_tex := ResourceLoader.load("res://assets/background/fondo.png") as Texture2D
+	assert(bg_tex != null and bg_tex.get_size() == Vector2(800, 450), "El nuevo fondo escolar del menú debe medir 800x450")
+
+	# 21.2 Sprites recreados (no personajes ni enemigos regulares)
+	var sprite_dims := {
+		"res://assets/sprites/ataque_fx.png": Vector2(48, 48),
+		"res://assets/sprites/corazon_lleno.png": Vector2(32, 32),
+		"res://assets/sprites/corazon_vacio.png": Vector2(32, 32),
+		"res://assets/sprites/meta.png": Vector2(64, 80),
+		"res://assets/sprites/cobaem_mini.png": Vector2(28, 28),
+	}
+	for sp_path in sprite_dims.keys():
+		var stex := ResourceLoader.load(sp_path) as Texture2D
+		assert(stex != null and stex.get_size() == sprite_dims[sp_path], "Sprite %s debe tener dimensión %s" % [sp_path, str(sprite_dims[sp_path])])
+
+	# 21.3 Siluetas únicas en BossRenderer, emblemas únicos en MaterialsGallery y pantalla completa en Videos
+	assert(Callable(BossRenderer, "draw_boss_silhouette").is_valid(), "BossRenderer debe exponer draw_boss_silhouette")
+	assert(Callable(MaterialsGallery, "draw_skill_emblem").is_valid(), "MaterialsGallery debe exponer draw_skill_emblem")
+	var mg_fs: MaterialsGallery = preload("res://scripts/materials_gallery.gd").new()
+	root.add_child(mg_fs)
+	mg_fs._select_category("Videos")
+	assert(mg_fs._btn_fullscreen_video != null and not mg_fs._btn_fullscreen_video.disabled, "Videos en Galería debe mostrar botón Pantalla Completa habilitado")
+	mg_fs.open_video_fullscreen()
+	assert(mg_fs._is_video_fullscreen and mg_fs._video_fs_overlay != null and is_instance_valid(mg_fs._video_fs_overlay), "Botón Pantalla Completa debe abrir overlay de video")
+	mg_fs.close_video_fullscreen()
+	assert(not mg_fs._is_video_fullscreen and mg_fs._video_fs_overlay == null, "Salir Pantalla Completa debe cerrar overlay de video")
+	root.remove_child(mg_fs)
+	mg_fs.free()
+
+	# 21.4 Botón Pantalla Completa en CreditsScreen
+	var cs_fs := preload("res://scenes/credits_screen.tscn").instantiate()
+	cs_fs.use_video_file = true
+	root.add_child(cs_fs)
+	assert(cs_fs._btn_fullscreen != null and cs_fs._btn_fullscreen.visible, "CreditsScreen debe exponer botón Pantalla Completa")
+	cs_fs.toggle_fullscreen()
+	assert(cs_fs._is_fullscreen_mode and cs_fs._btn_exit_fullscreen.visible, "CreditsScreen.toggle_fullscreen debe activar modo pantalla completa")
+	cs_fs.toggle_fullscreen()
+	assert(not cs_fs._is_fullscreen_mode and not cs_fs._btn_exit_fullscreen.visible, "CreditsScreen.toggle_fullscreen debe restaurar ventana")
+	root.remove_child(cs_fs)
+	cs_fs.free()
+
+	# 21.5 Carpeta de archivos innecesarios ignorada en .gitignore
+	assert(FileAccess.file_exists("res://_local_archive/.gdignore"), "_local_archive/.gdignore debe existir")
+	assert("_local_archive/" in FileAccess.get_file_as_string("res://.gitignore"), ".gitignore debe ignorar _local_archive/")
+	print("  Bloque 21 (Jefes/Poderes únicos, Fondo escolar, Sin logos menú, Icono y Pantalla Completa) verificado.")
+
+	# =========================================================================
+	# BLOQUE 22: LICENCIA GPL-3.0 Y DIÁLOGOS ADAPTADOS POR GÉNERO (MASC / FEM)
+	# =========================================================================
+	# 22.1 Verificar archivo LICENSE (GNU GPL v3.0) y mención en README.md
+	var license_txt := FileAccess.get_file_as_string("res://LICENSE")
+	assert("GNU GENERAL PUBLIC LICENSE" in license_txt and "Version 3" in license_txt, "LICENSE debe contener el texto oficial de GNU GPL v3.0")
+	var readme_txt := FileAccess.get_file_as_string("res://README.md")
+	assert("GPL" in readme_txt, "README.md debe documentar la licencia GNU GPL v3.0")
+
+	# 22.2 Verificar adaptación de Modo Historia (StoryData y StoryCutscene) según género
+	var StoryDataRef := preload("res://scripts/story_data.gd")
+	gs_node.set_selected_character(0) # Masculino
+	var prol_m: Dictionary = StoryDataRef.get_prologue()
+	var epil_m: Dictionary = StoryDataRef.get_epilogue()
+	var act1_m: Dictionary = StoryDataRef.get_scenario_cutscene(1)
+	var act3_m: Dictionary = StoryDataRef.get_scenario_cutscene(3)
+	var mateo_m: Dictionary = StoryDataRef.get_secondary_character("mateo")
+	assert(prol_m["dialogue_nodes"][4]["speaker"] == "Guardián de los Valores", "Prólogo Masculino debe usar 'Guardián de los Valores'")
+	assert("decidido" in str(prol_m["dialogue_nodes"][4]["text"]), "Prólogo Masculino debe usar concordancia masculina ('decidido')")
+	assert("peleando solo" in str(epil_m["dialogue_nodes"][7]["text"]), "Epílogo Masculino debe decir 'peleando solo'")
+	assert("jovencito" in str(act1_m["dialogue_nodes"][3]["text"]), "Acto I Masculino debe dirigirse como 'jovencito'")
+	assert("Guardián," in str(act3_m["dialogue_nodes"][3]["text"]), "Acto III Masculino debe llamar 'Guardián'")
+	assert("compañero" in " ".join(mateo_m["state_redeemed"]["quotes"]), "Mateo en Masculino debe decir 'compañero'")
+
+	gs_node.set_selected_character(1) # Femenino
+	var prol_f: Dictionary = StoryDataRef.get_prologue()
+	var epil_f: Dictionary = StoryDataRef.get_epilogue()
+	var act1_f: Dictionary = StoryDataRef.get_scenario_cutscene(1)
+	var act3_f: Dictionary = StoryDataRef.get_scenario_cutscene(3)
+	var mateo_f: Dictionary = StoryDataRef.get_secondary_character("mateo")
+	var maria_f: Dictionary = StoryDataRef.get_secondary_character("maria")
+	assert(prol_f["dialogue_nodes"][4]["speaker"] == "Guardiana de los Valores", "Prólogo Femenino debe usar 'Guardiana de los Valores'")
+	assert("decidida" in str(prol_f["dialogue_nodes"][4]["text"]), "Prólogo Femenino debe usar concordancia femenina ('decidida')")
+	assert("peleando sola" in str(epil_f["dialogue_nodes"][7]["text"]), "Epílogo Femenino debe decir 'peleando sola'")
+	assert("jovencita" in str(act1_f["dialogue_nodes"][3]["text"]), "Acto I Femenino debe dirigirse como 'jovencita'")
+	assert("Guardiana," in str(act3_f["dialogue_nodes"][3]["text"]), "Acto III Femenino debe llamar 'Guardiana'")
+	assert("compañera" in " ".join(mateo_f["state_redeemed"]["quotes"]), "Mateo en Femenino debe decir 'compañera'")
+	assert("Juntas" in " ".join(maria_f["state_redeemed"]["quotes"]), "María con protagonista femenina debe decir 'Juntas'")
+
+	# 22.3 Verificar Ceremonia Final, Clímax Undertale, HUD, BossData y Certificado PDF en Femenino vs Masculino
+	var cer_fem: FinalCeremony = preload("res://scenes/final_ceremony.tscn").instantiate()
+	root.add_child(cer_fem)
+	assert(cer_fem.is_female_hero() == true, "FinalCeremony debe detectar personaje Femenino")
+	assert("alumna ejemplar" in cer_fem.get_final_exemplary_text(), "FinalCeremony en Femenino debe mostrar 'alumna ejemplar'")
+	assert("campeona solidaria" in " ".join(cer_fem.get_active_coordinator_speech()), "Discurso del Coordinador en Femenino debe usar 'campeona solidaria'")
+	if cer_fem._himno_player:
+		cer_fem._himno_player.stop()
+	if gs_node._music:
+		gs_node._music.stop()
+	root.remove_child(cer_fem)
+	cer_fem.free()
+
+	var ut_fem := preload("res://scenes/undertale_climax.tscn").instantiate()
+	root.add_child(ut_fem)
+	assert(str(ut_fem.get_hearts_data()[0]["who"]) == "Tú (Heroína)", "UndertaleClimax en Femenino debe nombrar 'Tú (Heroína)'")
+	root.remove_child(ut_fem)
+	ut_fem.free()
+
+	var hud_fem: HUD = preload("res://scenes/hud.tscn").instantiate()
+	root.add_child(hud_fem)
+	var pause_sub := hud_fem.pause_panel.get_node_or_null("VBoxContainer/Subtitle") as Label
+	assert(pause_sub != null and "campeona escolar" in pause_sub.text, "HUD en Femenino debe mostrar 'campeona escolar' en pausa")
+	root.remove_child(hud_fem)
+	hud_fem.free()
+
+	var BossDataRef := preload("res://scripts/boss_data.gd")
+	assert("novato" in BossDataRef.get_intro_dialog(Boss.BossType.BULLYING, false), "Titanor Masculino debe decir 'novato'")
+	assert("novata" in BossDataRef.get_intro_dialog(Boss.BossType.BULLYING, true), "Titanor Femenino debe decir 'novata'")
+	assert("alumna" in BossDataRef.get_intro_dialog(Boss.BossType.DESINTERES, true), "Maestro Desinterés Femenino debe decir 'alumna'")
+
+	var cert_fem := CertificateGeneratorScript.build_certificate_text("Normal", "Ana Gómez", 1)
+	assert("La alumna/Madre de familia/Maestra: Ana Gómez" in cert_fem and "reconocida como una asesora" in cert_fem, "Certificado Femenino debe usar redacción femenina")
+	var cert_masc := CertificateGeneratorScript.build_certificate_text("Normal", "Luis Gómez", 0)
+	assert("El alumno/Padre de familia/Maestro: Luis Gómez" in cert_masc and "reconocido como un asesor" in cert_masc, "Certificado Masculino debe usar redacción masculina")
+
+	gs_node.set_selected_character(0)
+	if gs_node._music:
+		gs_node._music.stop()
+	print("  Bloque 22 (Licencia GPL-3.0 y adaptación integral de diálogos Masculino/Femenino) verificado.")
+
+	# Restaurar user://settings.cfg original del usuario antes de salir
+	if _settings_existed:
+		var fw := FileAccess.open("user://settings.cfg", FileAccess.WRITE)
+		if fw:
+			fw.store_buffer(_settings_backup)
+			fw.close()
+	elif FileAccess.file_exists("user://settings.cfg"):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://settings.cfg"))
 
 	print("--- TODOS LOS TESTS DE ESCENARIOS Y PROGRESIÓN PASARON CON ÉXITO ---")
 	quit(0)

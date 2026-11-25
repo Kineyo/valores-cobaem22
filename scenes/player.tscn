@@ -60,9 +60,11 @@ one_shot = true
 
 [node name="SFXAttack" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("4_sfx_atk")
+bus = &"SFX"
 
 [node name="SFXHurt" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("5_sfx_hurt")
+bus = &"SFX"
 
 [node name="DustParticles" type="CPUParticles2D" parent="."]
 position = Vector2(0, 0)

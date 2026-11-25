@@ -6,6 +6,8 @@ extends Control
 
 const GAME_SCENE := "res://scenes/main.tscn"
 const LOADING_SCENE := "res://scenes/loading_screen.tscn"
+const MaterialsGalleryClass := preload("res://scripts/materials_gallery.gd")
+const CREDITS_SCREEN_PATH := "res://scenes/credits_screen.tscn"
 const BG_TILE_WIDTH := 800.0
 const BG_TILE_HEIGHT := 450.0
 const STICK_NAV_DEADZONE := 0.55
@@ -59,7 +61,6 @@ const STAGE_SHORT_NAMES := [
 @onready var info_label: Label = %DifficultyInfo
 @onready var btn_play: Button = %BtnPlay
 @onready var btn_quit: Button = %BtnQuit
-@onready var game_icon: TextureRect = %GameIcon
 @onready var sfx_select: AudioStreamPlayer = $SFXSelect
 
 var _diff_buttons: Array[Button] = []
@@ -86,6 +87,10 @@ var _btn_mute: Button = null
 var _btn_vol_down: Button = null
 var _btn_vol_up: Button = null
 var _record_label: Label = null
+var _btn_materials_menu: Button = null
+var _materials_gallery: Control = null
+var _btn_credits: Button = null
+var _credits_screen: Control = null
 
 var _game_settings: Node:
 	get:
@@ -112,7 +117,11 @@ var _scene_transition: Node:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		if char_select_view and char_select_view.visible:
+		if _credits_screen != null and is_instance_valid(_credits_screen):
+			_close_credits_screen()
+		elif _materials_gallery != null and is_instance_valid(_materials_gallery):
+			_close_materials_gallery()
+		elif char_select_view and char_select_view.visible:
 			_close_character_select()
 		else:
 			_quit()
@@ -173,8 +182,6 @@ func _ensure_nodes() -> void:
 		btn_play = get_node_or_null("%BtnPlay")
 	if btn_quit == null:
 		btn_quit = get_node_or_null("%BtnQuit")
-	if game_icon == null:
-		game_icon = get_node_or_null("%GameIcon")
 	if sfx_select == null:
 		sfx_select = get_node_or_null("SFXSelect")
 	if not _ui_hints_initialized:
@@ -194,7 +201,7 @@ func _ready() -> void:
 		var b := _mode_buttons[i]
 		if b and not b.pressed.is_connected(_select_mode):
 			b.pressed.connect(_select_mode.bind(i))
-			UiJuice.attach_button(b, sfx_select)
+			UiJuice.attach_button(b)
 
 	# Configuración de botones de personaje (Masculino vs Femenino)
 	_char_buttons = [btn_char_pantalon, btn_char_falda]
@@ -202,7 +209,7 @@ func _ready() -> void:
 		var b := _char_buttons[i]
 		if b and not b.pressed.is_connected(_select_character):
 			b.pressed.connect(_select_character.bind(i))
-			UiJuice.attach_button(b, sfx_select)
+			UiJuice.attach_button(b)
 
 	# Cargar portada frontal con fondo blanco con método resiliente
 	if char_icon_pantalon:
@@ -220,28 +227,28 @@ func _ready() -> void:
 		var b := _diff_buttons[i]
 		if b and not b.pressed.is_connected(_select_difficulty):
 			b.pressed.connect(_select_difficulty.bind(i))
-			UiJuice.attach_button(b, sfx_select)
+			UiJuice.attach_button(b)
 
 	if btn_play and not btn_play.pressed.is_connected(_open_character_select):
 		btn_play.pressed.connect(_open_character_select)
-		UiJuice.attach_button(btn_play, sfx_select)
+		UiJuice.attach_button(btn_play)
 	if btn_quit and not btn_quit.pressed.is_connected(_quit):
 		btn_quit.pressed.connect(_quit)
 		UiJuice.attach_button(btn_quit, sfx_select)
 	if btn_confirm_char and not btn_confirm_char.pressed.is_connected(_start_game):
 		btn_confirm_char.pressed.connect(_start_game)
-		UiJuice.attach_button(btn_confirm_char, sfx_select)
+		UiJuice.attach_button(btn_confirm_char)
 	if btn_back_to_menu and not btn_back_to_menu.pressed.is_connected(_close_character_select):
 		btn_back_to_menu.pressed.connect(_close_character_select)
-		UiJuice.attach_button(btn_back_to_menu, sfx_select)
+		UiJuice.attach_button(btn_back_to_menu)
 
 	if main_view:
 		main_view.visible = true
 	if char_select_view:
 		char_select_view.visible = false
 
-	# En navegadores web se oculta el botón salir ya que la pestaña controla el cierre
-	btn_quit.visible = not OS.has_feature("web")
+	# En navegadores web o iOS se oculta el botón salir conforme a políticas de plataforma
+	btn_quit.visible = not (OS.has_feature("web") or OS.has_feature("ios"))
 
 	if not Input.joy_connection_changed.is_connected(_on_joy_connection_changed):
 		Input.joy_connection_changed.connect(_on_joy_connection_changed)
@@ -392,8 +399,16 @@ func _update_safe_layout() -> void:
 		_ambient_particles.position = Vector2(vp_size.x * 0.5, vp_size.y - 10.0)
 		_ambient_particles.emission_rect_extents = Vector2(vp_size.x * 0.5, 10.0)
 
+	if _btn_materials_menu and is_instance_valid(_btn_materials_menu):
+		var btn_sz := Vector2(40, 40)
+		_btn_materials_menu.position = Vector2(vp_size.x - insets.size.x - btn_sz.x - 8.0, insets.position.y + 8.0)
+		_btn_materials_menu.size = btn_sz
+	if _btn_credits and is_instance_valid(_btn_credits):
+		var c_sz := Vector2(88, 40)
+		_btn_credits.position = Vector2(vp_size.x - insets.size.x - 40.0 - c_sz.x - 14.0, insets.position.y + 8.0)
+		_btn_credits.size = c_sz
+
 func _process(delta: float) -> void:
-	_ensure_nodes()
 	if is_inside_tree() and get_viewport():
 		var cur_sz: Vector2 = get_viewport_rect().size
 		if cur_sz != _last_vp_size and cur_sz.x > 1.0:
@@ -409,6 +424,8 @@ func _animate_intro() -> void:
 	if not is_inside_tree() or get_tree() == null:
 		return
 	await get_tree().process_frame
+	if not is_inside_tree() or not is_instance_valid(panel):
+		return
 	panel.modulate.a = 0.0
 
 	var tw := create_tween().set_parallel(true)
@@ -446,10 +463,43 @@ func _update_input_mode(event: InputEvent) -> void:
 		if key_ev.pressed:
 			_set_input_mode(false, false)
 
+func _get_focus_row_controls() -> Array[Control]:
+	var out: Array[Control] = []
+	for b in [_btn_stage_prev, _btn_stage_next, _btn_mute, _btn_vol_down, _btn_vol_up]:
+		if b and is_instance_valid(b) and not b.disabled and b.visible:
+			out.append(b)
+	return out
+
+func _is_utility_or_quit_focused() -> bool:
+	var vp := get_viewport() if is_inside_tree() else null
+	if vp == null:
+		return false
+	var foc := vp.gui_get_focus_owner()
+	if foc == null:
+		return false
+	return foc == btn_quit or foc in [_btn_stage_prev, _btn_stage_next, _btn_mute, _btn_vol_down, _btn_vol_up]
+
 func _navigate_horizontal(step: int, is_in_char_view: bool) -> void:
 	if is_in_char_view:
 		_select_character(0 if step < 0 else 1)
+	elif _is_utility_or_quit_focused():
+		var vp := get_viewport()
+		var foc := vp.gui_get_focus_owner() if vp else null
+		if foc == btn_play and step > 0 and btn_quit and btn_quit.visible:
+			btn_quit.grab_focus()
+		elif foc == btn_quit and step < 0 and btn_play:
+			btn_play.grab_focus()
+		else:
+			var util_row := _get_focus_row_controls()
+			var idx := util_row.find(foc)
+			if idx >= 0 and not util_row.is_empty():
+				util_row[posmod(idx + step, util_row.size())].grab_focus()
 	else:
+		var vp := get_viewport() if is_inside_tree() else null
+		var foc := vp.gui_get_focus_owner() if vp else null
+		if foc == btn_play and step > 0 and btn_quit and btn_quit.visible:
+			# Allow quick right arrow from BtnPlay only if user keeps pressing, or keep difficulty horizontal:
+			pass
 		var current_d: int = _game_settings.difficulty if _game_settings else 1
 		_select_difficulty(clampi(current_d + step, 0, 2))
 
@@ -460,6 +510,23 @@ func _navigate_vertical(step: int, is_in_char_view: bool) -> void:
 		elif step > 0 and btn_back_to_menu and btn_back_to_menu.is_inside_tree():
 			btn_back_to_menu.grab_focus()
 	else:
+		var vp := get_viewport() if is_inside_tree() else null
+		var foc := vp.gui_get_focus_owner() if vp else null
+		var util_row := _get_focus_row_controls()
+		if step > 0:
+			if foc in util_row and btn_play and btn_play.is_inside_tree():
+				btn_play.grab_focus()
+				return
+			elif foc == btn_play and btn_quit and btn_quit.visible and btn_quit.is_inside_tree():
+				btn_quit.grab_focus()
+				return
+		elif step < 0:
+			if foc == btn_quit and btn_play and btn_play.is_inside_tree():
+				btn_play.grab_focus()
+				return
+			elif foc == btn_play and not util_row.is_empty():
+				util_row[0].grab_focus()
+				return
 		var current_m: int = _game_settings.game_mode if _game_settings else 0
 		_select_mode(1 if current_m == 0 else 0)
 
@@ -536,6 +603,8 @@ func _handle_directional_event(event: InputEvent, from_input_phase: bool) -> boo
 	return false
 
 func _input(event: InputEvent) -> void:
+	if (_materials_gallery != null and is_instance_valid(_materials_gallery)) or (_credits_screen != null and is_instance_valid(_credits_screen)):
+		return
 	if _scene_transition and _scene_transition.is_busy:
 		return
 	_update_input_mode(event)
@@ -546,6 +615,8 @@ func _input(event: InputEvent) -> void:
 			vp.set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if (_materials_gallery != null and is_instance_valid(_materials_gallery)) or (_credits_screen != null and is_instance_valid(_credits_screen)):
+		return
 	if _scene_transition and _scene_transition.is_busy:
 		return
 	_update_input_mode(event)
@@ -588,14 +659,28 @@ func _unhandled_input(event: InputEvent) -> void:
 						_select_character(1 if current_c == 0 else 0)
 					KEY_V:
 						_toggle_mute_audio()
+					KEY_MINUS, KEY_KP_SUBTRACT:
+						_step_music_volume(-4.0)
+					KEY_EQUAL, KEY_PLUS, KEY_KP_ADD:
+						_step_music_volume(4.0)
+					KEY_BRACKETLEFT, KEY_COMMA:
+						_cycle_start_stage(-1)
+					KEY_BRACKETRIGHT, KEY_PERIOD:
+						_cycle_start_stage(1)
 					KEY_1:
 						_select_difficulty(0)
 					KEY_2:
 						_select_difficulty(1)
 					KEY_3:
 						_select_difficulty(2)
+					KEY_G:
+						open_materials_gallery()
 					KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
-						_open_character_select()
+						var foc_btn := get_viewport().gui_get_focus_owner() if get_viewport() else null
+						if foc_btn is Button and foc_btn != btn_play and foc_btn.is_inside_tree():
+							foc_btn.emit_signal("pressed")
+						else:
+							_open_character_select()
 					KEY_ESCAPE:
 						_quit()
 					KEY_F11:
@@ -630,7 +715,11 @@ func _unhandled_input(event: InputEvent) -> void:
 					JOY_BUTTON_X, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER:
 						_select_character(1 if current_c == 0 else 0)
 					JOY_BUTTON_A, JOY_BUTTON_START:
-						_open_character_select()
+						var foc_joy := get_viewport().gui_get_focus_owner() if get_viewport() else null
+						if jb.button_index == JOY_BUTTON_A and foc_joy is Button and foc_joy != btn_play and foc_joy.is_inside_tree():
+							foc_joy.emit_signal("pressed")
+						else:
+							_open_character_select()
 					JOY_BUTTON_B, JOY_BUTTON_BACK:
 						_quit()
 					_:
@@ -681,7 +770,10 @@ func _select_character(index: int) -> void:
 		sfx_select.pitch_scale = 1.02 + index * 0.12
 		sfx_select.play()
 	if _game_settings:
-		_game_settings.selected_character = index
+		if _game_settings.has_method("set_selected_character"):
+			_game_settings.set_selected_character(index)
+		else:
+			_game_settings.selected_character = index
 	_refresh_character(true)
 
 func _refresh_character(_animate: bool = false) -> void:
@@ -792,13 +884,55 @@ func _start_game() -> void:
 		get_tree().change_scene_to_file(LOADING_SCENE)
 
 func _quit() -> void:
-	if OS.has_feature("web"):
+	if OS.has_feature("web") or OS.has_feature("ios"):
 		return
 	if _scene_transition and _scene_transition.is_busy:
 		return
 	get_tree().quit()
 
 func _build_extra_controls() -> void:
+	if _btn_materials_menu == null and get_node_or_null("BtnMaterialsMenu") == null:
+		_btn_materials_menu = Button.new()
+		_btn_materials_menu.name = "BtnMaterialsMenu"
+		_btn_materials_menu.text = "⋮"
+		_btn_materials_menu.tooltip_text = "Biblioteca de Materiales del Juego (Personajes, Música, Escenarios y Más)"
+		_btn_materials_menu.custom_minimum_size = Vector2(40, 40)
+		_btn_materials_menu.z_index = 40
+		_btn_materials_menu.add_theme_font_size_override("font_size", 20)
+		var msb := StyleBoxFlat.new()
+		msb.bg_color = Color(0.11, 0.13, 0.21, 0.92)
+		msb.border_color = Color(0.86, 0.72, 0.34, 0.90)
+		msb.set_border_width_all(2)
+		msb.set_corner_radius_all(8)
+		_btn_materials_menu.add_theme_stylebox_override("normal", msb)
+		var msb_hover := msb.duplicate() as StyleBoxFlat
+		msb_hover.bg_color = Color(0.20, 0.23, 0.36, 0.98)
+		_btn_materials_menu.add_theme_stylebox_override("hover", msb_hover)
+		_btn_materials_menu.pressed.connect(open_materials_gallery)
+		add_child(_btn_materials_menu)
+		UiJuice.attach_button(_btn_materials_menu, sfx_select)
+
+	if _btn_credits == null and get_node_or_null("BtnCredits") == null:
+		_btn_credits = Button.new()
+		_btn_credits.name = "BtnCredits"
+		_btn_credits.text = "Créditos"
+		_btn_credits.tooltip_text = "Ver Créditos Oficiales (Video 3:4 basado en README.md)"
+		_btn_credits.custom_minimum_size = Vector2(88, 40)
+		_btn_credits.z_index = 40
+		_btn_credits.add_theme_font_size_override("font_size", 12)
+		var csb := StyleBoxFlat.new()
+		csb.bg_color = Color(0.11, 0.13, 0.21, 0.92)
+		csb.border_color = Color(0.86, 0.72, 0.34, 0.90)
+		csb.set_border_width_all(2)
+		csb.set_corner_radius_all(8)
+		_btn_credits.add_theme_stylebox_override("normal", csb)
+		var csb_h := csb.duplicate() as StyleBoxFlat
+		csb_h.bg_color = Color(0.20, 0.23, 0.36, 0.98)
+		_btn_credits.add_theme_stylebox_override("hover", csb_h)
+		_btn_credits.pressed.connect(open_credits_screen)
+		add_child(_btn_credits)
+		UiJuice.attach_button(_btn_credits, sfx_select)
+
 	if main_view == null or main_view.get_node_or_null("UtilityRow") != null:
 		return
 	var action_row := main_view.get_node_or_null("ActionRow")
@@ -813,11 +947,11 @@ func _build_extra_controls() -> void:
 
 	_btn_stage_prev = Button.new()
 	_btn_stage_prev.text = "<"
-	_btn_stage_prev.custom_minimum_size = Vector2(26, 24)
+	_btn_stage_prev.custom_minimum_size = Vector2(34, 34)
 	_btn_stage_prev.add_theme_font_size_override("font_size", 11)
 	_btn_stage_prev.pressed.connect(_cycle_start_stage.bind(-1))
 	utility_row.add_child(_btn_stage_prev)
-	UiJuice.attach_button(_btn_stage_prev, sfx_select)
+	UiJuice.attach_button(_btn_stage_prev)
 
 	_stage_label = Label.new()
 	_stage_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -828,35 +962,35 @@ func _build_extra_controls() -> void:
 
 	_btn_stage_next = Button.new()
 	_btn_stage_next.text = ">"
-	_btn_stage_next.custom_minimum_size = Vector2(26, 24)
+	_btn_stage_next.custom_minimum_size = Vector2(34, 34)
 	_btn_stage_next.add_theme_font_size_override("font_size", 11)
 	_btn_stage_next.pressed.connect(_cycle_start_stage.bind(1))
 	utility_row.add_child(_btn_stage_next)
-	UiJuice.attach_button(_btn_stage_next, sfx_select)
+	UiJuice.attach_button(_btn_stage_next)
 
 	_btn_mute = Button.new()
 	_btn_mute.name = "BtnAudioMute"
-	_btn_mute.custom_minimum_size = Vector2(96, 24)
+	_btn_mute.custom_minimum_size = Vector2(112, 34)
 	_btn_mute.add_theme_font_size_override("font_size", 11)
 	_btn_mute.pressed.connect(_toggle_mute_audio)
 	utility_row.add_child(_btn_mute)
-	UiJuice.attach_button(_btn_mute, sfx_select)
+	UiJuice.attach_button(_btn_mute)
 
 	_btn_vol_down = Button.new()
 	_btn_vol_down.text = "-"
-	_btn_vol_down.custom_minimum_size = Vector2(24, 24)
+	_btn_vol_down.custom_minimum_size = Vector2(34, 34)
 	_btn_vol_down.add_theme_font_size_override("font_size", 11)
 	_btn_vol_down.pressed.connect(_step_music_volume.bind(-4.0))
 	utility_row.add_child(_btn_vol_down)
-	UiJuice.attach_button(_btn_vol_down, sfx_select)
+	UiJuice.attach_button(_btn_vol_down)
 
 	_btn_vol_up = Button.new()
 	_btn_vol_up.text = "+"
-	_btn_vol_up.custom_minimum_size = Vector2(24, 24)
+	_btn_vol_up.custom_minimum_size = Vector2(34, 34)
 	_btn_vol_up.add_theme_font_size_override("font_size", 11)
 	_btn_vol_up.pressed.connect(_step_music_volume.bind(4.0))
 	utility_row.add_child(_btn_vol_up)
-	UiJuice.attach_button(_btn_vol_up, sfx_select)
+	UiJuice.attach_button(_btn_vol_up)
 
 	_record_label = Label.new()
 	_record_label.name = "RecordLabel"
@@ -919,7 +1053,10 @@ func _refresh_stage_and_audio_ui() -> void:
 
 	var is_muted := bool(_game_settings.get("muted")) if _game_settings else false
 	if _btn_mute:
-		_btn_mute.text = "Audio: OFF (V)" if is_muted else "Audio: ON (V)"
+		if _last_input_was_touch or MobileControls.is_touch_device():
+			_btn_mute.text = "Audio: OFF" if is_muted else "Audio: ON"
+		else:
+			_btn_mute.text = "Audio: OFF (V)" if is_muted else "Audio: ON (V)"
 
 	if _record_label:
 		var d: int = _game_settings.difficulty if _game_settings else 1
@@ -934,3 +1071,54 @@ func _refresh_stage_and_audio_ui() -> void:
 				["Fácil", "Normal", "Difícil"][clampi(d, 0, 2)],
 				mins, secs, int(rec.get("best_defeated", 0))
 			]
+
+func open_materials_gallery() -> void:
+	if _scene_transition and _scene_transition.is_busy:
+		return
+	if _materials_gallery != null and is_instance_valid(_materials_gallery):
+		return
+	if sfx_select and sfx_select.is_inside_tree():
+		sfx_select.pitch_scale = 1.08
+		sfx_select.play()
+	_materials_gallery = MaterialsGalleryClass.new()
+	_materials_gallery.closed.connect(_on_materials_gallery_closed)
+	add_child(_materials_gallery)
+
+func _close_materials_gallery() -> void:
+	if _materials_gallery != null and is_instance_valid(_materials_gallery):
+		_materials_gallery.queue_free()
+	_on_materials_gallery_closed()
+
+func _on_materials_gallery_closed() -> void:
+	_materials_gallery = null
+	if _game_settings and _game_settings.has_method("play_menu_music"):
+		_game_settings.play_menu_music()
+	if btn_play and btn_play.is_inside_tree():
+		btn_play.grab_focus()
+
+func open_credits_screen() -> void:
+	if _scene_transition and _scene_transition.is_busy:
+		return
+	if _credits_screen != null and is_instance_valid(_credits_screen):
+		return
+	if sfx_select and sfx_select.is_inside_tree():
+		sfx_select.pitch_scale = 1.05
+		sfx_select.play()
+	var cs_res := load(CREDITS_SCREEN_PATH) as PackedScene
+	if cs_res == null:
+		return
+	_credits_screen = cs_res.instantiate()
+	_credits_screen.closed.connect(_on_credits_closed)
+	add_child(_credits_screen)
+
+func _close_credits_screen() -> void:
+	if _credits_screen != null and is_instance_valid(_credits_screen):
+		_credits_screen.queue_free()
+	_on_credits_closed()
+
+func _on_credits_closed() -> void:
+	_credits_screen = null
+	if _game_settings and _game_settings.has_method("play_menu_music"):
+		_game_settings.play_menu_music()
+	if btn_play and btn_play.is_inside_tree():
+		btn_play.grab_focus()

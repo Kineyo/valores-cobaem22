@@ -41,17 +41,19 @@ func _setup_labels() -> void:
 		label.add_theme_color_override("font_color", Color(1.0, 0.90, 0.40))
 		label.add_theme_color_override("font_outline_color", Color(0.08, 0.04, 0.06))
 		label.add_theme_constant_override("outline_size", 4)
-		label.position = Vector2(-75, -58)
-		label.size = Vector2(150, 20)
+		label.z_index = 20
+		label.position = Vector2(-85, -70)
+		label.size = Vector2(170, 20)
 		add_child(label)
 
 	if status_label == null:
 		status_label = Label.new()
 		status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		status_label.add_theme_font_size_override("font_size", 9)
-		status_label.add_theme_constant_override("outline_size", 3)
-		status_label.position = Vector2(-75, -42)
-		status_label.size = Vector2(150, 18)
+		status_label.add_theme_constant_override("outline_size", 4)
+		status_label.z_index = 20
+		status_label.position = Vector2(-85, -54)
+		status_label.size = Vector2(170, 18)
 		add_child(status_label)
 
 func update_state(cleared: bool) -> void:

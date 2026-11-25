@@ -11,6 +11,7 @@ var _shake_decay: float = 0.0
 var _camera: Camera2D
 var _fade_gradient: Gradient
 var _hitstop_id: int = 0
+var _recent_texts: Array[Dictionary] = []
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -39,9 +40,12 @@ func _process(delta: float) -> void:
 func shake(strength: float = 4.0, duration: float = 0.25) -> void:
 	if not is_inside_tree() or get_viewport() == null:
 		return
-	_camera = get_viewport().get_camera_2d()
-	if _camera == null:
+	var next_cam := get_viewport().get_camera_2d()
+	if next_cam == null:
 		return
+	if _camera != null and _camera != next_cam and is_instance_valid(_camera):
+		_camera.offset = Vector2.ZERO
+	_camera = next_cam
 	if strength >= _shake_strength:
 		_shake_strength = strength
 		_shake_decay = strength / maxf(duration, 0.01)
@@ -57,10 +61,39 @@ func hitstop(duration: float = 0.06, time_scale: float = 0.05) -> void:
 	if _hitstop_id == current_id:
 		Engine.time_scale = 1.0
 
+## Retroalimentación háptica breve y segura solo en dispositivos móviles reales
+func vibrate_mobile(duration_ms: int = 18) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	if OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"):
+		Input.vibrate_handheld(clampi(duration_ms, 8, 80))
+
 ## Crea un texto flotante emergente con animación ascendente (ej. "¡Respeto!")
 func floating_text(parent: Node, pos: Vector2, text: String, color: Color = Color.WHITE, size: int = 14) -> void:
 	if parent == null:
 		return
+	var now_sec := float(Time.get_ticks_msec()) * 0.001
+	var kept: Array[Dictionary] = []
+	for item in _recent_texts:
+		if now_sec - float(item.get("time", 0.0)) <= 0.85:
+			kept.append(item)
+	_recent_texts = kept
+
+	var spawn_pos := pos
+	var stack_levels := 0
+	while stack_levels < 4:
+		var overlaps := false
+		for item in _recent_texts:
+			var prev_pos: Vector2 = item.get("pos", Vector2.ZERO)
+			if absf(spawn_pos.x - prev_pos.x) < 130.0 and absf(spawn_pos.y - prev_pos.y) < 22.0:
+				overlaps = true
+				break
+		if not overlaps:
+			break
+		spawn_pos.y -= 22.0
+		stack_levels += 1
+	_recent_texts.append({"pos": spawn_pos, "time": now_sec})
+
 	var label := Label.new()
 	label.text = text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -73,7 +106,7 @@ func floating_text(parent: Node, pos: Vector2, text: String, color: Color = Colo
 
 	label.reset_size()
 	label.pivot_offset = label.size * 0.5
-	label.global_position = pos - label.size * 0.5
+	label.global_position = spawn_pos - label.size * 0.5
 	label.scale = Vector2(0.4, 0.4)
 
 	var start_y := label.global_position.y

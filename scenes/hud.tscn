@@ -195,7 +195,7 @@ show_percentage = false
 
 [node name="RunnerIcon" type="TextureRect" parent="Root/TopPanel/TopBar/ProgressBar"]
 unique_name_in_owner = true
-visible = false
+visible = true
 layout_mode = 0
 offset_left = -11.0
 offset_top = -9.0
@@ -474,89 +474,15 @@ size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 14
 text = "Menú principal (Esc)"
 
-[node name="VictoryPanel" type="PanelContainer" parent="Root"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -270.0
-offset_top = -165.0
-offset_right = 270.0
-offset_bottom = 165.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_victory")
-
-[node name="VBoxContainer" type="VBoxContainer" parent="Root/VictoryPanel"]
-layout_mode = 2
-theme_override_constants/separation = 6
-alignment = 1
-
-[node name="InstLabel" type="Label" parent="Root/VictoryPanel/VBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.77, 0.63, 0.35, 1)
-theme_override_font_sizes/font_size = 11
-text = "COBAEM · CEMSaD 22 ENTHAVI"
-horizontal_alignment = 1
-
-[node name="Title" type="RichTextLabel" parent="Root/VictoryPanel/VBoxContainer"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_colors/default_color = Color(0.88, 0.78, 0.44, 1)
-theme_override_font_sizes/normal_font_size = 24
-bbcode_enabled = true
-text = "[center]¡Recorrido Completado![/center]"
-fit_content = true
-scroll_active = false
-autowrap_mode = 0
-
-[node name="Subtitle" type="Label" parent="Root/VictoryPanel/VBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.95, 0.98, 0.92, 1)
-theme_override_font_sizes/font_size = 14
-text = "¡Llegaste a la meta sembrando buenos valores en CEMSaD 22!
-Premio: Eres un promotor oficial de la comunidad COBAEM."
-horizontal_alignment = 1
-
-[node name="VictoryStats" type="Label" parent="Root/VictoryPanel/VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
-theme_override_font_sizes/font_size = 13
-text = "Tiempo: 0:00  ·  Antivalores vencidos: 0  ·  Corazones: 3/3"
-horizontal_alignment = 1
-
-[node name="Spacer" type="Control" parent="Root/VictoryPanel/VBoxContainer"]
-custom_minimum_size = Vector2(0, 6)
-layout_mode = 2
-mouse_filter = 2
-
-[node name="BtnPlayAgain" type="Button" parent="Root/VictoryPanel/VBoxContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(240, 46)
-layout_mode = 2
-size_flags_horizontal = 4
-text = "Jugar de nuevo (Enter)"
-
-[node name="BtnVictoryMenu" type="Button" parent="Root/VictoryPanel/VBoxContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(240, 44)
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 14
-text = "Menú principal (Esc)"
-
 [node name="SFXGameOver" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("2_sfx_go")
+bus = &"SFX"
 
 [node name="SFXUi" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("6_sfx_ui")
 volume_db = -12.0
 pitch_scale = 1.4
 max_polyphony = 4
+bus = &"SFX"
 
 
