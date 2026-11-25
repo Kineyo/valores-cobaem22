@@ -90,6 +90,14 @@ jobs:
             keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12 || true
           fi
           
+          KEYSTORE_FILE="$(pwd)/debug.keystore"
+          sed -i "s|^keystore/debug=\"\"|keystore/debug=\"${KEYSTORE_FILE}\"|" export_presets.cfg
+          sed -i 's|^keystore/debug_user=""|keystore/debug_user="androiddebugkey"|' export_presets.cfg
+          sed -i 's|^keystore/debug_password=""|keystore/debug_password="android"|' export_presets.cfg
+          sed -i "s|^keystore/release=\"\"|keystore/release=\"${KEYSTORE_FILE}\"|" export_presets.cfg
+          sed -i 's|^keystore/release_user=""|keystore/release_user="androiddebugkey"|' export_presets.cfg
+          sed -i 's|^keystore/release_password=""|keystore/release_password="android"|' export_presets.cfg
+          
           ANDROID_SDK_PATH="${ANDROID_HOME:-/usr/lib/android-sdk}"
           JAVA_PATH="${JAVA_HOME:-$(dirname "$(dirname "$(readlink -f "$(which javac 2>/dev/null || which java 2>/dev/null || echo '/usr/bin/java')")")")}"
           
@@ -155,7 +163,7 @@ jobs:
             echo "tag=${{ inputs.tag_name }}" >> $GITHUB_OUTPUT
           else
             VER=$(grep 'config/version=' project.godot | cut -d'"' -f2)
-            echo "tag=v${VER:-1.5.0}" >> $GITHUB_OUTPUT
+            echo "tag=v${VER:-1.7}" >> $GITHUB_OUTPUT
           fi
 
       - name: Create or Update GitHub Release
@@ -174,27 +182,29 @@ jobs:
           body: |
             # 🎮 Campeones de los Valores — ${{ steps.tag_info.outputs.tag }}
             
-            Versión oficial compilada y empaquetada automáticamente mediante GitHub Actions para **Linux**, **Windows** y **Android** (con variantes **Release** y **Debug**).
+            Versión oficial compilada y empaquetada automáticamente mediante GitHub Actions para **Linux**, **Windows** y **Android** (con variantes **Release** y **Debug**) bajo licencia de software libre **GNU GPL v3.0**.
             
             ---
             
             ### 📦 Paquetes Oficiales Listos para Descargar:
             - 🐧 **Linux (x86_64):** `campeones_valores_linux_x86_64.zip` — Ejecutable nativo compatible con Ubuntu, Debian, Fedora, Arch y derivados.
             - 🪟 **Windows (64-bit):** `campeones_valores_windows_x86_64.zip` — Ejecutable `.exe` independiente sin requerir dependencias externas.
-            - 📱 **Android (Release Oficial):** `campeones_valores_release.apk` (y `campeones_valores.apk`) — Instalador de producción firmado y optimizado para máximo rendimiento.
-            - 🛠️ **Android (Debug / Pruebas):** `campeones_valores_debug.apk` — Instalador con símbolos y consola de depuración activada para auditoría y pruebas técnicas en planteles educativos.
+            - 📱 **Android (Release Oficial):** `campeones_valores_release.apk` (y `campeones_valores.apk`) — Instalador firmado y optimizado para teléfonos y tabletas.
+            - 🛠️ **Android (Debug / Pruebas):** `campeones_valores_debug.apk` — Instalador con símbolos y consola de depuración para auditoría y pruebas técnicas escolares.
             
             ---
             
-            ### ✨ Novedades Principales de la Versión v1.5.0:
-            1. **🏆 Ceremonia Final en Cancha y Reconocimientos PDF:**
-               - Nuevo cierre en la cancha de usos múltiples protagonizado por el **Coordinador del Plantel** en el podio junto a los alumnos rescatados, el Maestro redimido y el himno institucional (`himno.m4a`/`himno.ogg`), con caminata continua hacia el podio y entrega de medalla.
-               - Espera de 7 segundos tras derrotar a Titanor mientras los alumnos celebran con *"Finalmente lo derrotamos!"* antes de desbloquear la meta final.
-               - Generador integrado de certificados **PDF 1.4** en **Tamaño Carta** y **5x7** con los 3 logos oficiales del COBAEM, nombre en blanco y dificultad inicial registrada.
-            2. **⚔️ Mecánicas Progresivas de Jefes y Correcciones de Salones:**
-               - Fases finales de **Titanor** a 10 HP (neblina oscura, invocación de hasta 5 enemigos, patrones Danmaku 5s cada 7s y cobertura temporal) y a 5 HP (redención no violenta mediante los 7 alumnos rescatados).
-               - Ataques teledirigidos y teletransporte seguro cada 10 segundos para **Ciber-Murmullus** (Edificio B).
-               - Persistencia limpia al entrar y salir de salones sin enemigos inmóviles ni emboscadas inmediatas en el spawn.
-            3. **🎮 Jugabilidad Multiplataforma y Escenarios Detallados:**
-               - Detección táctil real en escritorio/móvil, botón táctil dedicado **FOCUS**, navegación completa con teclado/gamepad (stick izquierdo + D-Pad) y diseño responsivo para Safe Area.
-               - Redibujado detallado en escala real ($1\text{ m} = 40\text{ px}$) de los 6 escenarios exteriores y los 6 salones interiores junto con la capa ambiental `ScenarioDecor` compatible con `gl_compatibility`.
+            ### ✨ Novedades Principales de la Versión v1.7:
+            1. **📜 Nueva Licencia de Software Libre Educativo (`GNU GPL v3.0`):**
+               - Migración oficial a **GNU General Public License v3.0**, garantizando que el proyecto permanezca siempre como código abierto para estudiantes, docentes e instituciones educativas (*copyleft*) y resguardando las denominaciones y emblemas institucionales del **COBAEM CEMSaD 22 ENTHAVI**.
+            2. **🗣️ Diálogos, Interfaz y Certificados Dinámicos por Género (`Masculino` / `Femenino`):**
+               - Adaptación gramatical completa según el personaje elegido en el **Modo Historia** (Prólogo, los 6 Actos y Epílogo: *Guardián / Guardiana de los Valores*, concordancia de adjetivos y pronombres), frases de entrada de los **7 Jefes**, agradecimientos y frases de combate de los **7 alumnos secundarios**, subtítulo de pausa en el HUD, escena clímax (*Héroe / Heroína*) y **Ceremonia Final** (*alumno ejemplar / alumna ejemplar*, *nuestro / nuestra representante*).
+               - Los certificados **PDF 1.4** descargables (**Tamaño Carta** y **5×7**, con opción de escribir tu nombre) adaptan automáticamente su redacción entre *«El alumno/Padre de familia/Maestro... asesor de los valores»* y *«La alumna/Madre de familia/Maestra... asesora de los valores»*.
+            3. **🤝 Aliados con IA (`AllyBrain`), Pulso de Empatía e Inventario con `Esperanza` (15s):**
+               - Los 7 estudiantes rescatados (*Mateo, María, Valeria, Fernanda, Diego, Sofía y Alejandro*) se unen activamente con 5 poses animadas estandarizadas a `512×512 px`, evasión inteligente de proyectiles y apoyo pacífico frente a jefes.
+               - Nueva habilidad activa **Pulso de Empatía** (`[E]` / botón táctil `PULSO`) y ranura de inventario (`[Q]` / `ÍTEM`) con Corazón, Escudo y la estrella dorada **Esperanza**, que disipa la niebla, anula clones de sombra y deja indefenso a Titanor durante **15 segundos**.
+            4. **🎵 Banda Sonora Dinámica (12 Temas), Vida Porcentual (`%`) y Clímax Estilo Undertale a 1 HP:**
+               - Catálogo musical de **12 composiciones escolares/Touhou** con arreglos diferenciados entre personaje Masculino y Femenino y modulación dinámica por dificultad.
+               - Indicadores de vida en porcentaje (`%`) con estados animados de daño, nuevos patrones Danmaku Touhou para Titanor y secuencia cinematográfica a **1 HP** donde el protagonista y los 7 aliados convergen como **8 Corazones de los Valores** al ritmo del tema *Finale*.
+            5. **📚 Biblioteca de Materiales (`⋮`), Créditos 3:4 y Mejoras Multiplataforma:**
+               - Nueva enciclopedia interactiva desde el menú principal (`⋮`) para explorar **Personajes**, **Jukebox musical**, **Escenarios**, **Enemigos/Jefes**, **Habilidades** y **Videos en pantalla completa**, además del botón **Créditos (3:4)**, selector de etapas desbloqueadas, récords por dificultad y ergonomía táctil antisolapamiento validada por **22 bloques de pruebas automatizadas**.
