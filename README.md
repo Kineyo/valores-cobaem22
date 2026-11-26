@@ -1,122 +1,117 @@
-# 🏆 Campeones de los Valores — CEMSaD 22 ENTHAVI
-
 <div align="center">
 
-```text
- ██████╗ █████╗ ███╗   ███╗██████╗ ███████╗ ██████╗ ███╗   ██╗███████╗███████╗
-██╔════╝██╔══██╗████╗ ████║██╔══██╗██╔════╝██╔═══██╗████╗  ██║██╔════╝██╔════╝
-██║     ███████║██╔████╔██║██████╔╝█████╗  ██║   ██║██╔██╗ ██║█████╗  ███████╗
-██║     ██╔══██║██║╚██╔╝██║██╔═══╝ ██╔══╝  ██║   ██║██║╚██╗██║██╔══╝  ╚════██║
-╚██████╗██║  ██║██║ ╚═╝ ██║██║     ███████╗╚██████╔╝██║ ╚████║███████╗███████║
- ╚═════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝╚══════╝
-        — D E   L O S   V A L O R E S  •  C E M S a D   2 2   E N T H A V I —
-```
+<img src="assets/banner.png" alt="Campeones de los Valores — CEMSaD 22 ENTHAVI" width="100%" />
 
-[![Godot Engine](https://img.shields.io/badge/Godot%20Engine-4.7%2B%20%2F%204.x-478CBF?style=for-the-badge&logo=godotengine&logoColor=white)](https://godotengine.org/)
-[![GL Compatibility](https://img.shields.io/badge/Renderer-GL%20Compatibility-5272F2?style=for-the-badge&logo=opengl&logoColor=white)](https://docs.godotengine.org/en/stable/tutorials/rendering/)
-[![Perspective](https://img.shields.io/badge/Perspectiva-3%2F4%20RPG%20Retro-9C27B0?style=for-the-badge)](https://github.com/Kineyo/valores-cobaem22)
-[![Escala Arquitectónica](https://img.shields.io/badge/Escala%20Real-1%20m%20%3D%2040%20px-2EA043?style=for-the-badge)](https://github.com/Kineyo/valores-cobaem22)
-[![BIM CAD 3D](https://img.shields.io/badge/Planimetr%C3%ADa-BIM%20%2F%20CAD%203D-FF7043?style=for-the-badge&logo=three.js&logoColor=white)](planos/plano_3d.html)
-[![Plantel](https://img.shields.io/badge/Plantel-CEMSaD%2022%20ENTHAVI-7A1C3C?style=for-the-badge)](https://cobaem.edomex.gob.mx/)
-[![Licencia](https://img.shields.io/badge/Licencia-GPL%20v3.0-00B4D8?style=for-the-badge)](LICENSE)
+<img src="icon.jpeg" alt="Emblema Campeones de los Valores" width="128" />
 
-<br/>
+# 🏆 Campeones de los Valores
+### *CEMSaD 22 ENTHAVI — Colegio de Bachilleres del Estado de México (COBAEM)*
 
 **Videojuego educativo de aventura y acción retro en perspectiva 3/4 desarrollado en Godot Engine 4.**  
-Una experiencia lúdica ambientada a **escala arquitectónica real** dentro de las instalaciones del plantel **CEMSaD 22 ENTHAVI (COBAEM)**, diseñada para promover virtudes humanas esenciales (*Amabilidad*, *Respeto*, *Empatía*) y superar conductas nocivas (*Grosería*, *Acoso*, *Bullying*).
+Ambientado a **escala arquitectónica real** ($1\text{ m} = 40\text{ px}$) dentro de las instalaciones del plantel, diseñado para transformar antivalores (*Grosería*, *Acoso*, *Bullying*) en virtudes humanas (*Amabilidad*, *Respeto*, *Empatía*).
 
-[⚡ Guía Rápida](#-guía-rápida-de-inicio) • [🎬 Video](#-video-de-presentación-del-proyecto) • [🎮 Controles](#-manual-del-jugador-y-controles) • [🗺️ Escenarios](#️-guía-de-los-6-escenarios-escolares-a-escala-real) • [📐 Planos 3D / CAD](#-sistema-cad-y-maqueta-3d-interactiva) • [💻 Comandos Shell](#-shells-y-comandos-de-terminal) • [🏗️ Arquitectura](#️-arquitectura-de-software-y-estructura-del-código)
+<p>
+  <a href="https://godotengine.org/"><img src="https://img.shields.io/badge/Godot%20Engine-4.7%2B%20%2F%204.x-478CBF?style=for-the-badge&logo=godotengine&logoColor=white" alt="Godot Engine" /></a>
+  <a href="https://docs.godotengine.org/en/stable/tutorials/rendering/"><img src="https://img.shields.io/badge/Renderer-GL%20Compatibility-5272F2?style=for-the-badge&logo=opengl&logoColor=white" alt="GL Compatibility" /></a>
+  <a href="planos/plano_3d.html"><img src="https://img.shields.io/badge/Planimetr%C3%ADa-BIM%20%2F%20CAD%203D-FF7043?style=for-the-badge&logo=three.js&logoColor=white" alt="BIM CAD 3D" /></a>
+</p>
+<p>
+  <img src="https://img.shields.io/badge/Perspectiva-3%2F4%20RPG%20Retro-9C27B0?style=flat-square" alt="Perspectiva 3/4" />
+  <img src="https://img.shields.io/badge/Escala%20Real-1%20m%20%3D%2040%20px-2EA043?style=flat-square" alt="Escala Real" />
+  <a href="https://cobaem.edomex.gob.mx/"><img src="https://img.shields.io/badge/Plantel-CEMSaD%2022%20ENTHAVI-7A1C3C?style=flat-square" alt="CEMSaD 22 ENTHAVI" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/Licencia-GPL%20v3.0-00B4D8?style=flat-square" alt="Licencia GPL v3.0" /></a>
+</p>
 
 <br/>
 
----
+[⚡ Inicio Rápido](#-inicio-rápido) •
+[🎬 Video](#-video-de-presentación) •
+[🗺️ Escenarios](#️-los-6-escenarios-a-escala-real) •
+[🎮 Jugabilidad](#-jugabilidad-y-controles) •
+[🎓 Personajes y Jefes](#-comunidad-escolar-y-bestiario) •
+[📐 Planos 3D / CAD](#-sistema-cad-2d-y-maqueta-3d-interactiva) •
+[🏗️ Desarrollo](#️-arquitectura-y-desarrollo)
 
 </div>
 
-## 📑 Tabla de Contenidos
+---
 
-- [⚡ Guía Rápida de Inicio](#-guía-rápida-de-inicio)
-- [🎬 Video de Presentación del Proyecto](#-video-de-presentación-del-proyecto)
-- [🎯 Propósito y Visión Educativa](#-propósito-y-visión-educativa)
-- [🎮 Manual del Jugador y Controles](#-manual-del-jugador-y-controles)
-- [📖 Modos de Juego: Modo Historia vs Modo Arcade](#-modos-de-juego-modo-historia-vs-modo-arcade)
-- [🏛️ Pantalla de Carga Institucional y Transiciones](#️-pantalla-de-carga-institucional-y-transiciones)
-- [📱🖥️ Arquitectura Multiplataforma y Responsividad](#️-arquitectura-multiplataforma-y-responsividad)
-- [🌟 Mecánicas de Juego, Cuotas y Desbloqueo de Metas](#-mecánicas-de-juego-cuotas-y-desbloqueo-de-metas)
-- [👹 Bestiario de Antivalores y los 6 Jefes Finales](#-bestiario-de-antivalores-y-los-6-jefes-finales)
-- [🎓 Personajes Secundarios: Alumnos del CEMSaD 22](#-personajes-secundarios-alumnos-del-cemsad-22)
-- [⚙️ Modos de Dificultad y Balance](#️-modos-de-dificultad-y-balance)
-- [🗺️ Guía de los 6 Escenarios Escolares a Escala Real](#️-guía-de-los-6-escenarios-escolares-a-escala-real)
-- [📐 Sistema CAD y Maqueta 3D Interactiva](#-sistema-cad-y-maqueta-3d-interactiva)
-- [📚 Informes Especializados de Auditoría y Dictamen v2](#-informes-especializados-de-auditoría-y-dictamen-v2)
-- [💻 Shells y Comandos de Terminal](#-shells-y-comandos-de-terminal)
-- [🏗️ Arquitectura de Software y Estructura del Código](#️-arquitectura-de-software-y-estructura-del-código)
-- [🚀 Optimizaciones Técnicas y Rendimiento](#-optimizaciones-técnicas-y-rendimiento)
-- [🛠️ Guía para Desarrolladores y Modding](#️-guía-para-desarrolladores-y-modding)
-- [🤝 Contribución y Código Abierto](#-contribución-y-código-abierto)
-- [📜 Licencia y Reconocimientos](#-licencia-y-reconocimientos)
+## ✨ De un Vistazo
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🎓 Enfoque Educativo (Cero Violencia)</h3>
+      No hay destrucción violenta: cada disparo de virtud representa diálogo y asertividad. Los antivalores y jefes se <strong>redimen pacíficamente</strong>, proclamando valores y sumando esperanza a la comunidad escolar.
+    </td>
+    <td width="50%" valign="top">
+      <h3>📐 Plantel Real a Escala Exacta</h3>
+      Levantado con planos oficiales y 52 fotografías de campo bajo una escala estricta de <strong>1 metro = 40 píxeles</strong> (1 baldosa = 1 m²), con 6 zonas exteriores, 6 salones interiores y visor BIM 3D.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🎮 Acción 3/4, Salones y Danmaku</h3>
+      Combina exploración 8D con <em>Y-Sorting</em>, Modo Historia con cinemáticas, rescate de aliados con IA (<code>AllyBrain</code>), salones interiores y un clímax estilo <strong>Danmaku Touhou</strong> con micro-hitbox y <em>Graze</em>.
+    </td>
+    <td width="50%" valign="top">
+      <h3>📱 Multiplataforma y Ligero</h3>
+      Motor <code>GL Compatibility</code> compatible con PCs escolares (Windows/Linux), Android (controles táctiles dinámicos con <em>Safe Area</em>) y Web/PWA, manteniendo la VRAM por debajo de 150 MB.
+    </td>
+  </tr>
+</table>
 
 ---
 
-## ⚡ Guía Rápida de Inicio
+## 🎬 Video de Presentación
 
-Ejecuta el proyecto en tu entorno local en menos de dos minutos siguiendo estos sencillos pasos:
+https://github.com/user-attachments/assets/75b3ccd4-ab32-4d3e-8b7b-bba197a8a0dc
 
-### 📋 Requisitos Previos
+> **Opciones de reproducción local:**
+> - 🌐 **Reproductor Web Interactivo (Remotion):** [`assets/video/video_presentacion.html`](assets/video/video_presentacion.html) *(play, pausa, línea de tiempo y pantalla completa en tu navegador)*.
+> - 📹 **Video MP4 Full HD:** [`assets/video/video_presentacion.mp4`](assets/video/video_presentacion.mp4) *(1920×1080 @ 30 FPS con banda sonora chiptune `music_game.wav`)*.
 
-| Componente | Versión Recomendada | Notas |
+---
+
+## ⚡ Inicio Rápido
+
+### 📋 Requisitos
+
+| Componente | Versión Recomendada | Uso |
 | :--- | :--- | :--- |
-| **Godot Engine** | `4.7.x` (compatible con 4.3+) | Descargar versión estándar (GL Compatibility / .NET no requerido). |
-| **Python** | `3.10+` *(Opcional)* | Necesario únicamente para regenerar la música o los mapas procedimentales. |
-| **Navegador Web** | Chrome, Firefox, Edge o Safari | Compatible con WebGL para visualizar las maquetas 3D y planos interactivos. |
+| **Godot Engine** | `4.7.x` *(compatible 4.3+)* | Versión estándar (`GL Compatibility`, .NET no requerido). |
+| **Python** *(Opcional)* | `3.10+` | Regenerar música chiptune o levantar servidor local de planos. |
+| **Navegador Web** | Chrome, Firefox, Edge o Safari | Visualizar la maqueta 3D WebGL y los planos CAD 2D. |
 
----
-
-### 🚀 Inicio Inmediato (Shell)
-
-Abre una terminal en tu sistema y ejecuta:
+### 🚀 Ejecutar desde Terminal
 
 ```bash
 # 1. Clonar el repositorio
 git clone https://github.com/Kineyo/valores-cobaem22.git
 cd valores-cobaem22
 
-# 2. Abrir e iniciar directamente con Godot Engine 4 (ejecutable en PATH)
+# 2. Iniciar directamente con Godot Engine 4
 godot --path . scenes/menu.tscn
 
-# O bien, si tienes Godot instalado mediante Flatpak en Linux:
+# Alternativa si usas Flatpak en Linux:
 flatpak run org.godotengine.Godot --path . scenes/menu.tscn
 ```
 
-### 🖥️ Inicio desde el Editor Visual de Godot
+<details>
+<summary><strong>🖥️ ¿Prefieres abrirlo desde el Editor Visual de Godot?</strong></summary>
 
-1. Inicia **Godot Engine 4**.
-2. En el Administrador de Proyectos, haz clic en el botón **Importar** (`Import`).
-3. Localiza y selecciona el archivo `project.godot` dentro del directorio clonado.
-4. Presiona **Importar y Editar**.
-5. Presiona la tecla <kbd>F5</kbd> (o el botón **Ejecutar Proyecto ▶** en la esquina superior derecha) para comenzar a jugar.
+1. Abre **Godot Engine 4** y haz clic en **Importar** (`Import`).
+2. Selecciona el archivo `project.godot` dentro de la carpeta clonada.
+3. Pulsa **Importar y Editar** y presiona <kbd>F5</kbd> (▶ **Ejecutar Proyecto**).
+
+</details>
 
 > [!TIP]
-> Puedes cambiar el modo de dificultad antes de iniciar tu partida directamente en el menú de inicio presionando las teclas <kbd>1</kbd>, <kbd>2</kbd> o <kbd>3</kbd>.
-
----
-
-## 🎬 Video de Presentación del Proyecto
-
-https://github.com/user-attachments/assets/75b3ccd4-ab32-4d3e-8b7b-bba197a8a0dc
-
-El repositorio incluye una presentación audiovisual oficial que resume la misión educativa, los 6 escenarios reales y los nuevos controles táctiles:
-
-* 🌐 **Reproductor Web Interactivo Remotion:** [`assets/video/video_presentacion.html`](assets/video/video_presentacion.html)  
-  *Abre este archivo en tu navegador web para ver la animación interactiva con el reproductor oficial de Remotion (play, pausa, barra de tiempo y pantalla completa).*
-* 📹 **Archivo de Video Físico MP4:** [`assets/video/video_presentacion.mp4`](assets/video/video_presentacion.mp4)  
-  *Video Full HD (1920×1080 @ 30 FPS, 1.4 MB) con banda sonora chiptune sincronizada (`music_game.wav`). Compatible con reproductores de video locales y dispositivos móviles.*
+> Desde el menú principal puedes alternar dificultad al instante con <kbd>1</kbd>, <kbd>2</kbd> o <kbd>3</kbd>, y cambiar de personaje (uniforme con pantalón o falda COBAEM) con <kbd>Q</kbd> / <kbd>E</kbd>.
 
 ---
 
 ## 🎯 Propósito y Visión Educativa
-
-**Campeones de los Valores** nace con la misión de transformar la enseñanza de la convivencia cívica y socioemocional en una experiencia interactiva atractiva para la comunidad estudiantil del **Colegio de Bachilleres del Estado de México (COBAEM)**, tomando como escenario el plantel **CEMSaD 22 ENTHAVI**.
 
 ```mermaid
 flowchart LR
@@ -125,633 +120,335 @@ flowchart LR
     C --> D["🏫 Clima Escolar Seguro\ny Convivencia Pacífica"]
 ```
 
-### 💡 Pilares Formativos del Proyecto
-
-1. **Resolución Constructiva de Conflictos:** El personaje no aniquila ni destruye a sus adversarios; los impactos de energía positiva representan actos de diálogo y asertividad que desarticulan conductas agresivas y las convierten en virtudes.
-2. **Apropiación del Espacio Educativo:** Al recorrer salones, laboratorios, canchas y plazas cívicas que reproducen exactamente su escuela a escala métrica, las y los estudiantes desarrollan un vínculo de pertenencia y cuidado hacia su infraestructura.
-3. **Refuerzo Positivo Inmediato:** Cada antivalor superado despliega frases constructivas (*Amabilidad*, *Respeto*, *Empatía*) acompañadas de retroalimentación sonora y visual.
+1. **Resolución Constructiva de Conflictos:** Desarticula conductas agresivas mediante diálogo simbólico y asertividad.
+2. **Apropiación del Espacio Escolar:** Recorrer aulas, laboratorios, canchas y plazas fieles a su plantel fortalece el sentido de pertenencia.
+3. **Refuerzo Positivo Inmediato:** Cada redención muestra mensajes formativos y recupera esperanza junto a las y los compañeros.
 
 ---
 
-## 🎮 Manual del Jugador y Controles
+## 🗺️ Los 6 Escenarios a Escala Real
 
-El juego cuenta con un esquema de control arcade responsivo diseñado para teclado, ratón, mandos gamepad y pantallas táctiles móviles, permitiendo desplazarse con fluidez en 8 direcciones y defender pacíficamente el ambiente escolar.
+Todo el plantel **CEMSaD 22 ENTHAVI** respeta la escala arquitectónica unificada:
 
-### 🕹️ Mapeo Universal de Teclado, Ratón, Mando y Pantalla Táctil
+$$\mathbf{1\text{ m} = 40\text{ px}} \quad \Longleftrightarrow \quad \mathbf{1\text{ px} = 2.5\text{ cm}} \quad \Longleftrightarrow \quad \mathbf{1\text{ baldosa } (40\times 40\text{ px}) = 1.00\text{ m}^2}$$
 
-| Acción | Tecla Principal (PC) | Ratón & Gamepad | Control Móvil (Android / Táctil v2.0) | Descripción |
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="escenarios/nivel_1_acceso_laboratorio.png" alt="Escenario 1: Acceso y Laboratorio" width="100%" />
+      <br/><strong>1. Acceso, Caseta C.V. y Edificio D</strong><br/>
+      <sub><code>1440×880 px</code> · <code>36.0 × 22.0 m</code> (792 m²)</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="escenarios/nivel_2_edificio_a_cafeteria.png" alt="Escenario 2: Edificio A y Cafetería" width="100%" />
+      <br/><strong>2. Edificio A — Cafetería y Aulas 1–2</strong><br/>
+      <sub><code>1600×800 px</code> · <code>40.0 × 20.0 m</code> (800 m²)</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="escenarios/nivel_3_plaza_civica_escalinata.png" alt="Escenario 3: Plaza Cívica y Escalinata" width="100%" />
+      <br/><strong>3. Plaza Cívica Techada y Escalinata</strong><br/>
+      <sub><code>1600×900 px</code> · <code>40.0 × 22.5 m</code> (900 m²)</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="escenarios/nivel_4_edificio_b.png" alt="Escenario 4: Terraza Superior y Edificio B" width="100%" />
+      <br/><strong>4. Terraza Superior (+4m) y Edificio B</strong><br/>
+      <sub><code>1440×800 px</code> · <code>36.0 × 20.0 m</code> (720 m²)</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="escenarios/nivel_5_edificio_c_computo.png" alt="Escenario 5: Edificio C Cómputo y Dirección" width="100%" />
+      <br/><strong>5. Edificio C — Cómputo y Dirección</strong><br/>
+      <sub><code>1440×880 px</code> · <code>36.0 × 22.0 m</code> (792 m²)</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="escenarios/nivel_6_cancha_usos_multiples.png" alt="Escenario 6: Cancha de Usos Múltiples" width="100%" />
+      <br/><strong>6. Cancha Polideportiva y Podio Final</strong><br/>
+      <sub><code>1440×900 px</code> · <code>36.0 × 22.5 m</code> (810 m²)</sub>
+    </td>
+  </tr>
+</table>
+
+<details>
+<summary><strong>📍 Ver desglose arquitectónico detallado de los 6 escenarios</strong></summary>
+
+1. **Acceso, Caseta C.V. y Edificio D (`nivel_1_acceso_laboratorio.png`):** Plaza de bienvenida, Muro COBAEM con el Colibrí del Estado de México, Jardinera con Osito Topiario, Caseta de Vigilancia (`7.5 m²`), estacionamiento en batería, Captador de Agua Pluvial (`25 m²`) y Laboratorios de Usos Múltiples (`183 m²`).
+2. **Edificio A — Cafetería y Aulas 1–2 (`nivel_2_edificio_a_cafeteria.png`):** Edificio A (`339.19 m²`) con Cafetería (`43.4 m²`), Almacén (`26.6 m²`), Aulas 1 y 2 (`56 m²` c/u), sanitarios y andador norte con columnas guinda y pinos en espiral.
+3. **Plaza Cívica Techada y Escalinata (`nivel_3_plaza_civica_escalinata.png`):** Explanada techada con arco techo blanco a `9.5 m` (`748 m²`), muro de piedra braza (`4.00 m` de desnivel), lona conmemorativa y Escalinata Monumental en "S" (`81 m²`).
+4. **Terraza Superior (+4.00 m) y Edificio B (`nivel_4_edificio_b.png`):** Meseta superior con Edificio B (`312.85 m²`), Aulas 3 y 4 (`57.6 m²` c/u), Biblioteca Escolar (`37.44 m²`), Sala de Maestros (`56.16 m²`) y vista panorámica del domo.
+5. **Edificio C de Dos Niveles (`nivel_5_edificio_c_computo.png`):** Estructura de dos plantas (`625.70 m²`): Taller de Informática y Cómputo (`115.2 m²`), Aulas 5 y 6, Dirección General, Orientación Educativa, Enfermería y explanada del Asta Bandera.
+6. **Cancha de Usos Múltiples y Podio (`nivel_6_cancha_usos_multiples.png`):** Cancha polideportiva (`540 m²`), área arbolada con bancas de concreto, barda perimetral oriente y el Gran Podio Dorado de la Copa de los Valores.
+
+</details>
+
+---
+
+## 🎮 Jugabilidad y Controles
+
+### 📖 Modos de Juego
+
+| Modo | Experiencia | Cinemáticas | Objetivo |
+| :--- | :--- | :---: | :--- |
+| **📖 Modo Historia** | Narrativa pedagógica situada en el CEMSaD 22 y el valle de Temoaya (Prólogo, 6 Actos y Epílogo). | ✅ Sí | Superar los 6 actos, redimir a los jefes mayores y liberar a la comunidad. |
+| **🕹️ Modo Arcade** | Acción directa sin pausas narrativas, ideal para torneos rápidos en aulas de cómputo. | ❌ No | Completar cuotas y jefes en cadena buscando la máxima puntuación. |
+
+<details>
+<summary><strong>🕹️ Mapeo Universal de Controles (Teclado, Ratón, Gamepad y Móvil Táctil v2.0)</strong></summary>
+
+| Acción | Teclado (PC) | Ratón / Gamepad | Móvil (Táctil v2.0) | Descripción |
 | :--- | :---: | :---: | :---: | :--- |
-| **Moverse (8 Direcciones)** | <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> / <kbd>Flechas</kbd> | Stick Izquierdo / D-Pad | **Joystick Dinámico Izquierdo** | Desplazamiento analógico fluido 8D con muescas cardinales y guías en reposo. |
-| **Modo Enfoque (Focus Mode)** | <kbd>Shift</kbd> (Izquierdo/Derecho) | Gatillo <kbd>L1</kbd> / <kbd>LB</kbd> | Arrastre preciso en joystick | Reduce velocidad al 52% para micro-esquivas e ilumina el núcleo vital Touhou de 5.5 px. |
-| **Disparo de Virtud** | <kbd>Espacio</kbd> | Clic Izquierdo (360°) / Botón <kbd>A</kbd> / <kbd>R1</kbd> | **Joystick Dinámico Derecho "VIRTUD"** | Dispara según el estilo elegido (*Pulso Guinda* o *Destello Guinda*) en 360° con flecha de puntería. |
-| **Pulso de Empatía** | <kbd>E</kbd> | Botón <kbd>X</kbd> | **Botón Táctil `PULSO`** | Emite una onda de apoyo que disipa proyectiles enemigos cercanos y ralentiza antivalores (10s CD). |
-| **Usar Ítem Equipado** | <kbd>Q</kbd> / <kbd>F</kbd> | Botón <kbd>Y</kbd> | **Botón Táctil `ÍTEM`** / Clic en Slot | Usa el único ítem equipado en el inventario (como la estrella **Esperanza** de 15s). |
-| **Apuntado Cardinal / 360°** | <kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> | Cursor del Ratón / Stick Der. | Arrastre de Joystick Derecho | Orienta la dirección del proyectil de virtud hacia los antivalores. |
-| **Pausar / Reanudar** | <kbd>Escape</kbd> / <kbd>P</kbd> | Botón <kbd>Start</kbd> | **Botón `⏸`** (Superior Derecho) | Abre el modal de pausa institucional sin interrumpir la música de fondo. |
-| **Pantalla Completa (Toggle)** | <kbd>F11</kbd> / <kbd>Alt + Enter</kbd> | — | Automático en Móviles | Alterna instantáneamente entre modo ventana y pantalla completa en PC. |
-| **Reiniciar Nivel** | <kbd>R</kbd> | Botón en Modal | Botón en Pantalla Modal | Reinicia la posición y estado del nivel en curso. |
-| **Alternar Controles Táctiles** | <kbd>F1</kbd> | — | Automático por hardware | Muestra u oculta manualmente la superposición de controles táctiles en PC. |
-| **Selección de Personaje** | <kbd>Q</kbd> / <kbd>E</kbd> / <kbd>C</kbd> / <kbd>Tab</kbd> | Botón <kbd>X</kbd> / <kbd>LB</kbd> / <kbd>RB</kbd> | Toque en tarjeta de personaje | Elige entre el aspecto con Pantalón Escolar o Falda Escolar COBAEM en el menú. |
-| **Selección de Dificultad** | <kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> | D-Pad <kbd>←</kbd> / <kbd>→</kbd> | Toque en botones de dificultad | Configura el balance de juego directamente desde el menú principal. |
+| **Moverse (8D)** | <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>Flechas</kbd> | Stick Izq. / D-Pad | **Joystick Izquierdo** | Desplazamiento analógico fluido 8D con muescas cardinales. |
+| **Modo Enfoque** | <kbd>Shift</kbd> | <kbd>L1</kbd> / <kbd>LB</kbd> | Arrastre preciso | Reduce velocidad al 52% e ilumina el núcleo vital Touhou (5.5 px). |
+| **Disparo de Virtud** | <kbd>Espacio</kbd> | Clic Izq. / <kbd>A</kbd> / <kbd>R1</kbd> | **Joystick Der. `VIRTUD`** | Dispara *Pulso Guinda* o *Destello Guinda* en 360°. |
+| **Pulso de Empatía** | <kbd>E</kbd> | <kbd>X</kbd> | **Botón `PULSO`** | Disipa proyectiles cercanos y ralentiza antivalores (10s CD). |
+| **Usar Ítem Equipado** | <kbd>Q</kbd> / <kbd>F</kbd> | <kbd>Y</kbd> | **Botón `ÍTEM`** / Slot | Activa el ítem equipado (ej. estrella **Esperanza** de 15s). |
+| **Apuntado 360°** | <kbd>I</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd> | Cursor / Stick Der. | Arrastre Stick Der. | Orienta la dirección del proyectil de virtud. |
+| **Pausa / Pantalla Completa** | <kbd>Esc</kbd> / <kbd>P</kbd> · <kbd>F11</kbd> | <kbd>Start</kbd> | **Botón `⏸`** | Pausa sin cortar la música / alterna pantalla completa en PC. |
+| **Reiniciar / Táctil PC** | <kbd>R</kbd> · <kbd>F1</kbd> | Modal | Modal | Reinicia el nivel / muestra u oculta controles táctiles en PC. |
+
+</details>
+
+<details>
+<summary><strong>🌟 Mecánicas Clave, HUD, Dificultad y Pantalla de Carga Institucional</strong></summary>
+
+#### Ciclo de Juego
+```text
+Movimiento 8D (Y-Sort) ──► Disparo de Virtudes ──► Cuota de Antivalores (máx. 2 respawns)
+                                                               │
+Meta Desbloqueada + Alumnos Felices (+1 ♥) ◄── Redención ◄── Aparición del Jefe Final
+```
+
+- **Sistema de Aliados (`AllyBrain`):** Cada alumno rescatado conserva su ataque distintivo y se une en la Cancha frente a **Titanor**.
+- **Inventario Único & Estrella "Esperanza" (15s):** Al activarla, destruye/bloquea clones, disipa la niebla oscura y deja vulnerable al jefe bajo un aura dorada.
+- **Pantalla de Carga Asíncrona (`scenes/loading_screen.tscn`):** Carga en hilo secundario (`ResourceLoader.load_threaded_request`) con escudos oficiales COBAEM (`assets/logos/`), telemetría de escala real y 9 citas formativas (incluyendo sabiduría otomí *K'öte m'ui* y náhuatl *Tlamatiliztli*).
+
+#### Balance por Dificultad (`GameSettings`)
+
+| Parámetro | Fácil 🟢 | Normal 🟡 | Difícil 🔴 |
+| :--- | :---: | :---: | :---: |
+| **Vidas Iniciales** | **5 ♥** | **3 ♥** | **2 ♥** |
+| **Velocidad Enemigos** | `0.75×` | `1.00×` | `1.40×` |
+| **Cadencia de Disparo** | `0.22 s` | `0.35 s` | `0.55 s` |
+| **Escala de Proyectiles** | `1.6×` | `1.3×` | `1.0×` |
+| **Perfil Sugerido** | Primaria / Nuevo ingreso | Secundaria y Preparatoria | Desafío Arcade avanzado |
+
+</details>
 
 ---
 
-## 🏛️ Pantalla de Carga Institucional y Transiciones
+## 🎓 Comunidad Escolar y Bestiario
 
-El juego integra una nueva **Pantalla de Carga Asíncrona (`scenes/loading_screen.tscn`)** y un sistema de transiciones con identidad del **Colegio de Bachilleres del Estado de México (COBAEM)**:
+Los escenarios cobran vida con **alumnos del CEMSaD 22** en uniforme oficial COBAEM. Al redimir los antivalores de su zona, pasan de `SAD` a `HAPPY`, restauran **+1 Corazón de Esperanza** al acercarte y luchan a tu lado:
 
-- **Escudo y Banners Oficiales:** Renderizado en alta fidelidad de los emblemas institucionales ubicados en `assets/logos/` (`cobaem-logo.png` y `logo_cobaem.png`).
-- **Carga en Hilo Secundario:** Implementado mediante `ResourceLoader.load_threaded_request()`, asegurando una transición fluida sin congelamientos de fotogramas al instanciar mapas grandes.
-- **Barra de Progreso y Telemetría Escolar:** Visualización del porcentaje exacto acompañado de mensajes dinámicos de preparación de baldosas a escala real ($1\text{ m} = 40\text{ px}$).
-- **Carrusel Didáctico de Valores:** Rotación de 9 citas formativas sobre convivencia armónica, filosofía universal (Mandela, Rogers) y sabiduría ancestral otomí de Temoaya (*K'öte m'ui* - Respeto Comunitario) y náhuatl (*Tlamatiliztli* - Sabiduría Recta).
-- **Transiciones Cinematográficas:** La cortinilla de rombos pixel-art (`shaders/pixel_transition.gdshader`) incorpora una marca de agua suave del escudo COBAEM en el punto medio del fundido para evitar cualquier corte brusco de pantalla.
+| Retrato | Alumno | Semestre / Zona | Habilidad Aliada (`AllyBrain`) |
+| :---: | :--- | :--- | :--- |
+| <img src="assets/portraits/mateo_laboratorio.png" width="44" alt="Mateo" /> | **Mateo Hernández** | 1.º — Laboratorio (Edif. D) | **Triple Reacción** · Anima a preguntar sin pena |
+| <img src="assets/portraits/maria_cafeteria.png" width="44" alt="María" /> | **María López** | 2.º — Cafetería (Edif. A) | **Escudo Firme** · Limpia proyectiles hostiles |
+| <img src="assets/portraits/valeria_plaza.png" width="44" alt="Valeria" /> | **Valeria Morales** | 3.º — Plaza Cívica | **Pulso Estéreo** · Doble onda curva de inclusión |
+| <img src="assets/portraits/fernanda_biblioteca.png" width="44" alt="Fernanda" /> | **Fernanda Ortiz** | 4.º — Biblioteca (Edif. B) | **Nota al Margen** · Disparo guiado contra rumores |
+| <img src="assets/portraits/diego_computo.png" width="44" alt="Diego" /> | **Diego Ramírez** | 5.º — Cómputo (Edif. C) | **Señal Abierta** · Onda tecnológica protectora |
+| <img src="assets/portraits/sofia_direccion.png" width="44" alt="Sofía" /> | **Sofía Valdés** | 5.º — Dirección (Edif. C) | **Turno Abierto** · Acelera la respuesta del grupo |
+| <img src="assets/portraits/alejandro_cancha.png" width="44" alt="Alejandro" /> | **Alejandro Cruz** | 6.º — Cancha Deportiva | **Pase de Rebote** · Invita al *Fair Play* |
+
+<details>
+<summary><strong>👹 Bestiario de Antivalores Menores y los 7 Jefes Finales</strong></summary>
+
+#### Antivalores de Patrullaje
+| Antivalor | Rasgo | Comportamiento | Virtud Liberada | Puntos |
+| :--- | :---: | :--- | :---: | :---: |
+| **Grosería** | 🔴 Rojo | Impulsivo, da brincos y arremete a radio medio. | **Amabilidad** | `+100` |
+| **Acoso** | 🟠 Ámbar | Vigila a gran distancia, rodea obstáculos y persigue sin soltar. | **Respeto** | `+150` |
+| **Bullying** | 🟣 Morado | Pesado y territorial, embestida veloz en perímetros clave. | **Empatía** | `+250` |
+
+#### Jefes Finales (Antivalores Mayores)
+| Nivel | Jefe Final | Salud (F / N / D) | Patrones Principales | Virtud de Redención |
+| :---: | :--- | :---: | :--- | :--- |
+| **1** | **Apatyx** *(Sombra de la Apatía)* | `16 / 32 / 65 ♥` | Vórtice Espiral, Ráfaga Ciclónica, Niebla Apatética | Entusiasmo y Curiosidad |
+| **2** | **Desperdicius** *(Troll del Desperdicio)* | `20 / 40 / 80 ♥` | Lluvia de Desechos, Pisotón de Basura | Cuidado Ambiental |
+| **3** | **Superbus** *(Sombra de la Intolerancia)* | `24 / 48 / 100 ♥` | Onda de Rechazo, Ráfaga de Prejuicios | Tolerancia y Dignidad Otomí |
+| **4** | **Murmullus** *(Espectro del Ciberacoso)* | `28 / 56 / 120 ♥` | Cadenas de Rumores, Falla Espectral | Empatía Digital y Honestidad |
+| **5** | **Plagiatrix** *(Titán del Plagio)* | `32 / 64 / 140 ♥` | Copia Espejo, Barrera de Atajos | Integridad Académica |
+| **6** | **Titanor** *(Coloso del Bullying)* | `75 / 180 / 450 ♥` | **Danmaku Touhou 4 Fases** (Ruletas y Espirales) | Fraternidad y Fair Play |
+| **Aula** | **Maestro Desinterés** *(Salones 1–6)* | `25 / 55 / 120 ♥` | Mirada Indiferente, Burocracia Inmóvil | Compromiso y Escucha Docente |
+
+</details>
+
+<details>
+<summary><strong>🌸 Sistema Danmaku Touhou (Titanor) y 🏫 Salones Interiores (Maestro Desinterés)</strong></summary>
+
+#### 🌸 Clímax Danmaku Touhou contra Titanor
+- **4 Fases con Cartas de Hechizo:** *Ruleta Danmaku Giratoria*, *Doble Espiral de Opresión*, *Ruleta Kaleidoscópica Cruzada* y *Último Hechizo*.
+- **Micro-Hitbox de 5.5 px:** En cortinas de balas, solo el núcleo vital en el pecho recibe daño. Mantén <kbd>Shift</kbd> (Modo Enfoque) para moverte al 52% de velocidad con retícula visible.
+- **Rozadura (*Graze*):** Esquivar proyectiles al ras genera chispas turquesa sin daño; cada **35 rozaduras** recuperas **+1 ♥**.
+- **Desafío de Resistencia en Difícil:** Con `450 HP` y cadencia de `0.40 s`, más 3 transiciones de Cartas de Hechizo (`4 s` c/u), la batalla exige un mínimo de **192 segundos (> 3 min 12 s)** de ejecución continua.
+
+#### 🏫 Salones de Clases Interiores
+Cada edificio cuenta con un salón interior donde varios antivalores rodean a un estudiante mientras el **Maestro Desinterés** —símbolo de la inacción adulta ante el bullying— permanece de espaldas junto al pizarrón. Al redimir a los agresores y al docente, este recupera su calidez humana y asume su compromiso activo de cuidado escolar.
+
+</details>
 
 ---
 
-## 📱🖥️ Arquitectura Multiplataforma y Responsividad
+## 📐 Sistema CAD 2D y Maqueta 3D Interactiva
 
-Diseñado para ejecutarse con excelencia tanto en computadoras de escritorio y laptops escolares como en teléfonos inteligentes y tabletas de estudiantes y docentes:
+Además del videojuego, el repositorio incluye herramientas web de planimetría arquitectónica del plantel:
+
+| Herramienta | Archivo | Stack | Qué incluye |
+| :--- | :--- | :--- | :--- |
+| **Maqueta BIM/CAD 3D** | [`planos/plano_3d.html`](planos/plano_3d.html) | `Three.js` · `OrbitControls` · `Tween.js` | 3 cámaras cinemáticas (RPG 3/4, Peatonal y Dron), aristas vectoriales, mobiliario 3D y etiquetas por aula. |
+| **Planos Vectoriales 2D** | [`planos/planos_interactivos.html`](planos/planos_interactivos.html) | `HTML5 Canvas` · `SVG` | Cotas en cm/m, cálculo automático de áreas ($\text{m}^2/\text{cm}^2$), capas y galería de 52 fotos reales. |
+
+```bash
+# Levantar servidor web local para abrir los visores con texturas:
+python3 -m http.server 8000
+# -> Maqueta 3D:    http://localhost:8000/planos/plano_3d.html
+# -> Planos CAD 2D: http://localhost:8000/planos/planos_interactivos.html
+```
+
+---
+
+## 🏗️ Arquitectura y Desarrollo
+
+Todo el código está modularizado en Godot Engine 4 (`gl_compatibility`) con pruebas automatizadas headless y presets multiplataforma.
+
+<details>
+<summary><strong>📱🖥️ Arquitectura Multiplataforma y Responsividad</strong></summary>
 
 ```mermaid
 flowchart TD
-    subgraph MultiplatformTarget ["Plataformas Soportadas"]
-        Android["📱 Android 7.0+\nSmartphones & Tablets (18:9, 19.5:9, 20:9, Notch)"]
-        Windows["💻 Windows Desktop\n1080p, 1440p, 4K, 16:9, 16:10 y Ultrawide"]
-        Linux["🐧 Linux (x86_64)\nEquipos Escolares con Intel HD / AMD Vega"]
-        Web["🌐 Web / HTML5 / PWA\nEjecución offline en navegadores y aulas de cómputo"]
+    subgraph Plataformas ["Plataformas Soportadas"]
+        Android["📱 Android 7.0+\n18:9, 19.5:9, 20:9, Notch"]
+        Windows["💻 Windows Desktop\n1080p, 1440p, 4K, Ultrawide"]
+        Linux["🐧 Linux x86_64\nIntel HD / AMD Vega"]
+        Web["🌐 Web / HTML5 / PWA\nOffline en aulas de cómputo"]
     end
 
-    subgraph CoreGodot ["Motor Godot 4 (GL Compatibility)"]
-        CanvasMode["window/stretch/mode = 'canvas_items'\nNitidez vectorial en HUD + Pixel Art estricto en Sprites"]
-        AspectExp["window/stretch/aspect = 'expand'\nCero distorsión anamórfica + Visión panorámica sin barras negras"]
-        SafeArea["Safe Area Insets (DisplayServer.get_display_safe_area)\nProtección de notches, cámaras perforadas y barras gestuales"]
-        InputComp["Compensación Radial Continua\nEliminación de deadzone del 50% en stick virtual (Respuesta 1:1)"]
+    subgraph CoreGodot ["Godot 4 (GL Compatibility)"]
+        CanvasMode["stretch/mode = canvas_items\nHUD vectorial + Pixel Art 1:1"]
+        AspectExp["stretch/aspect = expand\nSin barras negras ni distorsión"]
+        SafeArea["Safe Area Insets\nProtección de notch y gestos"]
+        InputComp["Compensación Radial 1:1\nControles táctiles bajo demanda"]
     end
 
-    MultiplatformTarget --> CoreGodot
+    Plataformas --> CoreGodot
 ```
 
-### 🌟 Pilares Técnicos de la Responsividad Universal:
-1. **Cero Distorsión de Aspecto:** Los sprites se dibujan siempre con relación de aspecto $1:1$ mediante `snap_2d_transforms_to_pixel = true`.
-2. **Blindaje de Safe Area en Móviles:** La barra de corazones, el progreso de la meta y el botón de pausa se ajustan automáticamente a los márgenes seguros reportados por el sistema operativo, impidiendo que queden ocultos tras la muesca de la cámara.
-3. **Desacoplamiento Inteligente de Dispositivos:** Si el juego se abre en una PC sin pantalla táctil, los joysticks virtuales permanecen invisibles para no ensuciar la pantalla; en cuanto se detecta un toque de hardware en una pantalla táctil o dispositivo móvil, los controles se activan con opacidad en reposo (`resting_alpha = 0.18`) y se expanden dinámicamente al apoyar los pulgares.
-4. **Exportación Multiplataforma:** Incluye presets configurados para compilar en Linux (`.x86_64`), Windows (`.exe`), Android (`Sensor Landscape`, `.apk` / Google Play), iOS (`.ipa` Landscape) y Web (`index.html` PWA con desbloqueo de audio en primer toque y descarga unificada de constancias PDF).
+</details>
 
----
-
-### 📺 Elementos del HUD (Interfaz en Pantalla)
-
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│  ♥ ♥ ♥ ♥ ♥   [ NIVEL 1/6: ACCESO Y LABORATORIO ]     PUNTOS: 001250    │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-- **Contador de Vidas (Corazones):** Muestra los puntos de salud restantes del héroe escolar.
-- **Identificador de Escenario:** Muestra el edificio o área del plantel que estás recorriendo en tiempo real.
-- **Puntuación de Virtud:** Sumatoria de puntos obtenidos al redimir antivalores y avanzar de zona.
-- **Meta Luminosa (Portal de Salida):** Indica el acceso peatonal hacia el siguiente sector del plantel escolar.
-
----
-
-## 📖 Modos de Juego: Modo Historia vs Modo Arcade
-
-El juego cuenta con dos modos principales seleccionables desde la pantalla de inicio:
-
-| Modo de Juego | Descripción | Cinemáticas | Condición de Victoria |
-| :--- | :--- | :---: | :--- |
-| **📖 Modo Historia** *(Story Mode)* | Experiencia inmersiva con trasfondo pedagógico, diálogos escolares y narrativa situada en el plantel CEMSaD 22 ENTHAVI y el valle de Temoaya. Incluye el **Prólogo ancestral**, **6 Actos cinematográficos** entre niveles y el **Epílogo triunfal**. | ✅ Sí | Superar los 6 actos, redimir a los 6 jefes mayores y liberar a la comunidad estudiantil. |
-| **🕹️ Modo Arcade** *(Partida Rápida)* | Partida directa orientada a la acción continua y superación ágil sin pausas narrativas. Ideal para torneos rápidos en laboratorios escolares o competencias de puntuación. | ❌ No | Avanzar directamente de un escenario al siguiente venciendo cuotas y jefes. |
-
----
-
-## 🌟 Mecánicas de Juego, Cuotas y Desbloqueo de Metas
-
-```
-    ┌────────────────────────┐
-    │  Movimiento 8D (Y-Sort) │ ──► Desplazamiento suave con polvo de pisadas
-    └───────────┬────────────┘
-                │
-    ┌───────────▼────────────┐
-    │  Disparo de Virtudes   │ ──► Proyectil radiante con estela de partículas
-    └───────────┬────────────┘
-                │
-    ┌───────────▼────────────┐
-    │ Impacto en Antivalor   │ ──► Sacudida de pantalla (Screen Shake) + SFX
-    └───────────┬────────────┘
-                │
-    ┌───────────▼────────────┐
-    │  Cuota de Antivalores  │ ──► Límite de reaparición (2 respawns máx)
-    └───────────┬────────────┘
-                │
-    ┌───────────▼────────────┐
-    │  Aparición de Jefe     │ ──► Antivalor Mayor con ataques telegrafiados 3/4
-    └───────────┬────────────┘
-                │
-    ┌───────────▼────────────┐
-    │  Redención & Desbloqueo│ ──► Meta desbloqueada + Alumnos felices + +1 Esperanza
-    └────────────────────────┘
-```
-
-- **Perspectiva 3/4 con Y-Sorting:** Todos los elementos gráficos (jugador, enemigos, jefes, estudiantes, bancas, árboles, automóviles y columnas) organizan dinámicamente su capa de renderizado según su coordenada vertical `Y`.
-- **Sistema de Cuotas y Límites de Reaparición:** Para cada nivel, el jugador debe vencer una cantidad establecida de antivalores (`quota_to_boss`, entre 3 y 5). Los antivalores poseen un límite estricto de reaparición (`max_respawns = 2`). Al alcanzar la cuota, cesan las reapariciones normales y aparece el Jefe Final del escenario.
-- **Salida Bloqueada:** La meta permanece bloqueada y protegida hasta que el Jefe Final del nivel es redimido pacíficamente.
-- **Proyectiles de Energía Positiva:** El ataque del jugador emite orbes resplandecientes que viajan en línea recta. Mantener presionada la barra espaciadora o el botón táctil activa el disparo continuo.
-- **Sistema de Aliados con IA (`AllyBrain`):** Al rescatar y animar a los estudiantes secundarios (`Mateo`, `María`, `Valeria`, `Fernanda`, `Diego`, `Sofía` y `Alejandro`), cada personaje conserva su propio disparo distintivo (*Triple Reacción*, *Escudo Firme*, *Pulso Estéreo*, *Nota al Margen*, *Señal Abierta*, *Turno Abierto* y *Pase de Rebote*) y acude unido en la Cancha frente a **Titanor**.
-- **Inventario de 1 Solo Ítem & Ventaja "Esperanza" (15s):** El héroe cuenta con un espacio único en el HUD (`[Q]`/`[F]` en PC, `Y` en mando, `ÍTEM` en móvil) para portar un objeto de apoyo (`Corazón`, `Escudo` o la estrella **Esperanza**). Al activar **Esperanza**, durante **15 segundos** se destruyen y bloquean los clones del jefe final, se disipa e impide la niebla oscura y el jefe queda completamente indefenso bajo un aura dorada.
-
----
-
-## 👹 Bestiario de Antivalores y los 6 Jefes Finales
-
-### 👾 Antivalores Menores de Patrullaje
-
-| Antivalor | Color Distintivo | Comportamiento & IA | Rango / Velocidad | Virtud Liberada | Recompensa |
-| :---: | :---: | :--- | :---: | :---: | :---: |
-| **Grosería** | 🔴 Rojo Carmesí | Enemigo impulsivo e inquieto. Da pequeños brincos y arremete al detectar al jugador. | Radio medio / Rápido | **Amabilidad** | `+100 pts` |
-| **Acoso** | 🟠 Naranja Ámbar | Sombra persistente que vigila a gran distancia. Rodea obstáculos y persigue sin perder vista. | Radio amplio / Medio | **Respeto** | `+150 pts` |
-| **Bullying** | 🟣 Morado Intenso | Adversario pesado y territorial. Patrulla perímetros clave cuando el jugador entra en su territorio. | Radio corto / Embestida veloz | **Empatía** | `+250 pts` |
-
----
-
-### 👑 Los 6 Jefes Finales de Escenario (Antivalores Mayores)
-
-Cada edificio del plantel está custodiado por una manifestación mayor que desafía al jugador con patrones de ataque telegrafiados en perspectiva 3/4 y barra de calma en el HUD:
-
-| Nivel | Jefe Final | Ubicación Escolar | Salud (Fácil / Normal / Difícil) | Ataques y Patrones | Virtud de Redención |
-| :---: | :--- | :--- | :---: | :--- | :--- |
-| **1** | **Sombra de la Apatía** (*Apatyx*) | Acceso y Edificio D (Laboratorios) | **16 / 32 / 65 ♥** | Vórtice Espiral de Desgano, Ráfaga Ciclónica, Niebla Apatética | **Entusiasmo y Curiosidad** |
-| **2** | **Troll del Desperdicio** (*Desperdicius*) | Edificio A — Cafetería y Desayunador | **20 / 40 / 80 ♥** | Lluvia de Desechos, Pisotón de Basura | **Responsabilidad y Cuidado Ambiental** |
-| **3** | **Sombra de la Intolerancia** (*Superbus*) | Plaza Cívica y Escalinata Sur (+4m) | **24 / 48 / 100 ♥** | Onda de Rechazo, Ráfaga de Prejuicios | **Tolerancia y Dignidad Otomí** |
-| **4** | **Espectro del Ciberacoso** (*Murmullus*) | Edificio B — Aulas 3-4 y Biblioteca | **28 / 56 / 120 ♥** | Cadenas de Rumores, Falla Espectral | **Empatía Digital y Honestidad** |
-| **5** | **Titán del Plagio** (*Plagiatrix*) | Edificio C — Dirección y Cómputo | **32 / 64 / 140 ♥** | Copia Espejo, Barrera de Atajos | **Autenticidad e Integridad Académica** |
-| **6** | **Coloso del Bullying** (*Titanor*) | Cancha de Usos Múltiples y Gradas | **75 / 180 / 450 ♥** | **Danmaku Touhou en 4 Fases (Ruleta de Balas, Espirales Curvas)** | **Fraternidad, Solidaridad y Fair Play** |
-| **Aula** | **Maestro Desinterés** *(Inacción ante Bullying)* | Salones de Clases Interiores (1 a 6) | **25 / 55 / 120 ♥** | Mirada Indiferente, Trámites Sin Respuesta | **Compromiso, Escucha y Empatía Docente** |
-
----
-
-### 🌸 Sistema Danmaku Touhou: Ruletas de Balas, Micro-Hitbox y Cartas de Hechizo
-
-Para elevar el clímax del enfrentamiento contra el **Coloso del Bullying (Titanor)** y responder a la demanda de un combate exigente, justo y 100% táctico:
-
-1. **Patrones Danmaku de Ruleta de Balas (Bullet Roulette):**
-   - **Ruleta Danmaku Giratoria:** Anillos concéntricos giratorios con velocidades angulares opuestas que abren corredores simétricos de escape cada 30°-40°.
-   - **Doble Espiral de Opresión:** Dos corrientes simultáneas de balas con curvatura angular continua (`curve_speed`), cuyas trayectorias se entrelazan creando rombos de seguridad (*nodos diamante*) donde el jugador puede permanecer a salvo.
-   - **Ruleta Kaleidoscópica Cruzada:** Tres anillos concéntricos a velocidades alternadas que forman un laberinto cinemático en movimiento.
-   - **Último Hechizo (Clímax):** La gran rueda final de 20 proyectiles radiantes con corredores cardinales abiertos y arcos exteriores.
-
-2. **Micro-Hitbox Touhou (Punto Vital Central de 5.5 px):**
-   - A diferencia de los juegos 2D tradicionales donde todo el cuerpo (`22×14 px`) recibe daño, en las cortinas de balas el área de vulnerabilidad se reduce a un **núcleo microscópico de 5.5 px de radio** ubicado en el pecho (`Vector2(0, -10)`).
-   - **Modo Enfoque (<kbd>Shift</kbd> / Gatillo / Desplazamiento Preciso):** Reduce la velocidad al 52% (de 230 a 120 px/s) para desplazamientos milimétricos entre proyectiles e ilumina el núcleo rojo y la retícula de mira Touhou.
-
-3. **Mecánica de Rozadura (Graze):**
-   - Si un proyectil hostil atraviesa el cuerpo o la ropa del personaje pero no toca el micro-núcleo vital de 5.5 px, se produce una **Rozadura (*Graze*)**: destellos de chispas turquesa, sonido sutil y suma al contador de rozaduras sin infligir daño alguno.
-   - Cada **35 rozaduras**, el jugador recupera un corazón de vida (`+1 ♥`), premiando la maestría táctica del esquive ceñido.
-
-4. **Cartas de Hechizo y Duración Matemática en Modo Difícil ($\ge$ 3 minutos):**
-   - En **Modo Difícil**, Titanor posee **450 puntos de salud**.
-   - Con la cadencia de disparo del jugador en Difícil fijada en **0.40s** (2.5 ataques/s):
-     $$\text{Tiempo de Disparo Continuo Perfecto} = 450 \times 0.40\text{ s} = \mathbf{180.0\text{ segundos (3 minutos exactos)}}$$
-   - Sumando las **3 transiciones cinemáticas de Cartas de Hechizo** (4.0s cada una con ondas de choque que limpian proyectiles del mapa y otorgan un corazón de recompensa), la batalla tiene una duración mínima estricta de **192 segundos (> 3 minutos y 12 segundos)** bajo una ejecución de ataque perfecta continua.
-
-> [!NOTE]
-> **Filosofía de Redención Educativa (Cero Violencia):** Al completar la calma de un jefe o antivalor, nunca hay destrucción violenta. El jefe se reconcilia con el grupo, proclama su virtud redentora (*El respeto nos une a todos*) y suma calma a la comunidad escolar.
-
----
-
-## 🏫 Salones de Clases Interiores y el Desafío del "Maestro Desinterés"
-
-Cada uno de los 6 edificios escolares cuenta con su **Salón de Clases Interior** donde se desarrollan confrontaciones pedagógicas de alto impacto:
-
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│  PIZARRÓN ESCOLAR: Fórmulas / Valores COBAEM                           │
-│  [ MAESTRO DESINTERÉS: Piel gris cenizo, ojos blancos, de espaldas ]  │
-│                                                                        │
-│   Pupitres               [ 😈 MONSTRUOS EN CÍRCULO ]                   │
-│   Escolares                     ▼    ▼                                 │
-│                          ◄  😢 ALUMNO ACORRALADO  ►                    │
-│                                 ▲    ▲                                 │
-│  [ PUERTA ] ──► [ HÉROE ] (Alerta en enjambre al ser descubiertos)     │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-1. **El Acoso Oculto:** Al ingresar al salón, varios antivalores (Grosería, Acoso, Bullying) se encuentran rodeando en círculo a un alumno de la institución (Mateo, María, Valeria, Fernanda, Diego o Alejandro), intimidándolo.
-2. **Reacción Agresiva en Enjambre:** En cuanto los monstruos detectan al protagonista, rompen formación inmediatamente y arremeten en ataque coordinado.
-3. **El Jefe de Salón — Maestro Desinterés:** Representa la peligrosa **inacción de los adultos y docentes** que deciden no intervenir o mirar hacia otro lado ante el acoso escolar. Posee piel gris ceniza, ojos blancos vacíos y un traje desgastado con corbata torcida. Sus ataques incluyen la *Mirada Indiferente* (abanico de orbes fríos) y la *Burocracia Inmóvil* (barrera de trámites y exámenes).
-4. **Redención y Compromiso:** Al redimir a los agresores y al Maestro Desinterés con virtudes, el docente recupera su calidez humana, sus ojos cobran vida y jura comprometerse activamente en la protección, escucha y bienestar de sus alumnos.
-
----
-
-## 🎨 Catálogo de Renders y Retratos Pixel-Art en `assets/`
-
-Para permitir a la comunidad escolar, docentes y alumnos personalizar o crear sus propios personajes manteniendo la estética del protagonista, todos los renders y sprites han sido generados como archivos PNG estándar editables dentro de `assets/`:
-
-| Archivo PNG | Rol y Ubicación Escolar | Formato & Dimensiones |
-| :--- | :--- | :--- |
-| [`assets/characters/mateo_laboratorio/idle.png`](assets/characters/mateo_laboratorio/idle.png) | Mateo — Laboratorio Edificio D (Ciencia y Respeto) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/characters/maria_cafeteria/idle.png`](assets/characters/maria_cafeteria/idle.png) | María — Cafetería y Aulas Edif. A (Empatía y Solidaridad) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/characters/valeria_plaza/idle.png`](assets/characters/valeria_plaza/idle.png) | Valeria — Plaza Cívica (Liderazgo Cívico y Valores) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/characters/fernanda_biblioteca/idle.png`](assets/characters/fernanda_biblioteca/idle.png) | Fernanda — Biblioteca Edificio B (Lectura y Honestidad) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/characters/diego_computo/idle.png`](assets/characters/diego_computo/idle.png) | Diego — Cómputo Edificio C (Tecnología y Trabajo en Equipo) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/characters/sofia_direccion/idle.png`](assets/characters/sofia_direccion/idle.png) | Sofía — Dirección Edificio C (Liderazgo Estudiantil) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/characters/alejandro_cancha/idle.png`](assets/characters/alejandro_cancha/idle.png) | Alejandro — Cancha Deportiva (Compañerismo y Fair Play) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/characters/maestro_desinteres/idle.png`](assets/characters/maestro_desinteres/idle.png) | Maestro Desinterés — Jefe de Salón (Inacción ante Bullying) | Sprite 512×512 (Grilla 32×32) |
-| [`assets/portraits/*.png`](assets/portraits/) | Retratos de primer plano para cinemáticas del Modo Historia | Retratos 256×256 (Grilla 32×32) |
-
----
-
-## 🎓 Personajes Secundarios: Alumnos del CEMSaD 22
-
-Los escenarios cuentan con alumnos secundarios con uniforme oficial COBAEM (suéter guinda, camisa blanca, pantalón gris / falda tableada) que reaccionan dinámicamente al entorno escolar:
-
-| Alumno | Semestre / Rol | Ubicación | Estado Inicial | Reacción al Redimir Antivalor / Jefe |
-| :--- | :--- | :--- | :---: | :--- |
-| **Mateo Hernández** | 1er Semestre (Nuevo Ingreso) | Escenario 1 (Acceso / Laboratorio D) | Afligido (`SAD`) | Lanza **Triple Reacción** y anima a preguntar sin pena. |
-| **María López** | 2do Semestre (Cafetería) | Escenario 2 (Edificio A — Cafetería) | Agotada (`SAD`) | Activa **Escudo Firme** limpiando proyectiles hostiles. |
-| **Valeria Morales** | 3er Semestre (Comité Cívico) | Escenario 3 (Plaza Cívica / Escalinata) | Herida (`SAD`) | Emite **Pulso Estéreo** de inclusión con doble onda curva. |
-| **Fernanda Ortiz** | 4to Semestre (Lectura) | Escenario 4 (Edificio B — Biblioteca) | Reservada (`SAD`) | Fija **Nota al Margen** autodirigida frente a rumores. |
-| **Diego Ramírez** | 5to Semestre (Taller de Cómputo) | Escenario 5 (Edificio C — Cómputo) | Aislado (`SAD`) | Envía **Señal Abierta** (`ataque_senal.png`) protectora. |
-| **Sofía Valdés** | 5to Semestre (Representante — Dirección) | Escenario 5 (Edificio C — Dirección) | Saturada (`SAD`) | Activa **Turno Abierto** acelerando la respuesta del grupo. |
-| **Alejandro Cruz**| 6to Semestre (Capitán Baloncesto) | Escenario 6 (Cancha de Usos Múltiples) | Frustrado (`SAD`) | Lanza **Pase de Rebote** (`ataque_balon.png`) invitando al *Fair Play*. |
-
-> [!TIP]
-> **Mecánica de Aliento (+1 Esperanza):** Cuando un estudiante se encuentra en estado alegre (`HAPPY`), si el jugador se acerca con corazones incompletos, el alumno le ofrecerá una frase de apoyo y le restaurará **+1 Corazón de Esperanza**.
-
----
-
-## ⚙️ Modos de Dificultad y Balance
-
-El juego se adapta tanto a audiencias infantiles como a jugadores experimentados mediante tres perfiles configurables gestionados por el singleton global `GameSettings`:
-
-| Parámetro de Ajuste | Modo Fácil 🟢 | Modo Normal 🟡 | Modo Difícil 🔴 |
-| :--- | :---: | :---: | :---: |
-| **Vidas Iniciales** | **5 ♥** | **3 ♥** | **2 ♥** |
-| **Velocidad de Enemigos** | **75%** *(0.75×)* | **100%** *(1.00×)* | **140%** *(1.40×)* |
-| **Cadencia de Disparo** | **0.22 s** *(Frecuente)* | **0.35 s** *(Equilibrada)* | **0.55 s** *(Táctica)* |
-| **Escala de Proyectiles** | **1.6×** *(Área amplia)* | **1.3×** *(Media)* | **1.0×** *(Precisa)* |
-| **Perfil Sugerido** | Nuevos estudiantes / Primaria | Secundaria y Preparatoria | Desafío Arcade avanzado |
-
----
-
-## 🗺️ Guía de los 6 Escenarios Escolares a Escala Real
-
-Los escenarios fueron levantados con base en los planos arquitectónicos oficiales y 52 fotografías de campo del plantel **CEMSaD 22 ENTHAVI (COBAEM)**. Todo el entorno respeta una **escala unificada y rigurosa**:
-
-$$\mathbf{1\text{ metro lineal} = 40\text{ píxeles}} \quad \Longleftrightarrow \quad \mathbf{1\text{ píxel} = 2.5\text{ cm}} \quad \Longleftrightarrow \quad \mathbf{1\text{ baldosa (tile) } 40\times 40\text{ px} = 1.00\text{ m}^2}$$
-
-```
-  [1] ACCESO & LAB ──► [2] EDIF. A & CAFETERÍA ──► [3] PLAZA CÍVICA TECHADA
-                                                                │
-  [6] CANCHA DEPORTIVA ◄── [5] EDIF. C (CÓMPUTO) ◄── [4] EDIF. B (BIBLIOTECA)
-```
-
----
-
-### 📍 Desglose de Zonas del Plantel
-
-#### 1. Escenario 1/6: Plaza de Acceso, Caseta C.V. y Edificio D (Laboratorios)
-- **Archivo:** `res://escenarios/nivel_1_acceso_laboratorio.png`
-- **Dimensiones:** `1440 × 880 px` | **Escala Real:** `36.0 × 22.0 m` (`792 m²`)
-- **Espacios:** Plaza de bienvenida con pavimento institucional, Muro COBAEM con el Colibrí del Estado de México, Jardinera con Osito Topiario podado, Caseta de Vigilancia C.V. (`7.5 m²`), cajones de estacionamiento en batería, Captador de Agua Pluvial (`25 m²`) y Edificio D de Laboratorios de Usos Múltiples (`183 m²`).
-
-#### 2. Escenario 2/6: Edificio A — Cafetería y Aulas 1-2
-- **Archivo:** `res://escenarios/nivel_2_edificio_a_cafeteria.png`
-- **Dimensiones:** `1600 × 800 px` | **Escala Real:** `40.0 × 20.0 m` (`800 m²`)
-- **Espacios:** Edificio A completo (`339.19 m²`) con Cafetería escolar (`43.4 m²`), Almacén de insumos (`26.6 m²`), Aula 1 y Aula 2 (`56 m²` c/u), módulos sanitarios para mujeres y hombres, y andador norte con columnas guinda y pinos podados en espiral.
-
-#### 3. Escenario 3/6: Plaza Cívica Techada y Escalinata Monumental Poniente
-- **Archivo:** `res://escenarios/nivel_3_plaza_civica_escalinata.png`
-- **Dimensiones:** `1600 × 900 px` | **Escala Real:** `40.0 × 22.5 m` (`900 m²`)
-- **Espacios:** Gran explanada cívica techada con arco techo blanco a `9.5 m` de altura (`748 m²`), muro de contención norte de piedra braza (`4.00 m` de desnivel), lona institucional conmemorativa y la emblemática Escalinata Monumental Poniente en "S" (`81 m²`) pintada en amarillo tráfico con alfardas guinda.
-
-#### 4. Escenario 4/6: Terraza Superior (+4.00 m) y Edificio B
-- **Archivo:** `res://escenarios/nivel_4_edificio_b.png`
-- **Dimensiones:** `1440 × 800 px` | **Escala Real:** `36.0 × 20.0 m` (`720 m²`)
-- **Espacios:** Meseta superior del plantel (`+4.00 m` sobre nivel de plaza) con el Edificio B (`312.85 m²`), albergando las Aulas 3 y 4 (`57.6 m²` c/u), la Biblioteca Escolar (`37.44 m²`), la Sala de Maestros (`56.16 m²`), faldón de ladrillo rojo aparente y vista panorámica del domo blanco.
-
-#### 5. Escenario 5/6: Edificio C de Dos Niveles (Cómputo y Dirección)
-- **Archivo:** `res://escenarios/nivel_5_edificio_c_computo.png`
-- **Dimensiones:** `1440 × 880 px` | **Escala Real:** `36.0 × 22.0 m` (`792 m²`)
-- **Espacios:** Estructura de dos plantas (`625.70 m²`). Planta Alta: Taller de Informática y Cómputo (`115.2 m²` con trabes mostaza y mesas caoba) y Aula 6. Planta Baja: Dirección General del Plantel, Orientación Educativa, Enfermería, Aula 5 y explanada del Asta Bandera.
-
-#### 6. Escenario 6/6: Cancha de Usos Múltiples y Gran Podio de Campeones
-- **Archivo:** `res://escenarios/nivel_6_cancha_usos_multiples.png`
-- **Dimensiones:** `1440 × 900 px` | **Escala Real:** `36.0 × 22.5 m` (`810 m²`)
-- **Espacios:** Cancha reglamentaria polideportiva (`540 m²`, pintura deportiva azul/amarilla, porterías con tableros de basquetbol verdes), área arbolada de convivencia escolar con bancas de concreto, barda perimetral oriente y el Gran Podio Dorado de la Copa de los Valores.
-
----
-
-## 📐 Sistema CAD y Maqueta 3D Interactiva
-
-Además del videojuego en Godot 4, el repositorio incluye un **sistema de documentación arquitectónica de alta fidelidad** listo para abrirse en cualquier navegador web:
-
-| Recurso | Archivo | Tecnologías | Características Principales |
-| :--- | :--- | :--- | :--- |
-| **Maqueta 3D Interactiva** | [`planos/plano_3d.html`](planos/plano_3d.html) | `Three.js`, `OrbitControls`, `Tween.js` | Visualizador BIM/CAD 3D con 3 poses de cámara cinemáticas (RPG 3/4 isométrica, Peatonal baja y Aérea/Dron), aristas vectoriales nítidas, mobiliario tridimensional y etiquetas flotantes de cada aula. |
-| **Planos CAD Vectoriales 2D** | [`planos/planos_interactivos.html`](planos/planos_interactivos.html) | `HTML5 Canvas`, `SVG`, `JetBrains Mono` | Planimetría interactiva con cotas precisas en centímetros y metros, cálculo automático de perímetro, diagonal y áreas en $\text{m}^2$ y $\text{cm}^2$, capas de dibujo y galería fotográfica de campo. |
-
-### 🌐 Cómo visualizar los planos y la maqueta 3D
-
-Para una experiencia óptima con texturas e interactividad, inicia un servidor HTTP local ligero con Python:
-
-```bash
-# Iniciar servidor web en el puerto 8000
-python3 -m http.server 8000
-
-# Abrir en el navegador:
-# -> Maqueta 3D:     http://localhost:8000/planos/plano_3d.html
-# -> Planos CAD 2D:  http://localhost:8000/planos/planos_interactivos.html
-```
-
----
-
-## 📚 Informes Especializados de Auditoría y Dictamen v2
-
-El proyecto cuenta con un historial de dictámenes exhaustivos elaborados por 7 especialistas técnicos, pedagógicos y arquitectónicos (Arquitectura Multiplataforma, Peritaje BIM/CAD Escolar, Pedagogía y Ética, Controles Móviles, Experiencia de Escritorio, Auditoría de Motor Godot 4 y Diseño UI/UX), cuyos hallazgos fueron completamente implementados y verificados en código. Los informes originales se encuentran archivados en `.trash/reports/`.
-
----
-
-## 💻 Shells y Comandos de Terminal
-
-Colección de scripts y atajos de terminal listos para ejecutar durante el desarrollo, pruebas y despliegue del proyecto:
-
-### 🕹️ Ejecución del Videojuego
-
-```bash
-# Ejecutar el juego directamente desde el menú principal
-godot --path . scenes/menu.tscn
-
-# Iniciar directamente un nivel específico para pruebas (por ejemplo, el Nivel 3)
-godot --path . scenes/main.tscn
-
-# Ejecutar en ventana con resolución personalizada (1280x720)
-godot --path . --resolution 1280x720 scenes/menu.tscn
-```
-
-### 🧪 Suite de Pruebas Automatizadas (Headless)
-
-El proyecto incluye un script de validación que revisa automáticamente la integridad de los 6 escenarios, límites de colisión, spawns del jugador y metas sin abrir la interfaz gráfica:
-
-```bash
-# Ejecutar tests de integridad de niveles y colisiones
-godot --headless -s tools/test_game.gd
-```
-
-### 🎨 Escenarios Pixel Art a Escala Real
-
-Los 6 escenarios en `escenarios/` y los 6 salones en `escenarios/salones/` están diseñados bajo la escala arquitectónica $1\text{ m} = 40\text{ px}$ y se indexan automáticamente al importar el proyecto en Godot:
-
-```bash
-# Reimportar mapas e imágenes editadas en el repositorio
-godot --headless --import
-```
-
-### 🎵 Generación de la Banda Sonora Chiptune
-
-Sintetiza de forma procedural los temas de audio en formato WAV puro sin dependencias externas:
-
-```bash
-# Sintetiza music_menu.wav y music_game.wav en assets/audio/
-python3 tools/generate_music.py
-```
-
-### 📦 Exportación de Binarios (Compilación)
-
-```bash
-# Exportar para Linux x86_64
-mkdir -p build/linux
-godot --headless --export-release "Linux/X11" build/linux/campeones_valores.x86_64
-
-# Exportar para Windows x86_64
-mkdir -p build/windows
-godot --headless --export-release "Windows Desktop" build/windows/campeones_valores.exe
-
-# Exportar para Web (HTML5 / WebGL)
-mkdir -p build/web
-godot --headless --export-release "Web" build/web/index.html
-```
-
----
-
-## 🏗️ Arquitectura de Software y Estructura del Código
-
-El videojuego está construido siguiendo los patrones de diseño orientados a nodos y escenas de **Godot Engine 4**:
-
-### 🧩 Diagrama de Componentes y Flujo de Juego
+<details>
+<summary><strong>🧩 Diagrama de Componentes y Árbol de Archivos</strong></summary>
 
 ```mermaid
 graph TD
-    subgraph Singletons_Autoload ["Autoloads Globales"]
-        GS["GameSettings.gd\n(Vidas, Dificultad, Volumen)"]
-        FX["Fx.gd\n(Sonidos Procedurales, ScreenShake)"]
-        ST["SceneTransition.gd\n(Pixel Fade Shader)"]
+    subgraph Autoloads ["Autoloads Globales"]
+        GS["GameSettings.gd"]
+        FX["Fx.gd"]
+        ST["SceneTransition.gd"]
     end
 
-    subgraph Core_Scenes ["Escenas Principales"]
-        Menu["menu.tscn / menu.gd\n(Selección de Dificultad)"]
-        Main["main.tscn / main.gd\n(Controlador de Partida)"]
-        HUD["hud.tscn / hud.gd\n(Corazones, Puntos, Pausa)"]
+    subgraph Core ["Escenas Principales"]
+        Menu["menu.tscn"]
+        Main["main.tscn"]
+        HUD["hud.tscn"]
     end
 
-    subgraph Level_System ["Sistema Modular Multinivel"]
-        LM["LevelManager.gd\n(Carga Dinámica de Escenarios)"]
-        Level["level.tscn / level.gd\n(Instancia del Escenario)"]
-        Escenarios[("escenarios/*.png\nMapas a Escala Real")]
+    subgraph World ["Sistema de Niveles y Entidades"]
+        LM["LevelManager.gd"]
+        Level["level.tscn"]
+        Player["player.tscn"]
+        Enemy["enemy.tscn / boss.gd"]
+        Goal["goal.tscn"]
     end
 
-    subgraph Entities ["Entidades Jugables y Objetos"]
-        Player["player.tscn / player.gd\n(Heroe 8D + Y-Sort)"]
-        Projectile["projectile.tscn / projectile.gd\n(Disparo de Valores)"]
-        Enemy["enemy.tscn / enemy.gd\n(Grosería, Acoso, Bullying)"]
-        Goal["goal.tscn / goal.gd\n(Portal de Avance)"]
-    end
-
-    Menu -->|Inicia Partida| Main
-    Main --> LM
-    LM -->|Instancia| Level
-    Level --> Escenarios
-    Level --> Player
-    Level --> Enemy
-    Level --> Goal
-    Level --> HUD
-    Player -->|Instancia| Projectile
-    Projectile -.->|Redime| Enemy
-    GS -.-> Main
-    FX -.-> Player
-    FX -.-> Enemy
-    ST -.-> Main
+    Menu --> Main --> LM --> Level
+    Level --> Player & Enemy & Goal & HUD
+    GS & ST -.-> Main
+    FX -.-> Player & Enemy
 ```
-
----
-
-### 📂 Estructura del Árbol de Archivos
 
 ```text
-campeones-de-los-valores/
-├── assets/
-│   ├── audio/                  # Loops musicales (.wav) y efectos de sonido
-│   ├── background/             # Texturas y fondos de menú
-│   ├── characters/             # Sprites oficiales del héroe, heroína, alumnos y Maestro Desinterés
-│   ├── logos/                  # Emblemas oficiales de COBAEM y del Plantel 22 ENTHAVI
-│   ├── planos/                 # 52 Fotografías reales y levantamientos del plantel
-│   └── sprites/                # Sprites pixel art (proyectiles, enemigos, corazones, meta)
-├── escenarios/                 # Los 6 mapas a escala real (1m = 40px) en PNG
-│   ├── LEEME_ESCENARIOS.md     # Documentación técnica de cotas y dimensiones por escenario
-│   ├── nivel_1_acceso_laboratorio.png
-│   ├── nivel_2_edificio_a_cafeteria.png
-│   ├── nivel_3_plaza_civica_escalinata.png
-│   ├── nivel_4_edificio_b.png
-│   ├── nivel_5_edificio_c_computo.png
-│   └── nivel_6_cancha_usos_multiples.png
-├── scenes/                     # Escenas empaquetadas (.tscn)
-│   ├── enemy.tscn              # Nodo de antivalor con máquina de estados y colisiones
-│   ├── goal.tscn               # Zona de meta con partículas luminosas y detección
-│   ├── hud.tscn                # Capa de interfaz gráfica con barra de jefes y corazones
-│   ├── level.tscn              # Contenedor modular de escenario con Y-Sort
-│   ├── loading_screen.tscn     # Pantalla de carga institucional COBAEM
-│   ├── main.tscn               # Orquestador del ciclo de vida del juego
-│   ├── menu.tscn               # Menú de título, selector de modo y dificultad
-│   ├── mobile_controls.tscn    # Capa de controles táctiles virtuales para Android
-│   ├── player.tscn             # Personaje jugable en perspectiva 3/4
-│   ├── projectile.tscn         # Disparo de valores y virtudes
-│   └── story_cutscene.tscn     # Cinemáticas ilustradas del Modo Historia
-├── scripts/                    # Lógica de programación en GDScript (.gd)
-│   ├── ally_brain.gd           # Cerebro de combate y esquive para aliados rescatados
-│   ├── boss.gd                 # Los 7 Jefes Finales con Danmaku Touhou y estado Esperanza
-│   ├── boss_data.gd            # Catálogo de diálogos, HP por dificultad y datos de jefes
-│   ├── boss_fake_clone.gd      # Clones de sombra no letales de Titanor
-│   ├── boss_renderer.gd        # Renderizado procedural 3/4 de jefes y halo de Esperanza
-│   ├── enemy.gd                # Inteligencia artificial, cuotas y límites de reaparición
-│   ├── fx.gd                   # Singleton de efectos, sonido procedural y screen shake
-│   ├── game_settings.gd        # Singleton de configuración persistente y balance
-│   ├── goal.gd                 # Controlador de transición y desbloqueo de salida
-│   ├── hud.gd                  # Actualización de vidas, cuotas, barra de jefe y pausa
-│   ├── level.gd                # Construcción dinámica de límites, obstáculos, alumnos y jefes
-│   ├── level_manager.gd        # Catálogo centralizado de los 6 escenarios del plantel
-│   ├── loading_screen.gd       # Lógica de transición y barra de progreso institucional
-│   ├── main.gd                 # Progresión de niveles, Modo Historia y Modo Arcade
-│   ├── menu.gd                 # Animaciones de entrada e interacción del menú
-│   ├── mobile_controls.gd      # Joysticks virtuales multitáctiles con Safe Area
-│   ├── player.gd               # Movimiento 8D, física, cadencia de disparo y vidas
-│   ├── projectile.gd           # Movimiento del proyectil y colisión con antivalores
-│   ├── scene_transition.gd     # Singleton de fundido entre escenas con shader retro
-│   ├── story_cutscene.gd       # Controlador de diálogos y retratos pixel art
-│   ├── story_data.gd           # Guion literario del Modo Historia (Prólogo, 6 Actos, Epílogo)
-│   ├── student.gd              # Alumnos secundarios COBAEM con estados SAD y HAPPY
-│   └── ui_juice.gd             # Utilidades de animación elástica y tweening
-├── shaders/
-│   └── pixel_transition.gdshader # Shader de cortinilla de píxeles para cambios de nivel
-├── themes/                     # Estilos visuales de UI y fuentes retro
-├── tools/                      # Herramientas de automatización en Python y GDScript
-│   ├── generate_music.py       # Sintetizador procedural de temas chiptune
-│   └── test_game.gd            # Suite completa de pruebas automatizadas en modo headless
-├── planos/                     # Visores arquitectónicos BIM/CAD y planimetría
-│   ├── plano_3d.html           # Maqueta arquitectónica interactiva 3D (Three.js BIM/CAD)
-│   ├── planos_interactivos.html # Sistema CAD 2D de planos interactivos vectoriales
-│   └── CEMSaD 22 ENTHAVI...pdf # Planos arquitectónicos vectoriales en PDF
-├── icon.jpeg                   # Icono oficial y emblema del juego para el lanzador
-├── project.godot               # Archivo maestro de configuración de Godot Engine 4
-├── LICENSE                     # Licencia de software libre GNU GPL v3.0
-├── AGENTS.md                   # Guía técnica para agentes de IA y resolución de errores
-└── README.md                   # Esta guía integral del proyecto
+valores-cobaem22/
+├── assets/          # Audio WAV, fondos, sprites de personajes, retratos PNG, logos y video
+├── escenarios/      # 6 mapas exteriores (1m = 40px) + 6 salones interiores (escenarios/salones/)
+├── planos/          # Maqueta 3D (plano_3d.html), CAD 2D (planos_interactivos.html) y PDFs
+├── scenes/          # Escenas Godot (.tscn): menu, main, level, player, enemy, hud, salones, etc.
+├── scripts/         # Lógica GDScript (.gd): jefes, Danmaku, AllyBrain, minijuegos, certificados PDF
+├── shaders/         # pixel_transition.gdshader (cortinilla pixel-art con marca de agua COBAEM)
+├── themes/          # Estilos UI y fuentes retro
+├── tools/           # generate_music.py (chiptune) y test_game.gd (suite headless)
+├── AGENTS.md        # Guía técnica de arquitectura y diagnóstico para desarrolladores e IA
+└── project.godot    # Configuración maestra de Godot 4
 ```
 
----
+</details>
 
-## 🚀 Optimizaciones Técnicas y Rendimiento
+<details>
+<summary><strong>💻 Comandos Útiles de Terminal (Tests, Audio, Exportación)</strong></summary>
 
-El proyecto está diseñado desde los cimientos para ejecutarse de manera fluida tanto en computadoras de escritorio modernas como en equipos escolares de bajos recursos técnicos o navegadores web:
+```bash
+# 🧪 Ejecutar suite de pruebas automatizadas (headless)
+godot --headless -s tools/test_game.gd
 
-- **Motor de Renderizado GL Compatibility:** Configurado con perfiles de OpenGL 3.3 / WebGL 2.0 que garantizan compatibilidad universal sin requerir GPUs dedicadas con soporte Vulkan.
-- **Pixel Snap 2D Nativo:** Activación de `snap_2d_transforms_to_pixel` y `snap_2d_vertices_to_pixel` en `project.godot`. Los sprites se alinean con exactitud matemática al píxel display, eliminando vibraciones, desgarros visuales o desenfoques en pantalla.
-- **Optimización de IA sin Raíces Cuadradas:** El cálculo de detección y proximidad de los enemigos emplea distancias al cuadrado (`Vector2.distance_squared_to`) en lugar de distancias euclidianas convencionales, evitando llamadas continuas a `sqrt()` en cada ciclo de física (`_physics_process`).
-- **Carga Modular de Memoria:** Cada nivel se carga y descarga de manera individual con `queue_free()`. La memoria de vídeo (VRAM) se mantiene estable por debajo de los 150 MB durante toda la sesión.
-- **Generación Matemática de Audio:** Las pistas de música y efectos de audio están comprimidos en frecuencias óptimas que no añaden pesadas librerías de terceros.
+# 🎨 Reimportar texturas y mapas editados
+godot --headless --import
 
----
+# 🎵 Regenerar banda sonora chiptune (music_menu.wav y music_game.wav)
+python3 tools/generate_music.py
 
-## 🛠️ Guía para Desarrolladores y Modding
-
-Si deseas personalizar el juego o añadir nuevos escenarios, el diseño modular de `LevelManager` permite expandir la experiencia fácilmente:
-
-### ➕ Añadir un Nuevo Escenario
-
-1. **Crear la Imagen del Mapa:** Diseña una imagen `.png` o `.webp` (utilizando la escala `1 m = 40 px`) y colócala en `res://escenarios/mi_nuevo_escenario.png`.
-2. **Registrar el Escenario en `LevelManager`:** Abre [scripts/level_manager.gd](scripts/level_manager.gd) y añade un nuevo bloque en `get_default_levels()`:
-
-```gdscript
-{
-    "id": 7,
-    "title": "Escenario 7: Nueva Zona Escolar",
-    "scenario_image": "res://escenarios/mi_nuevo_escenario.png",
-    "real_dimensions_m": Vector2(30.0, 20.0),
-    "player_spawn": Vector2(100, 400),
-    "goal_position": Vector2(1100, 400),
-    "goal_label": "Hacia el Auditorio ->",
-    "enemies": [
-        { "type": Enemy.Type.GROSERIA, "pos": Vector2(400, 350) },
-        { "type": Enemy.Type.ACOSO, "pos": Vector2(750, 420) },
-        { "type": Enemy.Type.BULLYING, "pos": Vector2(900, 380) },
-    ],
-    "obstacles": [
-        Rect2(0, 0, 1200, 60), # Barda perimetral superior
-    ]
-}
+# 📦 Exportar binarios (Linux, Windows y Web)
+mkdir -p build/linux build/windows build/web
+godot --headless --export-release "Linux/X11" build/linux/campeones_valores.x86_64
+godot --headless --export-release "Windows Desktop" build/windows/campeones_valores.exe
+godot --headless --export-release "Web" build/web/index.html
 ```
 
-3. **Verificar:** Ejecuta las pruebas automatizadas con `godot --headless -s tools/test_game.gd` para confirmar que las coordenadas de spawn y meta son válidas y libres de colisiones.
+</details>
+
+<details>
+<summary><strong>🚀 Optimizaciones, Auditoría v2 y Guía de Modding</strong></summary>
+
+- **Rendimiento:** `GL Compatibility` (OpenGL 3.3 / WebGL 2.0), `snap_2d_transforms_to_pixel`, detección de IA por distancia al cuadrado (`distance_squared_to`), descarga de niveles con `queue_free()` (< 150 MB VRAM) y audio procedural ligero.
+- **Auditoría v2:** Validado bajo 7 dictámenes especializados (Arquitectura Multiplataforma, Peritaje BIM/CAD, Pedagogía y Ética, Controles Móviles, Escritorio, Motor Godot 4 y UI/UX).
+- **Añadir un escenario nuevo:** Coloca tu PNG a escala `1 m = 40 px` en `escenarios/`, regístralo en `get_default_levels()` dentro de [`scripts/level_manager.gd`](scripts/level_manager.gd) y valida con `godot --headless -s tools/test_game.gd`. Consulta [`AGENTS.md`](AGENTS.md) para la guía técnica completa.
+
+</details>
 
 ---
 
-## 🤝 Contribución y Código Abierto
+## 💬 Aviso del Autor
 
-Las contribuciones de la comunidad estudiantil, docentes y desarrolladores son bienvenidas. Para participar:
+> Este juego no está dedicado a ser jugado comercialmente; es más bien un proyecto pequeño hecho con cariño para simbolizar a nuestra institución.  
+> **¡Que lo disfruten y se diviertan, este juego tiene demasiado esfuerzo por detrás! :)**
 
-1. Realiza un **Fork** de este repositorio.
-2. Crea una rama para tu característica o corrección:
-   ```bash
-   git checkout -b feature/nueva-mecanica
-   ```
-3. Realiza tus cambios asegurando respetar la convención de estilo de GDScript y la escala arquitectónica ($1\text{ m} = 40\text{ px}$).
-4. Ejecuta la suite de validación:
-   ```bash
-   godot --headless -s tools/test_game.gd
-   ```
-5. Haz commit con mensajes descriptivos:
-   ```bash
-   git commit -m "feat: agregar nuevo minijuego de dialogo asertivo"
-   ```
-6. Envía tu rama a tu fork y abre un **Pull Request** detallado.
+<div align="center">
+  <img src="assets/end_reader.gif" alt="Animación de cierre" width="520" />
+</div>
 
 ---
-## Aviso
 
-Este juego no esta dedicado a ser jugado, es mas bien algo pequeño que sirve para simbolizar la institucion.
+## 🤝 Contribución, 📜 Licencia y 🏛️ Reconocimientos
 
-<img src="assets/end_reader.gif" width="600" controls></img>
+### 🤝 Cómo Contribuir
+1. Haz un **Fork** del repositorio y crea una rama (`git checkout -b feature/mi-mejora`).
+2. Respeta las convenciones de GDScript y la escala arquitectónica (`1 m = 40 px`).
+3. Valida con `godot --headless -s tools/test_game.gd` y abre tu **Pull Request**.
 
-Que lo disfruten y se diviertan, este juego tiene demasiado esfuerzo por detras :)
-
-## 📜 Licencia y Reconocimientos
-
-Este proyecto es software libre educativo distribuido bajo la licencia **GNU General Public License v3.0 (GPL-3.0)**. Esto garantiza que el código fuente permanezca siempre abierto para la comunidad estudiantil, docente y desarrolladora, asegurando que cualquier mejora o trabajo derivado conserve las mismas libertades y no pueda cerrarse con fines privativos. Consulta el archivo [`LICENSE`](LICENSE) para conocer el texto íntegro de la licencia. Los escudos, nombres y emblemas institucionales pertenecen al **COBAEM** y al **Plantel CEMSaD 22 ENTHAVI**.
+### 📜 Licencia
+Distribuido bajo **GNU General Public License v3.0 ([`LICENSE`](LICENSE))**, garantizando que el código permanezca libre y abierto para la comunidad educativa. Los nombres, escudos y emblemas institucionales pertenecen al **COBAEM** y al **Plantel CEMSaD 22 ENTHAVI**.
 
 ### 🏛️ Reconocimientos Institucionales
 
-> 
-> - **Un especial reconocimiento** Para la maestra **Lic. Guadalupe Larisa Zarza  Velazquez**; Maestra de Informatica en el **Colegio De Bachilleres Del Estado De Mexico Centro De Educacion Media Superior Plantel 22 Enthavi**, gracias a ella y su dedicacion enseñandonos a diario sobre informatica y programacion se logro hacer este juego.
-> 
+> 🌟 **Reconocimiento Especial**  
+> A la maestra **Lic. Guadalupe Larisa Zarza Velázquez**, docente de Informática en el **Colegio de Bachilleres del Estado de México — CEMSaD Plantel 22 ENTHAVI**. Gracias a su dedicación y enseñanza diaria en informática y programación fue posible hacer realidad este proyecto.
 
-- **Colegio de Bachilleres del Estado de México (COBAEM)**.
-- **Plantel CEMSaD 22 ENTHAVI**, directivos, personal docente, administrativo y comunidad estudiantil, por su inspiración y compromiso cotidiano con la vivencia de los valores escolares.
-- Al equipo de desarrollo de **Godot Engine** y la comunidad de software libre por proveer herramientas de creación tecnológica accesibles para la juventud.
-
-<div align="center">
+- **Colegio de Bachilleres del Estado de México (COBAEM)** y comunidad del **Plantel CEMSaD 22 ENTHAVI** (directivos, docentes, personal administrativo y alumnado).
+- Al equipo de **Godot Engine** y a la comunidad de software libre.
 
 ---
 
-*Desarrollado con dedicación cívica para las juventudes que construyen una convivencia escolar pacífica y solidaria.*  
-**Campeones de los Valores — CEMSaD 22 ENTHAVI**
-
+<div align="center">
+  <em>Desarrollado con dedicación cívica para las juventudes que construyen una convivencia escolar pacífica y solidaria.</em><br/>
+  <strong>🏆 Campeones de los Valores — CEMSaD 22 ENTHAVI</strong>
 </div>
