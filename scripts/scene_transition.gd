@@ -83,7 +83,15 @@ func _run(action: Callable) -> void:
 		tw.tween_property(_logo_rect, "modulate:a", 0.95, cover_time)
 	await tw.finished
 
-	get_tree().paused = false
+	Engine.time_scale = 1.0
+	var fx := get_node_or_null("/root/Fx") if is_inside_tree() else null
+	if fx and fx.has_method("reset_time_scale"):
+		fx.reset_time_scale()
+	var gs := get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	if gs and gs.has_method("clear_all_pauses"):
+		gs.clear_all_pauses()
+	else:
+		get_tree().paused = false
 	transition_midpoint.emit()
 	action.call()
 	# Espera dos frames para garantizar que la nueva escena esté renderizada antes de revelar

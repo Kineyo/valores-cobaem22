@@ -29,7 +29,7 @@ const ClassroomDoorClass := preload("res://scripts/classroom_door.gd")
 const FogOverlayClass := preload("res://scripts/fog_overlay.gd")
 const ScenarioDecorClass := preload("res://scripts/scenario_decor.gd")
 const FINAL_BOSS_CELEBRATION_DURATION: float = 7.0
-const FINAL_VICTORY_STUDENT_PHRASE: String = "Finalmente lo derrotamos!"
+const FINAL_VICTORY_STUDENT_PHRASE: String = "Finalmente lo logramos en equipo."
 
 @onready var background: Sprite2D = $Background
 @onready var world_boundaries: StaticBody2D = $WorldBoundaries
@@ -70,6 +70,7 @@ var _final_celebration_elapsed: float = 0.0
 var _final_celebration_step: int = 0
 var _last_celebration_sec: int = -1
 var celebration_students: Array[Node2D] = []
+var last_boss_banner_text: String = ""
 
 func _ensure_nodes() -> void:
 	if background == null:
@@ -350,7 +351,7 @@ func _physics_process(delta: float) -> void:
 	if boss != null and is_instance_valid(boss) and not boss_defeated and boss.boss_type == BossClass.BossType.BULLYING and esperanza_timer <= 0.0:
 		_titanor_esperanza_drop_timer -= delta
 		if _titanor_esperanza_drop_timer <= 0.0:
-			_titanor_esperanza_drop_timer = 26.0
+			_titanor_esperanza_drop_timer = 42.0 if is_hard_mode else 30.0
 			_ensure_esperanza_pickup_available()
 
 	# En Fácil/Normal: si la batalla contra el Maestro Desinterés tarda 1 minuto (60s) o más, aparece la Niebla del Desinterés
@@ -374,7 +375,7 @@ func _physics_process(delta: float) -> void:
 			var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
 			if fx:
 				fx.shake(4.0, 0.35)
-				fx.floating_text(self, boss.global_position + Vector2(0, -65), "¡LA NIEBLA DEL DESINTERÉS CUBRE EL SALÓN!", Color(1.0, 0.25, 0.35), 14)
+				fx.floating_text(self, boss.global_position + Vector2(0, -65), "La niebla del desinterés cubre el salón.", Color(1.0, 0.25, 0.35), 14)
 
 func set_classroom_cleared(cleared: bool) -> void:
 	is_classroom_cleared = cleared
@@ -406,19 +407,19 @@ func _on_enemy_defeated(enemy: Node2D) -> void:
 				_spawn_hard_wave(next_batch)
 				var fx_w = get_node_or_null("/root/Fx") if is_inside_tree() else null
 				if fx_w and player and is_instance_valid(player):
-					fx_w.floating_text(self, player.global_position + Vector2(0, -48), "¡Oleada de antivalores (%d/10)!" % _hard_enemies_spawned, Color(1.0, 0.55, 0.3), 13)
+					fx_w.floating_text(self, player.global_position + Vector2(0, -48), "Oleada de antivalores (%d/10)" % _hard_enemies_spawned, Color(1.0, 0.55, 0.3), 13)
 		elif defeated_in_level >= quota_to_boss:
 			if fog_overlay and is_instance_valid(fog_overlay):
 				fog_overlay.set_fog(false)
 			var fx_f = get_node_or_null("/root/Fx") if is_inside_tree() else null
 			if fx_f and player and is_instance_valid(player):
-				fx_f.floating_text(self, player.global_position + Vector2(0, -55), "¡La niebla del desinterés desaparece!", Color(0.45, 1.0, 0.7), 15)
+				fx_f.floating_text(self, player.global_position + Vector2(0, -55), "La niebla del desinterés desaparece.", Color(0.45, 1.0, 0.7), 15)
 
 	# Si es un salón de clases y se liberó al alumno acorralado
 	if level_data.get("is_classroom", false) and defeated_in_level >= quota_to_boss:
 		var gs_cls = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
 		var is_fem_cls := gs_cls != null and int(gs_cls.get("selected_character")) == 1
-		var thank_msg := "¡Gracias por defenderme, compañera!" if is_fem_cls else "¡Gracias por defenderme, compañero!"
+		var thank_msg := "Gracias por defenderme, compañera." if is_fem_cls else "Gracias por defenderme, compañero."
 		for s in students:
 			if is_instance_valid(s):
 				s.cheer_up()
@@ -540,7 +541,7 @@ func _spawn_virtue_pickup(pos: Vector2, kind: String = "") -> Area2D:
 					body.health_changed.emit(body.health, body.max_health)
 					if fx:
 						fx.burst(parent_node, pickup.global_position, Color(1.0, 0.45, 0.65), 10, 110.0)
-						fx.floating_text(parent_node, pickup.global_position + Vector2(0, -18), "¡+1 Esperanza!", Color(1.0, 0.55, 0.72), 14)
+						fx.floating_text(parent_node, pickup.global_position + Vector2(0, -18), "+1 Esperanza", Color(1.0, 0.55, 0.72), 14)
 				elif body.has_method("pickup_item") and str(body.get("held_item")).is_empty():
 					body.pickup_item("heart")
 			else:
@@ -550,7 +551,7 @@ func _spawn_virtue_pickup(pos: Vector2, kind: String = "") -> Area2D:
 					body.grant_spawn_protection(2.5)
 					if fx:
 						fx.burst(parent_node, pickup.global_position, Color(0.45, 0.95, 1.0), 10, 110.0)
-						fx.floating_text(parent_node, pickup.global_position + Vector2(0, -18), "¡Escudo de Respeto!", Color(0.45, 0.95, 1.0), 14)
+						fx.floating_text(parent_node, pickup.global_position + Vector2(0, -18), "Escudo de Respeto", Color(0.45, 0.95, 1.0), 14)
 			pickup.queue_free()
 	)
 	return pickup
@@ -635,8 +636,19 @@ func _spawn_boss() -> void:
 		boss.apply_esperanza_debuff(esperanza_timer)
 	if boss.boss_type == BossClass.BossType.BULLYING:
 		_summon_titanor_campaign_allies()
-		_titanor_esperanza_drop_timer = 18.0
+		_titanor_esperanza_drop_timer = 26.0 if is_hard_mode else 18.0
 		_ensure_esperanza_pickup_available()
+
+	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+	var boss_info: Dictionary = BossClass.BOSS_DATA.get(boss.boss_type, {})
+	var boss_name_str := str(boss_info.get("name", "JEFE")).to_upper()
+	var boss_title := "%s ha aparecido" % boss_name_str
+	if int(level_data.get("boss_type", 0)) == BossClass.BossType.DESINTERES:
+		boss_title = "Maestro Desinterés confrontado"
+	last_boss_banner_text = boss_title
+	if fx:
+		fx.shake(5.0, 0.45)
+		fx.floating_text(self, boss.global_position + Vector2(0, -50), boss_title, Color(1.0, 0.35, 0.45), 16)
 	boss_spawned.emit(boss)
 
 func _summon_titanor_campaign_allies() -> void:
@@ -672,19 +684,13 @@ func _summon_titanor_campaign_allies() -> void:
 		if entities:
 			entities.add_child(ally)
 		students.append(ally)
+		if fog_overlay and is_instance_valid(fog_overlay):
+			fog_overlay.light_sources.append(ally)
 		summoned_any = true
 	if summoned_any:
 		var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
 		if fx and is_inside_tree():
-			fx.floating_text(self, anchor + Vector2(0, -68), "¡Tus compañeros del CEMSaD 22 acuden a ayudarte!", Color(0.45, 0.95, 1.0), 14)
-
-	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
-	if fx:
-		var boss_title := "¡APARECIÓ EL JEFE!"
-		if level_data.get("boss_type", 0) == 6: # Boss.BossType.DESINTERES
-			boss_title = "¡MAESTRO DESINTERÉS CONFRONTADO!"
-		fx.shake(5.0, 0.45)
-		fx.floating_text(self, boss.global_position + Vector2(0, -50), boss_title, Color(1.0, 0.35, 0.45), 16)
+			fx.floating_text(self, anchor + Vector2(0, -68), "Tus compañeros del CEMSaD 22 acuden a ayudarte.", Color(0.45, 0.95, 1.0), 14)
 
 func _on_boss_redeemed(b: CharacterBody2D) -> void:
 	boss_defeated = true
@@ -706,7 +712,7 @@ func _on_boss_redeemed(b: CharacterBody2D) -> void:
 		set_classroom_cleared(true)
 		if goal and is_instance_valid(goal):
 			goal.set_locked(true)
-			goal.set_goal_text("¡Celebrando! (7s)")
+			goal.set_goal_text("Celebrando (7s)")
 		_start_final_boss_celebration(b)
 	else:
 		# Desbloquear meta de salida
@@ -717,27 +723,17 @@ func _on_boss_redeemed(b: CharacterBody2D) -> void:
 
 	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
 	if fx:
-		var banner_text := "¡ANTIVALOR MAYOR REDIMIDO!"
+		var banner_text := "Antivalor mayor redimido"
 		if int(level_data.get("boss_type", -1)) == 6:
-			banner_text = "¡MAESTRO DESINTERÉS REDIMIDO!"
+			banner_text = "Maestro Desinterés redimido"
 		elif is_final_titanor:
-			banner_text = "¡TITANOR REDIMIDO! ¡ESCUELA EN PAZ!"
+			banner_text = "Titanor en calma · Escuela en paz"
 		var banner_pos := b.global_position if (b != null and is_instance_valid(b)) else (player.global_position if (player != null and is_instance_valid(player)) else map_size * 0.5)
 		fx.floating_text(self, banner_pos + Vector2(0, -60), banner_text, Color(1.0, 0.95, 0.40), 16)
 		fx.shake(4.0, 0.3)
 
 func _load_level_texture(path: String) -> Texture2D:
-	if path.is_empty():
-		return null
-	if ResourceLoader.exists(path):
-		var res := ResourceLoader.load(path)
-		if res is Texture2D:
-			return res
-	if FileAccess.file_exists(path):
-		var img := Image.load_from_file(ProjectSettings.globalize_path(path))
-		if img and not img.is_empty():
-			return ImageTexture.create_from_image(img)
-	return null
+	return AssetLoader.load_texture(path)
 
 func _start_final_boss_celebration(boss_node: Node2D) -> void:
 	for old_s in celebration_students:
@@ -752,30 +748,41 @@ func _start_final_boss_celebration(boss_node: Node2D) -> void:
 	_final_celebration_step = 0
 	_last_celebration_sec = ceili(FINAL_BOSS_CELEBRATION_DURATION)
 
-	var boss_rescue_nodes: Array = []
+	var rescue_infos: Array = BossClass.RESCUE_STUDENTS_DATA
+
+	var rescue_positions: Array[Vector2] = []
 	if boss_node != null and is_instance_valid(boss_node):
 		var raw_nodes: Variant = boss_node.get("rescued_attack_students")
 		if raw_nodes is Array:
-			boss_rescue_nodes = raw_nodes
-			for rs in boss_rescue_nodes:
-				if is_instance_valid(rs) and rs is CanvasItem:
-					(rs as CanvasItem).visible = false
+			for rs in raw_nodes:
+				if is_instance_valid(rs) and rs is Node2D:
+					rescue_positions.append((rs as Node2D).position)
+					rs.visible = false
+					rs.queue_free()
+				else:
+					rescue_positions.append(Vector2.ZERO)
+			raw_nodes.clear()
 
-	# Mostrar también la frase de victoria sobre los estudiantes propios del escenario
+	# Ocultar estudiantes previos del escenario/aliados para que solo brillen los 7 campeones únicos sin duplicados
 	for s in students:
-		if is_instance_valid(s):
-			_attach_celebration_speech_label(s, -74.0)
+		if not is_instance_valid(s):
+			continue
+		s.visible = false
+		s.set_physics_process(false)
+		s.set_process(false)
+		var old_lbl := s.get_node_or_null("SpeechLabel") as Label
+		if old_lbl:
+			old_lbl.visible = false
 
 	var center := boss_node.position if (boss_node != null and is_instance_valid(boss_node)) else (player.position if (player != null and is_instance_valid(player)) else map_size * 0.5)
 	var parent_target: Node2D = entities if entities else self
-	var rescue_infos: Array = BossClass.RESCUE_STUDENTS_DATA
 	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
 
 	for i in range(rescue_infos.size()):
 		var info: Dictionary = rescue_infos[i]
 		var pos := Vector2.ZERO
-		if i < boss_rescue_nodes.size() and is_instance_valid(boss_rescue_nodes[i]) and boss_rescue_nodes[i] is Node2D:
-			pos = (boss_rescue_nodes[i] as Node2D).position
+		if i < rescue_positions.size() and rescue_positions[i] != Vector2.ZERO:
+			pos = rescue_positions[i]
 		else:
 			var ang := -PI * 0.85 + float(i) * (PI * 1.70 / float(maxi(1, rescue_infos.size() - 1)))
 			pos = center + Vector2(cos(ang), sin(ang)) * 135.0
@@ -867,7 +874,7 @@ func _update_final_boss_celebration(delta: float) -> void:
 	var secs_left := maxi(1, ceili(_final_boss_celebration_timer))
 	if secs_left != _last_celebration_sec and goal and is_instance_valid(goal):
 		_last_celebration_sec = secs_left
-		goal.set_goal_text("¡Meta en %ds!" % secs_left)
+		goal.set_goal_text("Meta en %ds" % secs_left)
 
 	if _final_boss_celebration_timer <= 0.0:
 		_finish_final_boss_celebration()
@@ -885,7 +892,7 @@ func _finish_final_boss_celebration() -> void:
 	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
 	if fx:
 		var prompt_pos := player.position + Vector2(0, -56) if (player != null and is_instance_valid(player)) else map_size * 0.5
-		fx.floating_text(self, prompt_pos, "¡Ve a la meta para la Ceremonia Final!", Color(1.0, 0.95, 0.42), 14)
+		fx.floating_text(self, prompt_pos, "Ve a la meta para la Ceremonia Final", Color(1.0, 0.95, 0.42), 14)
 
 func _on_goal_reached() -> void:
 	if player and is_instance_valid(player):

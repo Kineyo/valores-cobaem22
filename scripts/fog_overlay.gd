@@ -85,7 +85,7 @@ func _process(delta: float) -> void:
 		visible = true
 		_needs_restore = true
 		_update_shader_uniforms()
-		_update_enemies_visibility()
+		_update_enemies_visibility(delta)
 		if boss_node != null and is_instance_valid(boss_node):
 			queue_redraw()
 	else:
@@ -102,31 +102,23 @@ func _update_shader_uniforms() -> void:
 	_shader_mat.set_shader_parameter("time", _anim_time)
 	_shader_mat.set_shader_parameter("light_radius_1", light_radius)
 
-	# Asignar posiciones globales de las fuentes de luz
+	# Asignar posiciones globales de hasta 6 fuentes de luz activas
 	var active_positions: Array[Vector2] = []
 	for node in light_sources:
-		if node != null and is_instance_valid(node):
-			active_positions.append(node.global_position)
+		if node != null and is_instance_valid(node) and node is Node2D:
+			active_positions.append((node as Node2D).global_position)
 
-	if active_positions.size() > 0:
-		_shader_mat.set_shader_parameter("light_pos_1", active_positions[0])
-	else:
-		_shader_mat.set_shader_parameter("light_pos_1", Vector2(-2000, -2000))
-
-	if active_positions.size() > 1:
-		_shader_mat.set_shader_parameter("light_pos_2", active_positions[1])
-		_shader_mat.set_shader_parameter("light_radius_2", 90.0)
-	else:
-		_shader_mat.set_shader_parameter("light_pos_2", Vector2(-2000, -2000))
-
-	if active_positions.size() > 2:
-		_shader_mat.set_shader_parameter("light_pos_3", active_positions[2])
-		_shader_mat.set_shader_parameter("light_radius_3", 90.0)
-	else:
-		_shader_mat.set_shader_parameter("light_pos_3", Vector2(-2000, -2000))
+	for slot in range(6):
+		var pos_name := "light_pos_%d" % (slot + 1)
+		var rad_name := "light_radius_%d" % (slot + 1)
+		if slot < active_positions.size():
+			_shader_mat.set_shader_parameter(pos_name, active_positions[slot])
+			_shader_mat.set_shader_parameter(rad_name, light_radius if slot == 0 else (90.0 if slot <= 2 else 85.0))
+		else:
+			_shader_mat.set_shader_parameter(pos_name, Vector2(-2000, -2000))
 
 ## Oculta a los antivalores que se encuentran inmersos en la niebla profunda
-func _update_enemies_visibility() -> void:
+func _update_enemies_visibility(delta: float = 0.016) -> void:
 	var container: Node2D = enemies_container
 	if container == null and get_parent() != null:
 		container = get_parent().get_node_or_null("Entities/Enemies")
@@ -150,7 +142,7 @@ func _update_enemies_visibility() -> void:
 			continue
 
 		if not is_fog_active or _fog_alpha <= 0.01:
-			child.modulate.a = move_toward(child.modulate.a, 1.0, 0.1)
+			child.modulate.a = move_toward(child.modulate.a, 1.0, 4.0 * delta)
 			continue
 
 		var best_vis: float = 0.0
@@ -160,13 +152,14 @@ func _update_enemies_visibility() -> void:
 			var l_rad: float = _active_light_radii[li]
 			var inner: float = maxf(0.0, l_rad - 22.0)
 			var outer: float = l_rad + 18.0
+			var inner_sq: float = inner * inner
+			var outer_sq: float = outer * outer
 			var d_sq: float = e_pos.distance_squared_to(l_pos)
 			var v: float = 0.0
-			if d_sq <= inner * inner:
+			if d_sq <= inner_sq:
 				v = 1.0
-			elif d_sq < outer * outer:
-				var d: float = sqrt(d_sq)
-				v = 1.0 - ((d - inner) / (outer - inner))
+			elif d_sq < outer_sq:
+				v = clampf(1.0 - ((d_sq - inner_sq) / maxf(1.0, outer_sq - inner_sq)), 0.0, 1.0)
 			if v > best_vis:
 				best_vis = v
 
@@ -190,10 +183,16 @@ func _draw() -> void:
 
 	# -------------------------------------------------------------------------
 	# SIMBOLOGÍA VISIBLE EN LA NIEBLA: OJOS ROJOS Y CORAZÓN OSCURO DEL MAESTRO
+	# (Nunca delatar la posición si el jefe está cubierto e invisible)
 	# -------------------------------------------------------------------------
 	if boss_node != null and is_instance_valid(boss_node):
+		if bool(boss_node.get("_is_covered_and_vanished")):
+			return
 		var b_pos := to_local(boss_node.global_position)
 		var pulse := 1.0 + sin(_anim_time * 6.0) * 0.18
+		if int(boss_node.get("boss_type")) != 6:
+			draw_arc(b_pos + Vector2(0, -28), 32.0 * pulse, 0.0, TAU, 24, Color(0.95, 0.18, 0.35, 0.45 * _fog_alpha), 2.2)
+			return
 
 		# Ojos rojos ardientes atravesando la bruma
 		var eye_glow := Color(1.0, 0.15, 0.20, _fog_alpha)

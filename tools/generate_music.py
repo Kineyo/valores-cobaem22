@@ -108,6 +108,20 @@ def add_voice(buf, start: float, dur: float, f: float, vol: float, voice: str = 
             phase2 += (fv * 0.996) / RATE
             raw = 0.50 * osc_saw(phase) + 0.50 * osc_saw(phase2)
             env = adsr(t, dur, 0.035, 0.08, 0.85, min(0.14, dur * 0.35))
+        elif voice == "ut_lead":
+            phase2 += (fv * 1.004) / RATE
+            raw = math.tanh((0.62 * osc_pulse(phase, 0.25) + 0.38 * osc_saw(phase2)) * 2.1)
+            env = adsr(t, dur, 0.008, 0.045, 0.82, min(0.09, dur * 0.35))
+        elif voice == "ut_bass":
+            raw = 0.55 * osc_pulse(phase, 0.50) + 0.45 * osc_saw(phase * 0.5)
+            env = adsr(t, dur, 0.005, 0.04, 0.78, min(0.05, dur * 0.30))
+        elif voice == "ut_arp":
+            raw = 0.70 * osc_pulse(phase, 0.125) + 0.30 * osc_tri(phase * 2.0)
+            env = adsr(t, dur, 0.004, 0.03, 0.65, min(0.04, dur * 0.35))
+        elif voice == "ut_pad":
+            phase2 += (fv * 0.995) / RATE
+            raw = 0.45 * osc_saw(phase) + 0.45 * osc_saw(phase2) + 0.10 * math.sin(twopi * phase * 2.0)
+            env = adsr(t, dur, 0.045, 0.09, 0.84, min(0.16, dur * 0.35))
         else:
             raw = osc_pulse(phase, 0.25)
             env = adsr(t, dur, 0.006, 0.04, 0.62, 0.04)
@@ -395,6 +409,119 @@ def build_finale_souls_climax():
     return finalize_loop(buf, beat, echo_mix=0.22, lp_alpha=0.58)
 
 
+def build_undertale_battle_anthem():
+    """Himno original chiptune-rock en Re menor (148 BPM, 16 compases = ~25.95s por ciclo)
+    compuesto especialmente para el duelo de esquive estilo Undertale contra Titanor."""
+    bpm = 148.0
+    beat = 60.0 / bpm
+    Dm = ("D2", ["D4", "F4", "A4"])
+    C_M = ("C2", ["C4", "E4", "G4"])
+    Bb_M = ("Bb1", ["Bb3", "D4", "F4"])
+    A7_M = ("A1", ["A3", "C#4", "E4"])
+    Gm_M = ("G2", ["G3", "Bb3", "D4"])
+    F_M = ("F2", ["F3", "A3", "C4"])
+
+    # Estructura A (0-3) -> A' (4-7) -> B puente emotivo (8-11) -> C clímax total (12-15)
+    chords = [
+        Dm, C_M, Bb_M, A7_M,
+        Dm, Gm_M, Bb_M, A7_M,
+        Bb_M, C_M, Dm, F_M,
+        Gm_M, A7_M, Bb_M, A7_M,
+    ]
+    bars = len(chords)
+    buf = [0.0] * (int(bars * 4.0 * beat * RATE) + 64)
+
+    for b, (bass, triad) in enumerate(chords):
+        bar_t = b * 4.0 * beat
+        bass_hi = shift_octave(bass, 1)
+
+        # Bajo octavado agresivo con pulso sincopado estilo batalla Undertale
+        for k in range(8):
+            if b in (8, 9, 10, 11) and k in (3, 7):
+                bn = shift_octave(bass, 2)
+            else:
+                bn = bass if (k % 2 == 0) else bass_hi
+            add_voice(buf, bar_t + k * beat * 0.5, beat * 0.43, freq(bn), 0.25, voice="ut_bass", vibrato=0.0)
+
+        # Pad armónico en puente B (8-11) y clímax C (12-15)
+        if b >= 8:
+            for tn in triad:
+                add_voice(buf, bar_t, beat * 3.85, freq(tn), 0.068, voice="ut_pad", vibrato=0.003)
+
+        # Arpegio chiptune en semicorcheas (16ths) con motivo ascendente/descendente
+        arp_notes = [triad[0], triad[1], triad[2], shift_octave(triad[0], 1), triad[2], triad[1]]
+        for k in range(16):
+            amp = 0.064 if b < 8 else (0.048 if b < 12 else 0.072)
+            add_voice(
+                buf,
+                bar_t + k * beat * 0.25,
+                beat * 0.20,
+                freq(arp_notes[k % len(arp_notes)]),
+                amp,
+                voice="ut_arp",
+                vibrato=0.0,
+            )
+
+        # Campana heroica en entradas de sección
+        if b in (0, 4, 8, 12):
+            add_voice(buf, bar_t, beat * 1.5, freq(shift_octave(triad[2], 1)), 0.10, voice="school_chime", vibrato=0.0)
+
+        # Batería chiptune-rock enérgica con redobles al final de cada frase de 4 compases
+        for k in range(4):
+            bt = bar_t + k * beat
+            render_kick(buf, bt, 0.39)
+            if k in (1, 3):
+                render_snare(buf, bt, 0.25)
+            if b >= 12 and k == 2:
+                render_kick(buf, bt + beat * 0.5, 0.30)
+            render_hat(buf, bt, 0.048, 0.028)
+            render_hat(buf, bt + beat * 0.5, 0.075, 0.036)
+            if k in (0, 2) or b >= 12:
+                render_hat(buf, bt + beat * 0.25, 0.032, 0.020)
+                render_hat(buf, bt + beat * 0.75, 0.036, 0.022)
+        if b in (3, 7, 11, 15):
+            for s16 in range(4):
+                render_snare(buf, bar_t + 3.0 * beat + s16 * beat * 0.25, 0.16 + 0.04 * s16)
+
+    # Melodía principal (16 compases = 64 tiempos exactos)
+    melody = [
+        # A (0-3): Riff sincopado de alta energía
+        ("D5", 0.5), ("F5", 0.5), ("A5", 0.5), ("D6", 0.75), ("C6", 0.75), ("A5", 1.0),
+        ("G5", 0.5), ("E5", 0.5), ("C5", 0.5), ("G5", 1.0), ("E5", 0.5), ("C5", 1.0),
+        ("Bb4", 0.5), ("D5", 0.5), ("F5", 0.5), ("Bb5", 1.0), ("A5", 0.5), ("F5", 1.0),
+        ("E5", 1.0), ("C#5", 0.5), ("E5", 0.5), ("A5", 1.0), ("E5", 1.0),
+
+        # A' (4-7): Variación ascendente con tensión
+        ("D5", 0.5), ("A5", 0.5), ("F5", 0.5), ("D5", 0.5), ("A5", 0.75), ("D6", 0.75), ("F6", 0.5),
+        ("E6", 0.75), ("D6", 0.75), ("Bb5", 0.5), ("G5", 1.0), ("Bb5", 1.0),
+        ("A5", 0.5), ("F5", 0.5), ("D5", 0.5), ("F5", 0.5), ("Bb5", 1.0), ("D6", 1.0),
+        ("C#6", 1.5), ("A5", 0.5), ("E5", 1.0), ("A5", 1.0),
+
+        # B (8-11): Puente heroico del Alma
+        ("Bb5", 1.5), ("A5", 0.5), ("F5", 1.0), ("D5", 1.0),
+        ("G5", 1.5), ("E5", 0.5), ("C5", 1.0), ("G5", 1.0),
+        ("A5", 1.0), ("D6", 1.0), ("F6", 1.5), ("E6", 0.5),
+        ("C6", 1.5), ("A5", 0.5), ("F5", 1.0), ("C6", 1.0),
+
+        # C (12-15): Clímax total de duelo
+        ("Bb5", 0.5), ("D6", 0.5), ("G6", 1.0), ("F6", 0.5), ("D6", 0.5), ("Bb5", 1.0),
+        ("A5", 0.5), ("C#6", 0.5), ("E6", 1.0), ("A6", 1.0), ("E6", 1.0),
+        ("F6", 0.75), ("D6", 0.75), ("Bb5", 0.5), ("D6", 1.0), ("F6", 1.0),
+        ("E6", 1.5), ("C#6", 0.5), ("A5", 1.0), ("E5", 1.0),
+    ]
+    t = 0.0
+    for note, beats in melody:
+        dur = beats * beat
+        if note:
+            add_voice(buf, t, dur * 0.92, freq(note), 0.22, voice="ut_lead", vibrato=0.0055)
+            # En puente y clímax duplicar una octava abajo para peso sinfónico
+            if t >= 8 * 4.0 * beat:
+                add_voice(buf, t, dur * 0.85, freq(shift_octave(note, -1)), 0.09, voice="zun_trumpet", vibrato=0.003)
+        t += dur
+
+    return finalize_loop(buf, beat, echo_mix=0.20, lp_alpha=0.58)
+
+
 def generate_all():
     os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -591,6 +718,9 @@ def generate_all():
 
     # 11. Tema Original Clímax Undertale-Finale (1 HP Titanor + Corazones)
     write_wav(os.path.join(OUT_DIR, "music_finale_souls.wav"), build_finale_souls_climax())
+
+    # 11b. Tema Original Batalla Undertale (Duelo de esquive 2+ minutos)
+    write_wav(os.path.join(OUT_DIR, "music_undertale_battle.wav"), build_undertale_battle_anthem())
 
     # 12. Capa Percusiva Extra para Dificultad Difícil
     write_wav(os.path.join(OUT_DIR, "music_hard_perc.wav"), build_hard_perc_overlay(160.0))

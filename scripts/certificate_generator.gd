@@ -13,7 +13,7 @@ const SIZE_5X7_HEIGHT_PT := 504.0
 const FILENAME_CARTA := "Reconocimiento_COBAEM22_Carta.pdf"
 const FILENAME_5X7 := "Reconocimiento_COBAEM22_5x7.pdf"
 
-const LOGO_TOP_LEFT_PATH := "res://assets/logos/logo cobaem.png"
+const LOGO_TOP_LEFT_PATH := "res://assets/logos/cobaem-logo.jpeg"
 const LOGO_TOP_RIGHT_PATH := "res://assets/logos/nuevo_logo_cobaem.jpeg"
 const LOGO_CENTER_PATH := "res://assets/logos/cobaem-logo.jpeg"
 
@@ -77,8 +77,8 @@ static func build_certificate_text(difficulty_name: String = "", recipient_name:
 	var clean_name := recipient_name.strip_edges()
 	var holder := ":%s" % (" " + clean_name if not clean_name.is_empty() else "_______")
 	if is_fem:
-		return "La alumna/Madre de familia/Maestra%s ha logrado completar el juego en modo: %s y es reconocida como una asesora de los valores en el Cobaem Cemsad Plantel 22 Enthavi. Felicidades por el logro!" % [holder, diff]
-	return "El alumno/Padre de familia/Maestro%s ha logrado completar el juego en modo: %s y es reconocido como un asesor de los valores en el Cobaem Cemsad Plantel 22 Enthavi. Felicidades por el logro!" % [holder, diff]
+		return "La alumna/Madre de familia/Maestra%s ha logrado completar el juego en modo: %s y es reconocida como una asesora de los valores en el Cobaem Cemsad Plantel 22 Enthavi. Gracias por el logro." % [holder, diff]
+	return "El alumno/Padre de familia/Maestro%s ha logrado completar el juego en modo: %s y es reconocido como un asesor de los valores en el Cobaem Cemsad Plantel 22 Enthavi. Gracias por el logro." % [holder, diff]
 
 ## Extrae la dificultad inicial desde GameSettings cuando está disponible en el árbol de escena
 static func resolve_initial_difficulty() -> String:
@@ -94,6 +94,26 @@ static func resolve_initial_difficulty() -> String:
 					return str(gs.difficulty_name())
 	return "Normal"
 
+## Descarga individual de un formato en Web (1 descarga por gesto para evitar bloqueo de pop-up)
+static func download_single_pdf(format_id: String, difficulty_name: String = "", recipient_name: String = "", override_gender: int = -1) -> Dictionary:
+	var diff := difficulty_name.strip_edges()
+	if diff.is_empty():
+		diff = resolve_initial_difficulty()
+	var body_text := build_certificate_text(diff, recipient_name, override_gender)
+	var is_5x7 := (format_id == "5x7")
+	var pdf_bytes := build_pdf_bytes(
+		SIZE_5X7_WIDTH_PT if is_5x7 else LETTER_WIDTH_PT,
+		SIZE_5X7_HEIGHT_PT if is_5x7 else LETTER_HEIGHT_PT,
+		diff, body_text,
+		"Tamaño 5x7 (5 x 7 in)" if is_5x7 else "Tamaño Carta (8.5 x 11 in)",
+		recipient_name, override_gender
+	)
+	var fname := FILENAME_5X7 if is_5x7 else FILENAME_CARTA
+	if OS.has_feature("web"):
+		JavaScriptBridge.download_buffer(pdf_bytes, fname, "application/pdf")
+		return { "success": true, "downloaded_web": true, "filename": fname }
+	return generate_certificates(diff, "", recipient_name, override_gender)
+
 ## Genera ambos archivos PDF (Tamaño Carta y Tamaño 5x7) y los guarda en almacenamiento / galería
 static func generate_certificates(difficulty_name: String = "", extra_dir: String = "", recipient_name: String = "", override_gender: int = -1) -> Dictionary:
 	var diff := difficulty_name.strip_edges()
@@ -104,11 +124,20 @@ static func generate_certificates(difficulty_name: String = "", extra_dir: Strin
 	var bytes_carta := build_pdf_bytes(LETTER_WIDTH_PT, LETTER_HEIGHT_PT, diff, body_text, "Tamaño Carta (8.5 x 11 in)", recipient_name, override_gender)
 	var bytes_5x7 := build_pdf_bytes(SIZE_5X7_WIDTH_PT, SIZE_5X7_HEIGHT_PT, diff, body_text, "Tamaño 5x7 (5 x 7 in)", recipient_name, override_gender)
 
+	var downloaded_web := false
+	if OS.has_feature("web") and extra_dir.strip_edges().is_empty():
+		JavaScriptBridge.download_buffer(bytes_carta, FILENAME_CARTA, "application/pdf")
+		downloaded_web = true
+
 	var candidate_dirs: Array[String] = []
 	if not extra_dir.strip_edges().is_empty():
 		candidate_dirs.append(extra_dir.strip_edges())
 	else:
-		# Directorio Documentos del sistema y respaldo en almacenamiento interno user://
+		# Directorio Documentos del sistema (y Descargas en Android) con respaldo en user://
+		if OS.has_feature("android"):
+			var dl_dir := OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS)
+			if not dl_dir.is_empty() and DirAccess.dir_exists_absolute(dl_dir):
+				candidate_dirs.append(dl_dir.path_join("COBAEM22_Certificados"))
 		var docs_dir := OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS)
 		if not docs_dir.is_empty() and DirAccess.dir_exists_absolute(docs_dir):
 			candidate_dirs.append(docs_dir.path_join("COBAEM22_Certificados"))
@@ -143,7 +172,8 @@ static func generate_certificates(difficulty_name: String = "", extra_dir: Strin
 				primary_5x7 = path_57
 
 	return {
-		"success": not saved_dirs.is_empty(),
+		"success": (not saved_dirs.is_empty()) or downloaded_web,
+		"downloaded_web": downloaded_web,
 		"difficulty": diff,
 		"body_text": body_text,
 		"carta_path": primary_carta,
@@ -384,7 +414,7 @@ static func _build_page_stream(w: float, h: float, difficulty_name: String, body
 	wrapped.append("ha logrado completar el juego en modo: %s" % difficulty_name)
 	wrapped.append("y es reconocida como una asesora de los valores" if is_fem else "y es reconocido como un asesor de los valores")
 	wrapped.append("en el Cobaem Cemsad Plantel 22 Enthavi.")
-	wrapped.append("Felicidades por el logro!")
+	wrapped.append("Felicidades por el logro.")
 
 	var body_start_y := sep_y - (24.0 if compact else 42.0)
 	if extra_lines > 0:
@@ -394,10 +424,15 @@ static func _build_page_stream(w: float, h: float, difficulty_name: String, body
 		var font_choice := "F2" if is_highlight else "F1"
 		lines.append(_pdf_centered_text(cx, body_start_y - float(i) * line_step, wrapped[i], font_choice, f_body, "0.10 0.12 0.16", content_max_w))
 
-	# Recuadro destacado de dificultad con ancho adaptado al texto interno
-	var badge_y := body_start_y - float(wrapped.size()) * line_step - (14.0 if compact else 26.0)
-	var badge_w := icw * (0.90 if compact else 0.84)
+	# Logo central institucional ('cobaem-logo.jpeg') en reemplazo del texto 'COBAEM'
+	var seal_size := 76.0 if compact else 112.0
+	var seal_center_y := inner_m + (116.0 if compact else 182.0)
+
+	# Recuadro destacado de dificultad con ancho adaptado al texto interno y separación segura del sello
 	var badge_h := 26.0 if compact else 36.0
+	var min_badge_y := seal_center_y + seal_size * 0.5 + badge_h * 0.5 + 6.0
+	var badge_y := maxf(body_start_y - float(wrapped.size()) * line_step - (14.0 if compact else 26.0), min_badge_y)
+	var badge_w := icw * (0.90 if compact else 0.84)
 	var advisor_lbl := "Asesora de Valores CEMSaD 22" if is_fem else "Asesor de Valores CEMSaD 22"
 	var badge_text := "Nivel Completado: %s   |   %s" % [difficulty_name, advisor_lbl]
 	lines.append("0.93 0.91 0.85 rg")
@@ -405,10 +440,6 @@ static func _build_page_stream(w: float, h: float, difficulty_name: String, body
 	lines.append("0.78 0.63 0.28 RG 1.0 w")
 	lines.append("%.2f %.2f %.2f %.2f re S" % [cx - badge_w * 0.5, badge_y - badge_h * 0.5, badge_w, badge_h])
 	lines.append(_pdf_centered_text(cx, badge_y - (3.0 if compact else 4.0), badge_text, "F2", 8.2 if compact else 11.4, "0.42 0.11 0.18", badge_w - (14.0 if compact else 24.0)))
-
-	# Logo central institucional ('cobaem-logo.jpeg') en reemplazo del texto 'COBAEM'
-	var seal_size := 76.0 if compact else 112.0
-	var seal_center_y := inner_m + (116.0 if compact else 182.0)
 	var seal_x := cx - seal_size * 0.5
 	var seal_y := seal_center_y - seal_size * 0.5
 	var seal_pad := 3.5 if compact else 5.0

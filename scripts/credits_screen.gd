@@ -15,6 +15,7 @@ const RATIO_3_4 := 0.75
 @export var use_video_file: bool = true
 @export var auto_scroll_duration: float = 34.0
 
+var _root_vbox: VBoxContainer
 var _aspect_box: AspectRatioContainer
 var _frame_panel: PanelContainer
 var _stage_ctrl: Control
@@ -139,17 +140,17 @@ func _build_ui() -> void:
 	bg.color = Color(0.02, 0.02, 0.05, 0.96)
 	add_child(bg)
 
-	var root_vbox := VBoxContainer.new()
-	root_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root_vbox.add_theme_constant_override("separation", 6)
-	add_child(root_vbox)
+	_root_vbox = VBoxContainer.new()
+	_root_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_root_vbox.add_theme_constant_override("separation", 6)
+	add_child(_root_vbox)
 
 	# Barra superior compacta de controles (pausa/reinicio/cerrar)
 	var top_bar := HBoxContainer.new()
 	top_bar.name = "CreditsTopBar"
 	top_bar.alignment = BoxContainer.ALIGNMENT_CENTER
 	top_bar.add_theme_constant_override("separation", 8)
-	root_vbox.add_child(top_bar)
+	_root_vbox.add_child(top_bar)
 
 	var lbl_badge := Label.new()
 	lbl_badge.text = "CRÉDITOS OFICIALES · FORMATO 3:4 (README)"
@@ -179,6 +180,7 @@ func _build_ui() -> void:
 	_btn_fullscreen.text = "⛶ Pantalla Completa"
 	_btn_fullscreen.custom_minimum_size = Vector2(142, 34)
 	_btn_fullscreen.add_theme_font_size_override("font_size", 11)
+	_btn_fullscreen.visible = not (OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"))
 	_btn_fullscreen.pressed.connect(toggle_fullscreen)
 	top_bar.add_child(_btn_fullscreen)
 	UiJuice.attach_button(_btn_fullscreen)
@@ -215,7 +217,7 @@ func _build_ui() -> void:
 	_aspect_box.stretch_mode = AspectRatioContainer.STRETCH_FIT
 	_aspect_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_aspect_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root_vbox.add_child(_aspect_box)
+	_root_vbox.add_child(_aspect_box)
 
 	_frame_panel = PanelContainer.new()
 	var sb := StyleBoxFlat.new()
@@ -298,10 +300,10 @@ func _build_live_roll_nodes() -> void:
 	logos.add_theme_constant_override("separation", 18)
 	_roll_container.add_child(logos)
 	for logo_path in ["res://assets/logos/cobaem-logo.jpeg", "res://icon.jpeg"]:
-		var img := Image.load_from_file(ProjectSettings.globalize_path(logo_path)) if FileAccess.file_exists(logo_path) else null
-		if img and not img.is_empty():
+		var logo_tex := AssetLoader.load_texture(logo_path)
+		if logo_tex != null:
 			var tr := TextureRect.new()
-			tr.texture = ImageTexture.create_from_image(img)
+			tr.texture = logo_tex
 			tr.custom_minimum_size = Vector2(72, 72)
 			tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -371,6 +373,17 @@ func _recompute_roll_bounds() -> void:
 func _update_safe_layout() -> void:
 	if not is_inside_tree() or get_viewport() == null:
 		return
+	var ins := MobileControls.get_safe_insets_for_viewport(get_viewport(), 8.0)
+	if _root_vbox and is_instance_valid(_root_vbox):
+		_root_vbox.offset_left = ins.position.x
+		_root_vbox.offset_top = ins.position.y
+		_root_vbox.offset_right = -ins.size.x
+		_root_vbox.offset_bottom = -ins.size.y
+	if _btn_exit_fullscreen and is_instance_valid(_btn_exit_fullscreen):
+		_btn_exit_fullscreen.offset_top = ins.position.y + 4.0
+		_btn_exit_fullscreen.offset_right = -ins.size.x - 4.0
+		_btn_exit_fullscreen.offset_left = -ins.size.x - 190.0
+		_btn_exit_fullscreen.offset_bottom = ins.position.y + 38.0
 	_recompute_roll_bounds()
 
 func _process(delta: float) -> void:
@@ -414,6 +427,12 @@ func _on_video_finished() -> void:
 func toggle_fullscreen() -> void:
 	set_fullscreen_mode(not _is_fullscreen_mode)
 
+func _can_change_window_mode() -> bool:
+	var gs := get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	if gs and gs.has_method("should_skip_window_ops"):
+		return not bool(gs.should_skip_window_ops())
+	return DisplayServer.get_name() != "headless"
+
 func set_fullscreen_mode(enabled: bool) -> void:
 	_is_fullscreen_mode = enabled
 	var tb := find_child("CreditsTopBar", true, false) as Control
@@ -423,7 +442,7 @@ func set_fullscreen_mode(enabled: bool) -> void:
 		_btn_exit_fullscreen.visible = enabled
 	if _btn_fullscreen:
 		_btn_fullscreen.text = "🗗 Ventana" if enabled else "⛶ Pantalla Completa"
-	if DisplayServer.get_name() != "headless":
+	if _can_change_window_mode():
 		if enabled:
 			_prev_window_mode = DisplayServer.window_get_mode()
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
@@ -432,7 +451,7 @@ func set_fullscreen_mode(enabled: bool) -> void:
 	call_deferred("_recompute_roll_bounds")
 
 func _restore_window_mode() -> void:
-	if DisplayServer.get_name() != "headless" and _prev_window_mode >= 0:
+	if _can_change_window_mode() and _prev_window_mode >= 0:
 		DisplayServer.window_set_mode(_prev_window_mode)
 		_prev_window_mode = -1
 

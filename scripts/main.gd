@@ -11,6 +11,9 @@ const StoryDataClass := preload("res://scripts/story_data.gd")
 const FINAL_CEREMONY_SCENE := preload("res://scenes/final_ceremony.tscn")
 const LOADING_SCREEN_SCENE := preload("res://scenes/loading_screen.tscn")
 const UNDERTALE_CLIMAX_SCENE := preload("res://scenes/undertale_climax.tscn")
+const UNDERTALE_BATTLE_SCENE := preload("res://scenes/undertale_battle.tscn")
+const CLASSROOM_MINIGAME_SCENE := preload("res://scenes/classroom_minigame.tscn")
+const INTERLUDE_MINIGAME_SCENE := preload("res://scenes/interlude_minigame.tscn")
 
 @onready var level_container: Node2D = $LevelContainer
 @onready var hud: HUD = $HUD
@@ -19,8 +22,13 @@ var current_level_index: int = 0
 var levels: Array[Dictionary] = []
 var active_level: Level = null
 var active_ceremony: Node2D = null
+var active_undertale_battle: CanvasLayer = null
 var active_undertale_climax: CanvasLayer = null
+var active_classroom_minigame: CanvasLayer = null
+var active_interlude_minigame: CanvasLayer = null
 var _final_loading_layer: CanvasLayer = null
+var _pending_interlude_reward: Dictionary = {}
+var _played_interludes: Array[int] = []
 
 var game_finished: bool = false
 var _campaign_completed: bool = false
@@ -41,6 +49,8 @@ var _in_classroom_from_door: bool = false
 var _return_exterior_index: int = 0
 var _returning_from_classroom: bool = false
 var _saved_held_item: String = ""
+var _stage_start_enemies_defeated: int = 0
+var _in_retry_reload: bool = false
 
 var _game_settings: Node:
 	get:
@@ -128,6 +138,9 @@ func load_level(index: int) -> void:
 
 	current_level_index = index
 	_is_stage_transitioning = false
+	if not _in_classroom_from_door and not _returning_from_classroom and not _in_retry_reload:
+		_stage_start_enemies_defeated = enemies_defeated
+	_in_retry_reload = false
 
 	# Liberar el nivel o ceremonia anterior para evitar fugas de memoria
 	active_level = null
@@ -175,12 +188,31 @@ func load_level(index: int) -> void:
 
 	active_level.setup_level(lvl_data)
 
-	if returning_flag and _saved_player_health > 0 and active_level.player:
+	if (_in_classroom_from_door or returning_flag) and _saved_player_health > 0 and active_level.player:
 		active_level.player.health = mini(active_level.player.max_health, _saved_player_health)
 		_saved_player_health = -1
 	_returning_from_classroom = false
 	if active_level.player and active_level.player.has_method("set_held_item_silently"):
 		active_level.player.set_held_item_silently(_saved_held_item)
+
+	if not _pending_interlude_reward.is_empty() and not bool(lvl_data.get("is_classroom", false)):
+		var r_kind := str(_pending_interlude_reward.get("kind", ""))
+		_pending_interlude_reward = {}
+		if active_level.player and is_instance_valid(active_level.player):
+			match r_kind:
+				"heart":
+					if active_level.player.health < active_level.player.max_health:
+						active_level.player.health = mini(active_level.player.max_health, active_level.player.health + 1)
+						active_level.player.health_changed.emit(active_level.player.health, active_level.player.max_health)
+					else:
+						active_level.player.empathy_cooldown_left = 0.0
+				"shield":
+					if active_level.player.has_method("grant_spawn_protection"):
+						active_level.player.grant_spawn_protection(4.0)
+				"quota_bonus":
+					active_level.quota_to_boss = maxi(1, active_level.quota_to_boss - 1)
+				"pulse_ready":
+					active_level.player.empathy_cooldown_left = 0.0
 
 	# Cachear la distancia 2D entre el punto de spawn y la meta para la barra de progreso
 	var p_spawn: Vector2 = lvl_data.get("player_spawn", Vector2(100, 400))
@@ -245,34 +277,53 @@ func _on_quota_updated(defeated: int, quota: int) -> void:
 
 func _on_boss_spawned(boss_inst: CharacterBody2D) -> void:
 	var b_name: String = "Antivalor Mayor"
-	if "boss_type" in boss_inst:
-		var b_type: int = boss_inst.boss_type
+	var b_type: int = -1
+	var hp: int = 10
+	var max_hp: int = 10
+	if boss_inst is Boss:
+		var typed_boss := boss_inst as Boss
+		b_type = typed_boss.boss_type
+		if Boss.BOSS_DATA.has(b_type):
+			b_name = Boss.BOSS_DATA[b_type].get("name", b_name)
+		hp = typed_boss.current_hp
+		max_hp = typed_boss.max_hp
+	elif "boss_type" in boss_inst:
+		b_type = int(boss_inst.get("boss_type"))
 		if "BOSS_DATA" in boss_inst and boss_inst.BOSS_DATA.has(b_type):
 			b_name = boss_inst.BOSS_DATA[b_type].get("name", b_name)
-	var hp: int = int(boss_inst.get("current_hp") if "current_hp" in boss_inst else 10)
-	var max_hp: int = int(boss_inst.get("max_hp") if "max_hp" in boss_inst else 10)
+		hp = int(boss_inst.get("current_hp") if "current_hp" in boss_inst else 10)
+		max_hp = int(boss_inst.get("max_hp") if "max_hp" in boss_inst else 10)
 	hud.show_boss_bar(b_name, hp, max_hp)
+	if boss_inst != null and boss_inst.has_signal("special_phase_message"):
+		var cb := Callable(self, "_on_boss_subtitle_message")
+		if not boss_inst.special_phase_message.is_connected(cb):
+			boss_inst.special_phase_message.connect(cb)
 	if _game_settings and _game_settings.has_method("play_stage_music") and active_level:
 		var lvl_data: Dictionary = active_level.level_data
 		var b_idx: int = clampi(int(lvl_data.get("building_id", (current_level_index / 2) + 1)) - 1, 0, 5)
 		var is_cls: bool = bool(lvl_data.get("is_classroom", false))
-		var is_final: bool = ("boss_type" in boss_inst and int(boss_inst.boss_type) == 5)
+		var is_final: bool = (b_type == Boss.BossType.BULLYING)
 		_game_settings.play_stage_music(b_idx, is_cls, true, is_final)
 
 func _on_boss_health_changed(hp: int, max_hp: int) -> void:
 	hud.update_boss_bar(hp, max_hp)
 
+func _on_boss_subtitle_message(msg: String) -> void:
+	if hud and hud.has_method("show_boss_subtitle"):
+		hud.show_boss_subtitle(msg, 2.2)
+
 func _on_boss_redeemed(boss_inst: CharacterBody2D) -> void:
 	hud.hide_boss_bar()
 	if hud and hud.has_method("set_boss_defeated"):
 		hud.set_boss_defeated(active_level != null and active_level.has_classroom and not active_level.is_classroom_cleared)
-	if _game_settings and _game_settings.has_method("play_stage_music") and active_level and (boss_inst == null or int(boss_inst.get("boss_type")) != 5):
+	var is_titanor: bool = (boss_inst is Boss and (boss_inst as Boss).boss_type == Boss.BossType.BULLYING) or (boss_inst != null and int(boss_inst.get("boss_type")) == 5)
+	if _game_settings and _game_settings.has_method("play_stage_music") and active_level and not is_titanor:
 		var lvl_data: Dictionary = active_level.level_data
 		var b_idx: int = clampi(int(lvl_data.get("building_id", (current_level_index / 2) + 1)) - 1, 0, 5)
 		var is_cls: bool = bool(lvl_data.get("is_classroom", false))
 		_game_settings.play_stage_music(b_idx, is_cls, false, false)
 	# Al derrotar al Jefe Final (Titanor, BossType.BULLYING = 5), disipa la niebla y libera a los alumnos para la celebración de 7s antes de desbloquear la meta
-	if boss_inst != null and boss_inst.get("boss_type") == 5:
+	if is_titanor:
 		if active_level:
 			if active_level.has_method("set_boss_desperation_fog"):
 				active_level.set_boss_desperation_fog(false)
@@ -281,7 +332,7 @@ func _on_boss_redeemed(boss_inst: CharacterBody2D) -> void:
 		_cleared_classrooms[5] = true
 
 func _on_boss_undertale_climax_requested(boss_inst: CharacterBody2D) -> void:
-	if game_finished or active_undertale_climax != null:
+	if game_finished or active_undertale_climax != null or active_undertale_battle != null:
 		return
 	var epoch := _transition_epoch
 	if hud:
@@ -289,20 +340,42 @@ func _on_boss_undertale_climax_requested(boss_inst: CharacterBody2D) -> void:
 		hud.hide_boss_bar(true)
 		if hud.mobile_controls and hud.mobile_controls.has_method("deactivate"):
 			hud.mobile_controls.deactivate()
-	if get_tree():
+	if _game_settings and _game_settings.has_method("request_pause"):
+		_game_settings.request_pause(&"undertale_climax")
+	elif get_tree():
 		get_tree().paused = true
+	if UndertaleBattle.should_trigger():
+		active_undertale_battle = UNDERTALE_BATTLE_SCENE.instantiate()
+		add_child(active_undertale_battle)
+		active_undertale_battle.battle_finished.connect(func():
+			active_undertale_battle = null
+			if epoch != _transition_epoch or not is_inside_tree():
+				return
+			_launch_undertale_hearts_climax(boss_inst, epoch)
+		, CONNECT_ONE_SHOT)
+		return
+	_launch_undertale_hearts_climax(boss_inst, epoch)
+
+func _launch_undertale_hearts_climax(boss_inst: CharacterBody2D, epoch: int) -> void:
 	active_undertale_climax = UNDERTALE_CLIMAX_SCENE.instantiate()
 	add_child(active_undertale_climax)
 	active_undertale_climax.climax_finished.connect(func():
 		active_undertale_climax = null
-		if is_inside_tree() and get_tree():
+		if _game_settings and _game_settings.has_method("release_pause"):
+			_game_settings.release_pause(&"undertale_climax")
+		elif is_inside_tree() and get_tree():
 			get_tree().paused = false
 		if epoch != _transition_epoch or not is_inside_tree():
 			return
 		if boss_inst != null and is_instance_valid(boss_inst) and boss_inst.has_method("finish_undertale_climax"):
 			boss_inst.finish_undertale_climax()
-		# Completar campaña y fluir hacia el Epílogo y la Ceremonia Final
-		_complete_final_campaign_after_climax()
+		if hud and not game_finished:
+			hud.can_pause = true
+			if not hud.is_paused and hud.mobile_controls and hud.mobile_controls.has_method("activate") and MobileControls.is_touch_device():
+				hud.mobile_controls.activate()
+		# Permitir la celebración de 7s y la caminata a la meta; usar el epílogo directo solo como respaldo
+		if active_level == null or not active_level.is_final_boss_celebrating:
+			_complete_final_campaign_after_climax()
 	)
 
 func _complete_final_campaign_after_climax() -> void:
@@ -345,29 +418,111 @@ func _on_mobile_aim_changed(aim_vec: Vector2) -> void:
 	if active_level and active_level.player and is_instance_valid(active_level.player):
 		active_level.player.mobile_aim_vector = aim_vec
 
-func _on_enter_classroom_requested(classroom_idx: int) -> void:
-	if game_finished or _is_stage_transitioning:
-		return
-	_is_stage_transitioning = true
-	if active_level:
-		_saved_exterior_boss_defeated[classroom_idx] = active_level.boss_defeated
-		_saved_exterior_defeated_count[classroom_idx] = active_level.defeated_in_level
-		_saved_player_health = active_level.player.health if active_level.player else -1
-	_return_exterior_index = current_level_index
-	_in_classroom_from_door = true
+func _get_unlocked_ally_names(stage_count: int) -> Array[String]:
+	var all_names: Array[String] = ["Mateo", "María", "Valeria", "Fernanda", "Diego", "Sofía", "Alejandro"]
+	var res: Array[String] = []
+	for i in range(mini(all_names.size(), maxi(1, stage_count + 1))):
+		res.append(all_names[i])
+	return res
 
-	# Buscar el índice del salón correspondiente en la lista de niveles
-	var target_stage_idx := -1
-	for i in range(levels.size()):
-		if levels[i].get("is_classroom", false) and int(levels[i].get("classroom_index", -1)) == classroom_idx:
-			target_stage_idx = i
-			break
-	if target_stage_idx < 0 and current_level_index + 1 < levels.size():
-		target_stage_idx = current_level_index + 1
-	if target_stage_idx >= 0:
-		_transition_to_level(target_stage_idx)
-	else:
-		_is_stage_transitioning = false
+func _on_enter_classroom_requested(classroom_idx: int) -> void:
+	launch_classroom_minigame(classroom_idx, true)
+
+func launch_classroom_minigame(classroom_idx: int, from_exterior_door: bool = true) -> void:
+	if game_finished or _is_stage_transitioning or active_classroom_minigame != null or active_interlude_minigame != null:
+		return
+	var epoch := _transition_epoch
+	if hud:
+		hud.can_pause = false
+		if hud.mobile_controls and hud.mobile_controls.has_method("deactivate"):
+			hud.mobile_controls.deactivate()
+	if _game_settings and _game_settings.has_method("request_pause"):
+		_game_settings.request_pause(&"classroom_minigame")
+	elif get_tree():
+		get_tree().paused = true
+
+	var mg := CLASSROOM_MINIGAME_SCENE.instantiate() as ClassroomMinigame
+	active_classroom_minigame = mg
+	add_child(mg)
+	mg.setup_classroom(classroom_idx)
+	mg.minigame_finished.connect(func(cleared: bool, c_idx: int):
+		active_classroom_minigame = null
+		if _game_settings and _game_settings.has_method("release_pause"):
+			_game_settings.release_pause(&"classroom_minigame")
+		elif is_inside_tree() and get_tree():
+			get_tree().paused = false
+		if epoch != _transition_epoch or not is_inside_tree():
+			return
+		if hud and not game_finished:
+			hud.can_pause = true
+			if not hud.is_paused and hud.mobile_controls and hud.mobile_controls.has_method("activate") and MobileControls.is_touch_device():
+				hud.mobile_controls.activate()
+		if from_exterior_door and active_level != null and is_instance_valid(active_level):
+			if active_level.player != null and is_instance_valid(active_level.player):
+				active_level.player.position = active_level.level_data.get("classroom_exit_spawn", active_level.player.position)
+				active_level.player.velocity = Vector2.ZERO
+				if active_level.player.has_method("grant_spawn_protection"):
+					active_level.player.grant_spawn_protection(2.0)
+		if cleared:
+			_cleared_classrooms[c_idx] = true
+			if from_exterior_door and active_level != null and is_instance_valid(active_level):
+				active_level.set_classroom_cleared(true)
+				if active_level.player and is_instance_valid(active_level.player) and active_level.player.health < active_level.player.max_health:
+					active_level.player.health = mini(active_level.player.max_health, active_level.player.health + 1)
+					active_level.player.health_changed.emit(active_level.player.health, active_level.player.max_health)
+				if hud:
+					hud.set_boss_defeated(false)
+					hud.show_intro("¡Salón en Armonía!", "Meta del patio desbloqueada")
+	, CONNECT_ONE_SHOT)
+
+func launch_interlude_minigame(kind_override: int = -1, on_done: Callable = Callable()) -> void:
+	if game_finished or active_interlude_minigame != null or active_classroom_minigame != null:
+		if on_done.is_valid():
+			on_done.call()
+		return
+	var epoch := _transition_epoch
+	var chosen_kind := kind_override
+	if chosen_kind < 0:
+		var pool: Array[int] = []
+		for k in [0, 1, 2]:
+			if not _played_interludes.has(k):
+				pool.append(k)
+		if pool.is_empty():
+			_played_interludes.clear()
+			pool = [0, 1, 2]
+		chosen_kind = pool[randi() % pool.size()]
+	if not _played_interludes.has(chosen_kind):
+		_played_interludes.append(chosen_kind)
+
+	if hud:
+		hud.can_pause = false
+		if hud.mobile_controls and hud.mobile_controls.has_method("deactivate"):
+			hud.mobile_controls.deactivate()
+	if _game_settings and _game_settings.has_method("request_pause"):
+		_game_settings.request_pause(&"interlude_minigame")
+	elif get_tree():
+		get_tree().paused = true
+
+	var im := INTERLUDE_MINIGAME_SCENE.instantiate() as InterludeMinigame
+	active_interlude_minigame = im
+	add_child(im)
+	im.setup_interlude(chosen_kind as InterludeMinigame.Kind, _get_unlocked_ally_names(current_level_index / 2))
+	im.interlude_finished.connect(func(reward: Dictionary):
+		active_interlude_minigame = null
+		_pending_interlude_reward = reward
+		if _game_settings and _game_settings.has_method("release_pause"):
+			_game_settings.release_pause(&"interlude_minigame")
+		elif is_inside_tree() and get_tree():
+			get_tree().paused = false
+		if epoch != _transition_epoch or not is_inside_tree():
+			return
+		if hud and not game_finished:
+			hud.can_pause = true
+			if not hud.is_paused and hud.mobile_controls and hud.mobile_controls.has_method("activate") and MobileControls.is_touch_device():
+				hud.mobile_controls.activate()
+		if on_done.is_valid():
+			on_done.call()
+	, CONNECT_ONE_SHOT)
 
 func _on_level_completed() -> void:
 	if game_finished or _is_stage_transitioning:
@@ -385,6 +540,8 @@ func _on_level_completed() -> void:
 	# Si el jugador entró al salón desde la puerta exterior, regresar al exterior con el salón ya limpio
 	if is_cur_classroom and _in_classroom_from_door:
 		_in_classroom_from_door = false
+		if active_level and active_level.player:
+			_saved_player_health = active_level.player.health
 		hud.show_level_complete("¡Salón Limpiado! Regresando al patio...")
 		await get_tree().create_timer(1.1).timeout
 		if is_inside_tree() and not game_finished and epoch == _transition_epoch:
@@ -408,18 +565,25 @@ func _on_level_completed() -> void:
 		hud.show_level_complete(cur_data.get("title", ""))
 		await get_tree().create_timer(1.2).timeout
 		if is_inside_tree() and not game_finished and epoch == _transition_epoch:
-			if _is_story_mode():
-				# Si pasamos a un nuevo edificio exterior (índice par), mostrar el Acto de historia
-				if next_idx % 2 == 0:
-					var act_id := (next_idx / 2) + 1
-					_show_story_act(act_id, func():
-						if is_inside_tree() and epoch == _transition_epoch:
-							_transition_to_level(next_idx)
-					)
+			var proceed_next := func():
+				if not is_inside_tree() or epoch != _transition_epoch:
+					return
+				if _is_story_mode():
+					if next_idx % 2 == 0:
+						var act_id := (next_idx / 2) + 1
+						_show_story_act(act_id, func():
+							if is_inside_tree() and epoch == _transition_epoch:
+								_transition_to_level(next_idx)
+						)
+					else:
+						_transition_to_level(next_idx)
 				else:
 					_transition_to_level(next_idx)
+			var is_test := bool(_game_settings.get("is_test_mode")) if (_game_settings and "is_test_mode" in _game_settings) else false
+			if next_idx % 2 == 0 and not is_test and InterludeMinigame.should_trigger():
+				launch_interlude_minigame(-1, proceed_next)
 			else:
-				_transition_to_level(next_idx)
+				proceed_next.call()
 	else:
 		# Campaña de los 6 escenarios completada
 		game_finished = true
@@ -441,7 +605,7 @@ func _on_level_completed() -> void:
 
 func _transition_to_level(next_index: int) -> void:
 	var epoch := _transition_epoch
-	if _scene_transition and _scene_transition.has_method("transition_call") and not _scene_transition.get("is_busy"):
+	if _scene_transition and _scene_transition.has_method("transition_call"):
 		_scene_transition.transition_call(func():
 			if is_inside_tree() and epoch == _transition_epoch:
 				load_level(next_index)
@@ -536,7 +700,8 @@ func _on_player_died() -> void:
 	if _game_settings and _game_settings.has_method("stop_music"):
 		_game_settings.stop_music()
 
-	var progress_pct := (float(current_level_index) / float(levels.size())) * 100.0
+	var stage_frac := clampf(_max_reached_dist / maxf(1.0, _cached_total_dist), 0.0, 1.0)
+	var progress_pct := ((float(current_level_index) + stage_frac) / float(maxi(1, levels.size()))) * 100.0
 	await get_tree().create_timer(0.5).timeout
 	if is_inside_tree():
 		hud.show_game_over({
@@ -554,9 +719,18 @@ func _on_restart_game() -> void:
 	if _final_loading_layer and is_instance_valid(_final_loading_layer):
 		_final_loading_layer.queue_free()
 	_final_loading_layer = null
+	if active_undertale_battle and is_instance_valid(active_undertale_battle):
+		active_undertale_battle.queue_free()
+	active_undertale_battle = null
 	if active_undertale_climax and is_instance_valid(active_undertale_climax):
 		active_undertale_climax.queue_free()
 	active_undertale_climax = null
+	if active_classroom_minigame and is_instance_valid(active_classroom_minigame):
+		active_classroom_minigame.queue_free()
+	active_classroom_minigame = null
+	if active_interlude_minigame and is_instance_valid(active_interlude_minigame):
+		active_interlude_minigame.queue_free()
+	active_interlude_minigame = null
 	_set_hud_gameplay_visible(true)
 	if finished_campaign:
 		levels = LevelManager.get_all_campaign_stages()
@@ -564,15 +738,19 @@ func _on_restart_game() -> void:
 		current_level_index = clampi(restart_stage * 2, 0, maxi(0, levels.size() - 1))
 		elapsed_time = 0.0
 		enemies_defeated = 0
+		_stage_start_enemies_defeated = 0
 		_cleared_classrooms.clear()
 		_saved_exterior_boss_defeated.clear()
 		_saved_exterior_defeated_count.clear()
 		_saved_player_health = -1
 		_saved_held_item = ""
+		_pending_interlude_reward = {}
+		_played_interludes.clear()
 		_in_classroom_from_door = false
 		_returning_from_classroom = false
-	if _game_settings and _game_settings.has_method("play_game_music"):
-		_game_settings.play_game_music()
+	else:
+		_in_retry_reload = true
+		enemies_defeated = _stage_start_enemies_defeated
 	load_level(current_level_index)
 
 func _on_go_to_menu() -> void:
@@ -580,13 +758,25 @@ func _on_go_to_menu() -> void:
 	if _final_loading_layer and is_instance_valid(_final_loading_layer):
 		_final_loading_layer.queue_free()
 	_final_loading_layer = null
+	if active_undertale_battle and is_instance_valid(active_undertale_battle):
+		active_undertale_battle.queue_free()
+	active_undertale_battle = null
 	if active_undertale_climax and is_instance_valid(active_undertale_climax):
 		active_undertale_climax.queue_free()
 	active_undertale_climax = null
-	if _scene_transition and _scene_transition.has_method("change_scene") and not _scene_transition.get("is_busy"):
+	if active_classroom_minigame and is_instance_valid(active_classroom_minigame):
+		active_classroom_minigame.queue_free()
+	active_classroom_minigame = null
+	if active_interlude_minigame and is_instance_valid(active_interlude_minigame):
+		active_interlude_minigame.queue_free()
+	active_interlude_minigame = null
+	if _scene_transition and _scene_transition.has_method("change_scene"):
 		_scene_transition.change_scene(MENU_SCENE)
 	else:
-		get_tree().paused = false
+		if _game_settings and _game_settings.has_method("clear_all_pauses"):
+			_game_settings.clear_all_pauses()
+		elif get_tree():
+			get_tree().paused = false
 		get_tree().change_scene_to_file(MENU_SCENE)
 
 ## Asegura mapeos de joypad y gamepad complementarios en tiempo de ejecución

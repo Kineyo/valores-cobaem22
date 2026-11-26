@@ -79,7 +79,7 @@ flowchart TD
 4. **Dinámica de Combate y Redención:**
    - El héroe se mueve libremente en 8 direcciones con ordenamiento `y_sort_enabled = true`.
    - Al pulsar o mantener <kbd>Espacio</kbd>, el jugador dispara un proyectil de virtud (`projectile.gd`).
-   - Al impactar a un antivalor (`enemy.gd`), no hay destrucción violenta: el enemigo emite sonido dulce, lanza partículas resplandecientes, proclama su virtud flotante (*¡Amabilidad!*, *¡Respeto!*, *¡Empatía!*) y se oculta temporalmente antes de regenerarse pacíficamente.
+   - Al impactar a un antivalor (`enemy.gd`), no hay destrucción violenta: el enemigo emite sonido dulce, lanza partículas resplandecientes, proclama su virtud flotante (*¡Amabilidad!*, *¡Respeto!*, *¡Empatía!*) y se oculta temporalmente para regenerarse pacíficamente tras `respawn_delay` hasta `max_respawns` veces por nivel (por defecto 2; `< 0` para ilimitado).
    - Al llegar a la meta (`goal.gd`), el héroe celebra, se emite fanfarria y se avanza al siguiente edificio del plantel CEMSaD 22.
 
 ---
@@ -91,15 +91,20 @@ Si encuentras un error o necesitas implementar una función, consulta esta tabla
 | Archivo | Tipo / Lenguaje | Responsabilidad Principal | Métodos / Clases Clave |
 | :--- | :--- | :--- | :--- |
 | [`project.godot`](project.godot) | Configuración Godot | Configuración global: escena de inicio (`menu.tscn`), resolución 800×450, filtros pixel-snap y lista de Autoloads. | Secciones `[autoload]`, `[display]`, `[rendering]` |
-| [`scripts/game_settings.gd`](scripts/game_settings.gd) | Autoload GDScript | Singleton de balance: dificultad (vidas, velocidad de enemigos, cadencia) y música persistente con fundido cruzado. | `PRESETS`, `get_param()`, `play_menu_music()`, `duck_music()` |
+| [`scripts/game_settings.gd`](scripts/game_settings.gd) | Autoload GDScript | Singleton de balance, música persistente, `settings.cfg` con esquema versionado y controlador centralizado de pausa (`PauseController`). | `PRESETS`, `get_param()`, `request_pause()`, `release_pause()`, `sanitize_best_records()` |
 | [`scripts/scene_transition.gd`](scripts/scene_transition.gd) | Autoload GDScript | Transiciones visuales cinematográficas mediante shader para cambio de niveles o recarga sin pantallas negras. | `change_scene()`, `reload_scene()`, `_run()`, `_reveal()` |
-| [`scripts/fx.gd`](scripts/fx.gd) | Autoload GDScript | Efectos de sensación táctil ("game feel"): temblor de cámara con snap al píxel, hitstop, textos flotantes y partículas. | `shake()`, `hitstop()`, `floating_text()`, `burst()` |
+| [`scripts/fx.gd`](scripts/fx.gd) | Autoload GDScript | Efectos de sensación táctil ("game feel"): temblor de cámara con snap al píxel, hitstop, textos flotantes y partículas. | `shake()`, `hitstop()`, `reset_time_scale()`, `floating_text()`, `burst()` |
+| [`scripts/asset_loader.gd`](scripts/asset_loader.gd) | GDScript (`RefCounted`) | Cargador seguro de texturas con respaldo directo desde disco cuando aún no existe `.import`. | `load_texture()` |
 | [`scripts/level_manager.gd`](scripts/level_manager.gd) | GDScript (`RefCounted`) | Catálogo oficial de los 6 escenarios a escala real del plantel CEMSaD 22 ENTHAVI. Detecta nuevos PNGs en `escenarios/`. | `get_default_levels()`, `get_all_levels()`, `_create_auto_level()` |
 | [`scripts/level.gd`](scripts/level.gd) | GDScript (`Level`) | Controlador del escenario activo. Carga la textura, crea paredes limítrofes, cajas de colisión e instancia entidades. | `setup_level()`, `_build_boundary_walls()`, `_build_obstacles()` |
 | [`scripts/player.gd`](scripts/player.gd) | GDScript (`Player`) | Héroe jugable en perspectiva 3/4. Movimiento 8D con inercia, balanceo de pasos, disparo continuo, Modo Enfoque (<kbd>Shift</kbd>, vel 52%), micro-hitbox central (5.5 px) y contador de rozaduras (Graze). | `perform_attack()`, `spawn_projectile()`, `take_damage()`, `get_core_position()`, `on_graze()`, `celebrate()` |
 | [`scripts/boss.gd`](scripts/boss.gd) | GDScript (`Boss`) | Los 7 Jefes Finales con ataques difíciles (Apatyx), Danmaku Touhou en 4 Fases con Ruletas de Balas (Titanor, $\ge$ 3 min en Difícil), Maestro Desinterés, telegrafiado y redención pacífica. | `setup_boss_type()`, `hit_by_attack()`, `_trigger_spell_card_phase()`, `redeem()`, `BOSS_DATA`, `BOSS_DIFFICULTY_HP` |
+| [`scripts/boss_data.gd`](scripts/boss_data.gd) | GDScript (`RefCounted`) | Catálogo de datos, estadísticas, diálogos y curvas de HP por dificultad de los 7 Jefes y alumnos rescatables. | `BOSS_DATA`, `BOSS_DIFFICULTY_HP`, `RESCUE_STUDENTS_DATA` |
+| [`scripts/boss_renderer.gd`](scripts/boss_renderer.gd) | GDScript (`RefCounted`) | Renderizado procedural pixel-art, auras de fase Danmaku y telegrafiado en perspectiva 3/4 para jefes. | `draw_boss()` |
+| [`scripts/boss_fake_clone.gd`](scripts/boss_fake_clone.gd) | GDScript (`CharacterBody2D`) | Clones ilusorios invocados por jefes avanzados durante mecánicas de distracción. | `setup_clone()`, `hit_by_attack()` |
 | [`scripts/classroom_scene.gd`](scripts/classroom_scene.gd) | GDScript (`ClassroomScene`) | Controlador ejecutable independiente de salones de clase para pruebas unitarias y modo de salones. | `_ready()`, `classroom_index` |
 | [`scripts/student.gd`](scripts/student.gd) | GDScript (`Student`) | Alumnos secundarios del CEMSaD 22 con uniformes COBAEM, estados SAD y HAPPY, sprites PNG directos y curación de esperanza. | `cheer_up()`, `cheer_up_area()`, `_setup_sprite()` |
+| [`scripts/ally_brain.gd`](scripts/ally_brain.gd) | GDScript (`AllyBrain`) | Inteligencia artificial táctica de los alumnos empoderados (`HAPPY`) que escoltan y apoyan al jugador en combate. | `tick()`, `_find_target()` |
 | [`scripts/story_data.gd`](scripts/story_data.gd) | GDScript (`StoryData`) | Base de datos narrativa del Modo Historia: Prólogo, 6 Actos, Epílogo, perfiles de alumnos y jefes. | `get_prologue()`, `get_epilogue()`, `get_scenario_cutscene()` |
 | [`scripts/story_cutscene.gd`](scripts/story_cutscene.gd) | GDScript (`StoryCutscene`) | Controlador cinemático con máquina de texto, retratos pixel art PNG desde `assets/portraits/` y soporte multiplataforma. | `setup_cutscene()`, `_advance_dialogue()`, `_get_portrait_texture()` |
 | [`scenes/salones/*.tscn`](scenes/salones/) | Escenas Godot | Las 6 escenas independientes de salones de clases interiores con alumnos acorralados y Maestro Desinterés. | Escenas `salon_1_laboratorio.tscn` a `salon_6_gimnasio.tscn` |
@@ -107,8 +112,9 @@ Si encuentras un error o necesitas implementar una función, consulta esta tabla
 | [`scripts/enemy.gd`](scripts/enemy.gd) | GDScript (`Enemy`) | Inteligencia artificial de los antivalores con alerta en enjambre (`alert_allies`), persecución por distancia al cuadrado y redención. | `_update_ai()`, `alert_allies()`, `hit_by_attack()`, `respawn()` |
 | [`scripts/projectile.gd`](scripts/projectile.gd) | GDScript (`Projectile`) | Proyectil de virtudes con hitbox CircleShape2D de radio 8px inmune a bloqueos en paredes adyacentes. | `_physics_process()`, `_on_area_entered()`, `_on_body_entered()` |
 | [`scripts/goal.gd`](scripts/goal.gd) | GDScript (`Goal`) | Portal / salida hacia la siguiente zona escolar. Dispara efectos de victoria y señal de avance. | `trigger()`, `_on_body_entered()` |
-| [`scripts/main.gd`](scripts/main.gd) | GDScript | Controlador general de la campaña escolar. Orquesta las 12 fases (6 edificios + 6 salones interiores) y cinemáticas. | `load_level()`, `_on_level_completed()`, `_on_player_died()` |
-| [`scripts/menu.gd`](scripts/menu.gd) | GDScript | Controlador del menú inicial. Selección de dificultad, animaciones elásticas de botones y fondo con scroll. | `_select_difficulty()`, `_refresh_difficulty()`, `_start_game()` |
+| [`scripts/main.gd`](scripts/main.gd) | GDScript | Controlador general de la campaña escolar. Orquesta las 12 fases (6 edificios + 6 salones interiores), duelos Undertale y cinemáticas. | `load_level()`, `_on_level_completed()`, `_on_player_died()` |
+| [`scripts/menu.gd`](scripts/menu.gd) | GDScript | Controlador del menú inicial. Selección de dificultad, personaje, galería y fondo con scroll. | `_select_difficulty()`, `_refresh_difficulty()`, `_start_game()` |
+| [`scripts/materials_gallery.gd`](scripts/materials_gallery.gd) | GDScript (`MaterialsGallery`) | Galería / Enciclopedia interactiva de materiales (personajes, jukebox, escenarios, enemigos, videos y minijuegos). | `get_all_categories()`, `_select_category()` |
 | [`scripts/hud.gd`](scripts/hud.gd) | GDScript (`HUD`) | Interfaz gráfica de usuario. Renderizado de vidas (corazones), barra de avance métrico y modales interactivos. | `update_hearts()`, `update_progress()`, `set_paused()`, `show_victory()` |
 | [`scripts/mobile_controls.gd`](scripts/mobile_controls.gd) | GDScript (`MobileControls`) | Controles táctiles dinámicos multitáctil (joystick 8D, botón de Virtud, botón `FOCUS` Danmaku y pausa flotante) con detección real en PC/Web/Móvil. | `is_touch_device()`, `_update_joystick()`, `deactivate()` |
 | [`scenes/mobile_controls.tscn`](scenes/mobile_controls.tscn) | Escena Godot | Capa visual y táctil de controles móviles para celulares, tabletas y pantallas táctiles. | Nodo `Control` con dibujo vectorial |
@@ -116,7 +122,12 @@ Si encuentras un error o necesitas implementar una función, consulta esta tabla
 | [`scripts/fog_overlay.gd`](scripts/fog_overlay.gd) | GDScript (`FogOverlay`) | Niebla volumétrica del Desinterés con luces dinámicas y oscurecimiento en fases de jefe. | `set_fog()`, `light_sources`, `desperation_darkness` |
 | [`scripts/scenario_decor.gd`](scripts/scenario_decor.gd) | GDScript (`ScenarioDecor`) | Capa ambiental 3/4 compatible con `gl_compatibility` (brisa, haces de luz y destellos) sobre `Background`. | `setup_decor()`, `_rebuild_decor()`, `_align_above_background()` |
 | [`scripts/loading_screen.gd`](scripts/loading_screen.gd) | GDScript (`LoadingScreen`) | Pantalla institucional de carga multiplataforma (PC, táctil y gamepad) con frases formativas y logos. | `_unhandled_input()`, `_update_prompt_text()`, `_adjust_layout_for_viewport()` |
+| [`scripts/undertale_battle.gd`](scripts/undertale_battle.gd) / [`scenes/undertale_battle.tscn`](scenes/undertale_battle.tscn) | GDScript / Escena | Duelo especial estilo Undertale previo al clímax contra Titanor (y minijuego en Galería). | `should_trigger()`, `_complete_battle()` |
+| [`scripts/classroom_minigame.gd`](scripts/classroom_minigame.gd) / [`scenes/classroom_minigame.tscn`](scenes/classroom_minigame.tscn) | GDScript / Escena | Los 6 minijuegos no violentos de salón estilo Undertale/Deltarune con Eco Escolar y Almas propias. | `setup_classroom()`, `get_classroom_config()` |
+| [`scripts/interlude_minigame.gd`](scripts/interlude_minigame.gd) / [`scenes/interlude_minigame.tscn`](scenes/interlude_minigame.tscn) | GDScript / Escena | Los 3 minijuegos aleatorios entre edificios (*El Termo*, *Apuntes en el Viento* y *El Chat del Grupo*). | `setup_interlude()`, `should_trigger()` |
+| [`scripts/undertale_climax.gd`](scripts/undertale_climax.gd) / [`scenes/undertale_climax.tscn`](scenes/undertale_climax.tscn) | GDScript / Escena | Secuencia clímax de los 8 corazones de valores cuando Titanor llega a 1 HP. | `get_hearts_data()`, `force_finish_for_test()` |
 | [`scripts/final_ceremony.gd`](scripts/final_ceremony.gd) | GDScript (`FinalCeremony`) | Escena final en la cancha de básquetbol con discurso del Coordinador en podio, himno, entrega de medalla y cierre. | `_advance_speech()`, `_start_walking_phase()`, `_start_medal_phase()`, `_show_final_message_phase()` |
+| [`scripts/credits_screen.gd`](scripts/credits_screen.gd) / [`scenes/credits_screen.tscn`](scenes/credits_screen.tscn) | GDScript / Escena | Pantalla cinematográfica de créditos 3:4 con reproducción de `.ogv` y roll en vivo de respaldo. | `set_fullscreen_mode()`, `start_live_roll_for_recording()` |
 | [`scenes/final_ceremony.tscn`](scenes/final_ceremony.tscn) | Escena Godot | Escena empaquetada de la ceremonia de agradecimiento y reconocimiento final. | Nodo raíz `FinalCeremony` |
 | [`scripts/certificate_generator.gd`](scripts/certificate_generator.gd) | GDScript (`CertificateGenerator`) | Generador puro en GDScript de certificados PDF 1.4 en Tamaño Carta (`612×792 pt`) y 5×7 (`360×504 pt`) con logos oficiales. | `generate_certificates()`, `resolve_initial_difficulty()` |
 | [`scripts/ui_juice.gd`](scripts/ui_juice.gd) | GDScript (`UiJuice`) | Utilidad estática para dotar a los botones de microanimaciones elásticas (hover, focus, click) y SFX. | `attach_button()`, `_scale_to()` |
@@ -181,11 +192,12 @@ Si se produce un error o un fallo en los tests automatizados, sigue este protoco
 - **Causa:** En [`scripts/main.gd`](scripts/main.gd), el cálculo del progreso está basado únicamente en el eje horizontal `X` en lugar de la distancia euclidiana 2D real (los escenarios 1 a 6 tienen metas en direcciones norte, sur, este y oeste).
 - **Cómo reparar:**
   1. En `load_level()`, verificar que `_cached_total_dist = maxf(1.0, p_spawn.distance_to(g_pos))`.
-  2. En `_process()`, verificar que la distancia recorrida se obtenga con:
+  2. En `_process()`, verificar que la distancia recorrida avance de forma monótona con:
      ```gdscript
      var remaining_dist := active_level.player.position.distance_to(_cached_goal_pos)
      var current_dist := clampf(_cached_total_dist - remaining_dist, 0.0, _cached_total_dist)
-     hud.update_progress(current_dist, _cached_total_dist)
+     _max_reached_dist = maxf(_max_reached_dist, current_dist)
+     hud.update_progress(_max_reached_dist, _cached_total_dist)
      ```
 
 ---
@@ -231,7 +243,7 @@ Al modificar código, crear niveles o refactorizar, **debes cumplir estrictament
    El motor está configurado exclusivamente en modo `gl_compatibility` para asegurar que funcione en computadoras de escuelas de escasos recursos y navegadores web. No utilices funciones que requieran Vulkan o Forward+.
 
 5. **Filosofía de Redención Educativa (No Violencia):**
-   Los enemigos nunca mueren, explotan de forma sangrienta ni son eliminados permanentemente. Siempre proclaman un valor formativo (*¡Amabilidad!*, *¡Respeto!*, *¡Empatía!*) y reaparecen pacíficamente tras un temporizador (`respawn_delay`).
+   Los enemigos nunca mueren, explotan de forma sangrienta ni son eliminados permanentemente. Siempre proclaman un valor formativo (*¡Amabilidad!*, *¡Respeto!*, *¡Empatía!*) y reaparecen pacíficamente tras un temporizador (`respawn_delay`) hasta `max_respawns` veces por nivel (por defecto `2`; `< 0` para ilimitado).
 
 6. **Liberación de Memoria Garantizada:**
    Al cambiar de nivel en `main.gd`, todos los nodos del nivel anterior deben ser liberados con `queue_free()`. Nunca acumules escenas huérfanas en el árbol.

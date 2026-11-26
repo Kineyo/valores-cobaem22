@@ -10,7 +10,7 @@ size = Vector2(30, 34)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_enemy_body"]
 size = Vector2(20, 12)
 
-[node name="Enemy" type="CharacterBody2D"]
+[node name="Enemy" type="CharacterBody2D" groups=["enemies"]]
 y_sort_enabled = true
 collision_layer = 8
 collision_mask = 1

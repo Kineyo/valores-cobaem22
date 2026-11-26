@@ -22,8 +22,8 @@ const SFX_VICTORY_PATH := "res://assets/audio/victoria.wav"
 const SFX_BLIP_PATH := "res://assets/audio/ataque.wav"
 const THEME_PATH := "res://themes/pixel_theme.tres"
 
-const FINAL_EXEMPLARY_TEXT := "Felicidades, ahora eres un alumno ejemplar. Gracias por jugar!"
-const FINAL_EXEMPLARY_TEXT_F := "Felicidades, ahora eres una alumna ejemplar. Gracias por jugar!"
+const FINAL_EXEMPLARY_TEXT := "Felicidades, hoy celebramos tu ejemplo junto a todo el plantel. Ahora eres un alumno ejemplar. Gracias por jugar."
+const FINAL_EXEMPLARY_TEXT_F := "Felicidades, hoy celebramos tu ejemplo junto a todo el plantel. Ahora eres una alumna ejemplar. Gracias por jugar."
 
 const PODIUM_POS := Vector2(1144, 368)
 const COORDINATOR_POS := Vector2(1180, 360)
@@ -34,28 +34,28 @@ const HERO_WALK_SPEED := 165.0
 
 const COORDINATOR_SPEECH: Array[String] = [
 	"Estimados estudiantes y docentes del CEMSaD 22 Enthavi: como su Coordinador, hoy nos reunimos en nuestra cancha con el corazón lleno de gratitud.",
-	"Gracias a su valentía y apoyo mutuo, nuestra escuela es hoy un lugar de paz, respeto y armonía entre todos los alumnos.",
+	"Gracias al esfuerzo compartido de todo el plantel, nuestra escuela es hoy un lugar de paz, respeto y armonía entre todos los grupos.",
 	"Donde antes el desgano, los rumores o el miedo apagaban los pasillos, hoy brillan la amistad sincera, la escucha y el juego limpio.",
-	"Cada compañero aquí de pie recuerda que tender la mano a tiempo transforma una escuela entera en un hogar digno.",
-	"Por defender nuestros valores y unir al plantel como verdadero campeón solidario, pasa al podio para recibir el reconocimiento del CEMSaD 22."
+	"Cada compañero y compañera aquí presentes recuerda que tender la mano a tiempo transforma la escuela en un espacio digno.",
+	"Por defender nuestros valores y sumar a toda la comunidad estudiantil, pasa al podio para recibir este reconocimiento colectivo como campeón solidario del CEMSaD 22."
 ]
 const COORDINATOR_SPEECH_F: Array[String] = [
 	"Estimados estudiantes y docentes del CEMSaD 22 Enthavi: como su Coordinador, hoy nos reunimos en nuestra cancha con el corazón lleno de gratitud.",
-	"Gracias a su valentía y apoyo mutuo, nuestra escuela es hoy un lugar de paz, respeto y armonía entre todos los alumnos.",
+	"Gracias al esfuerzo compartido de todo el plantel, nuestra escuela es hoy un lugar de paz, respeto y armonía entre todos los grupos.",
 	"Donde antes el desgano, los rumores o el miedo apagaban los pasillos, hoy brillan la amistad sincera, la escucha y el juego limpio.",
-	"Cada compañero aquí de pie recuerda que tender la mano a tiempo transforma una escuela entera en un hogar digno.",
-	"Por defender nuestros valores y unir al plantel como verdadera campeona solidaria, pasa al podio para recibir el reconocimiento del CEMSaD 22."
+	"Cada compañero y compañera aquí presentes recuerda que tender la mano a tiempo transforma la escuela en un espacio digno.",
+	"Por defender nuestros valores y sumar a toda la comunidad estudiantil, pasa al podio para recibir este reconocimiento colectivo como campeona solidaria del CEMSaD 22."
 ]
 const DIRECTOR_SPEECH: Array[String] = COORDINATOR_SPEECH
 
 const RESCUED_STUDENTS_DATA: Array[Dictionary] = [
-	{ "name": "Mateo", "primary": "res://assets/characters/mateo_laboratorio/idle.png", "fallback": "res://assets/characters/mateo_laboratorio/idle.png", "pos": Vector2(700, 285), "cheer": "¡Gracias por ayudarnos, amigo!", "cheer_f": "¡Gracias por ayudarnos, amiga!" },
-	{ "name": "María", "primary": "res://assets/characters/maria_cafeteria/idle.png", "fallback": "res://assets/characters/maria_cafeteria/idle.png", "pos": Vector2(780, 285), "cheer": "¡Paz en todo el plantel!", "cheer_f": "¡Paz en todo el plantel!" },
-	{ "name": "Valeria", "primary": "res://assets/characters/valeria_plaza/idle.png", "fallback": "res://assets/characters/valeria_plaza/idle.png", "pos": Vector2(860, 285), "cheer": "¡Orgullo CEMSaD 22!", "cheer_f": "¡Orgullo CEMSaD 22!" },
-	{ "name": "Fernanda", "primary": "res://assets/characters/fernanda_biblioteca/idle.png", "fallback": "res://assets/characters/fernanda_biblioteca/idle.png", "pos": Vector2(940, 285), "cheer": "¡Bravo, campeón!", "cheer_f": "¡Bravo, campeona!" },
-	{ "name": "Diego", "primary": "res://assets/characters/diego_computo/idle.png", "fallback": "res://assets/characters/diego_computo/idle.png", "pos": Vector2(700, 452), "cheer": "¡Compañerismo siempre!", "cheer_f": "¡Compañerismo siempre!" },
-	{ "name": "Sofía", "primary": "res://assets/characters/sofia_direccion/idle.png", "fallback": "res://assets/characters/sofia_direccion/idle.png", "pos": Vector2(780, 452), "cheer": "¡Gracias por unirnos, compañero!", "cheer_f": "¡Gracias por unirnos, compañera!" },
-	{ "name": "Alejandro", "primary": "res://assets/characters/alejandro_cancha/idle.png", "fallback": "res://assets/characters/alejandro_cancha/idle.png", "pos": Vector2(860, 452), "cheer": "¡Juego limpio en la cancha!", "cheer_f": "¡Juego limpio en la cancha!" },
+	{ "name": "Mateo", "primary": "res://assets/characters/mateo_laboratorio/idle.png", "fallback": "res://assets/characters/mateo_laboratorio/idle.png", "pos": Vector2(700, 285), "cheer": "Gracias por ayudarnos, amigo.", "cheer_f": "Gracias por ayudarnos, amiga." },
+	{ "name": "María", "primary": "res://assets/characters/maria_cafeteria/idle.png", "fallback": "res://assets/characters/maria_cafeteria/idle.png", "pos": Vector2(780, 285), "cheer": "Paz en todo el plantel.", "cheer_f": "Paz en todo el plantel." },
+	{ "name": "Valeria", "primary": "res://assets/characters/valeria_plaza/idle.png", "fallback": "res://assets/characters/valeria_plaza/idle.png", "pos": Vector2(860, 285), "cheer": "Orgullo CEMSaD 22.", "cheer_f": "Orgullo CEMSaD 22." },
+	{ "name": "Fernanda", "primary": "res://assets/characters/fernanda_biblioteca/idle.png", "fallback": "res://assets/characters/fernanda_biblioteca/idle.png", "pos": Vector2(940, 285), "cheer": "Gran trabajo en equipo.", "cheer_f": "Gran trabajo en equipo." },
+	{ "name": "Diego", "primary": "res://assets/characters/diego_computo/idle.png", "fallback": "res://assets/characters/diego_computo/idle.png", "pos": Vector2(700, 452), "cheer": "Compañerismo siempre.", "cheer_f": "Compañerismo siempre." },
+	{ "name": "Sofía", "primary": "res://assets/characters/sofia_direccion/idle.png", "fallback": "res://assets/characters/sofia_direccion/idle.png", "pos": Vector2(780, 452), "cheer": "Gracias por unirnos, compañero.", "cheer_f": "Gracias por unirnos, compañera." },
+	{ "name": "Alejandro", "primary": "res://assets/characters/alejandro_cancha/idle.png", "fallback": "res://assets/characters/alejandro_cancha/idle.png", "pos": Vector2(860, 452), "cheer": "Juego limpio en la cancha.", "cheer_f": "Juego limpio en la cancha." },
 ]
 
 const TEACHER_DATA: Dictionary = {
@@ -63,8 +63,8 @@ const TEACHER_DATA: Dictionary = {
 	"primary": "res://assets/characters/maestro_desinteres_redeemed/idle.png",
 	"fallback": "res://assets/characters/maestro_desinteres_redeemed/idle.png",
 	"pos": Vector2(940, 452),
-	"cheer": "¡Digno ejemplo estudiantil!",
-	"cheer_f": "¡Digna representante estudiantil!"
+	"cheer": "Digno ejemplo estudiantil.",
+	"cheer_f": "Digna representante estudiantil."
 }
 
 const COORDINATOR_SPRITES: Dictionary = {
@@ -774,7 +774,7 @@ func _start_walking_phase() -> void:
 	_cheer_idx = 0
 	var fx := _get_fx()
 	if fx and coordinator_node:
-		var rep_applause := "¡Un aplauso para nuestra representante!" if is_female_hero() else "¡Un aplauso para nuestro representante!"
+		var rep_applause := "Un aplauso para nuestra representante." if is_female_hero() else "Un aplauso para nuestro representante."
 		fx.floating_text(entities_layer, coordinator_node.position + Vector2(0, -64), rep_applause, Color(0.88, 0.94, 1.0), 12)
 
 func _start_medal_phase() -> void:
@@ -806,7 +806,7 @@ func _start_medal_phase() -> void:
 		_sfx_victory.play()
 	var fx := _get_fx()
 	if fx and hero_node:
-		fx.floating_text(entities_layer, hero_node.position + Vector2(0, -56), "¡Medalla al Mérito Escolar!", Color(1.0, 0.90, 0.36), 15)
+		fx.floating_text(entities_layer, hero_node.position + Vector2(0, -56), "Medalla al Mérito Escolar", Color(1.0, 0.90, 0.36), 15)
 		fx.burst(entities_layer, hero_node.position + Vector2(0, -22), Color(1.0, 0.88, 0.32), 18, 130.0)
 
 func _show_final_message_phase() -> void:
@@ -838,7 +838,11 @@ func _generate_completion_pdfs() -> void:
 	var recipient_name := _recipient_name_input.text.strip_edges() if _recipient_name_input else ""
 	generated_pdf_result = CertificateGeneratorClass.generate_certificates(diff_str, "", recipient_name)
 	if _cert_status_label:
-		if generated_pdf_result.get("success", false):
+		if generated_pdf_result.get("downloaded_web", false) and str(generated_pdf_result.get("carta_path", "")).is_empty():
+			_cert_status_label.text = "PDFs descargados en tu navegador (Carta y 5x7 · Modo %s)" % diff_str
+		elif generated_pdf_result.get("downloaded_web", false):
+			_cert_status_label.text = "PDFs descargados y respaldados (Carta y 5x7 · Modo %s):\n%s" % [diff_str, str(generated_pdf_result.get("carta_path", "")).get_base_dir()]
+		elif generated_pdf_result.get("success", false):
 			_cert_status_label.text = "PDFs guardados (Carta y 5x7 · Modo %s):\n%s" % [diff_str, str(generated_pdf_result.get("carta_path", "")).get_base_dir()]
 		else:
 			_cert_status_label.text = "No se pudieron guardar los archivos PDF en el almacenamiento local."
@@ -878,7 +882,7 @@ func _process(delta: float) -> void:
 					camera.position = camera.position.lerp(cam_target, minf(1.0, 4.5 * delta))
 				if hero_node.position.x >= _next_cheer_x and _cheer_idx < crowd_nodes.size():
 					var cheer_actor := crowd_nodes[_cheer_idx]
-					var cheer_msg: String = str(cheer_actor.get_meta("cheer_text", "¡Felicidades!"))
+					var cheer_msg: String = str(cheer_actor.get_meta("cheer_text", "Felicidades."))
 					var fx := _get_fx()
 					if fx:
 						fx.floating_text(entities_layer, cheer_actor.position + Vector2(0, -64), cheer_msg, Color(0.95, 0.98, 0.72), 11)
@@ -896,7 +900,7 @@ func _process(delta: float) -> void:
 
 		Phase.FINAL_MESSAGE:
 			if _final_center != null and _recipient_name_input != null:
-				var kb_h := DisplayServer.virtual_keyboard_get_height() if DisplayServer.has_method("virtual_keyboard_get_height") else 0
+				var kb_h := DisplayServer.virtual_keyboard_get_height() if DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD) else 0
 				if _recipient_name_input.has_focus() and kb_h > 0:
 					_final_center.position.y = -minf(120.0, float(kb_h) * 0.35)
 				else:
@@ -1014,11 +1018,7 @@ func _load_himno_stream() -> AudioStream:
 	return null
 
 func _load_first_valid(paths: Array) -> Texture2D:
-	for raw_path in paths:
-		var tex := _load_texture_direct(str(raw_path))
-		if tex != null:
-			return tex
-	return null
+	return AssetLoader.load_first_texture(paths)
 
 func _load_newest_texture(primary_path: String, fallback_path: String) -> Texture2D:
 	var best_path := primary_path
@@ -1033,20 +1033,11 @@ func _load_newest_texture(primary_path: String, fallback_path: String) -> Textur
 	elif not p_exists and f_exists:
 		best_path = fallback_path
 
-	var tex := _load_texture_direct(best_path)
+	var tex := AssetLoader.load_texture(best_path)
 	if tex == null:
 		var other_path := fallback_path if best_path == primary_path else primary_path
-		tex = _load_texture_direct(other_path)
+		tex = AssetLoader.load_texture(other_path)
 	return tex
 
 func _load_texture_direct(path: String) -> Texture2D:
-	if ResourceLoader.exists(path):
-		var res := load(path)
-		if res is Texture2D:
-			return res
-	var global_p := ProjectSettings.globalize_path(path)
-	if FileAccess.file_exists(global_p):
-		var img := Image.load_from_file(global_p)
-		if img and not img.is_empty():
-			return ImageTexture.create_from_image(img)
-	return null
+	return AssetLoader.load_texture(path)

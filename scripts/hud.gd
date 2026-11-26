@@ -50,6 +50,11 @@ var _panel_tweens: Dictionary = {}
 var _overlay_tween: Tween
 var _intro_tween: Tween
 var _controls_tween: Tween
+var _boss_bar_tween: Tween
+var _boss_subtitle_label: Label
+var _boss_subtitle_tween: Tween
+var _heart_scale_tweens: Dictionary = {}
+var _heart_rot_tweens: Dictionary = {}
 var _intro_base_y: float = 0.0
 var _intro_base_y_saved: bool = false
 var _adapted_touch: bool = false
@@ -319,7 +324,7 @@ func _update_safe_area() -> void:
 	if progress_bar:
 		progress_bar.custom_minimum_size.x = 74.0 if top_bar_w < 660.0 else 110.0
 	if title_label:
-		title_label.custom_minimum_size.x = 78.0 if top_bar_w < 620.0 else (96.0 if top_bar_w < 680.0 else 140.0)
+		title_label.custom_minimum_size.x = 78.0 if top_bar_w < 620.0 else (96.0 if top_bar_w < 680.0 else (175.0 if top_bar_w >= 740.0 else 140.0))
 	if difficulty_label:
 		difficulty_label.visible = top_bar_w >= 680.0
 	var heart_sz := Vector2(18, 18) if top_bar_w < 640.0 else Vector2(22, 22)
@@ -481,9 +486,14 @@ func set_paused(paused: bool) -> void:
 	if paused == is_paused or is_game_finished:
 		return
 	is_paused = paused
-	if is_inside_tree() and get_tree():
-		get_tree().paused = paused
 	var gs = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	if gs and gs.has_method("request_pause") and gs.has_method("release_pause"):
+		if paused:
+			gs.request_pause(&"hud")
+		else:
+			gs.release_pause(&"hud")
+	elif is_inside_tree() and get_tree():
+		get_tree().paused = paused
 	if gs and gs.has_method("duck_music"):
 		gs.duck_music(paused)
 	if paused:
@@ -543,7 +553,15 @@ func set_level_title(title: String) -> void:
 		var comma_idx := compact.find(",")
 		if comma_idx > 0:
 			compact = compact.substr(0, comma_idx).strip_edges()
+		var slash_idx := compact.find(" / ")
+		if slash_idx > 0:
+			compact = compact.substr(0, slash_idx).strip_edges()
 		compact = compact.replace("Escenario ", "Esc. ")
+		compact = compact.replace("Cancha de Usos Múltiples", "Cancha Deportiva")
+		compact = compact.replace("Laboratorio de Usos Múltiples", "Laboratorio")
+		compact = compact.replace("Sala Cívica de Asambleas", "Sala Cívica")
+		compact = compact.replace("Biblioteca Escolar", "Biblioteca")
+		compact = compact.replace("Taller de Cómputo", "Cómputo")
 		title_label.text = compact
 		title_label.tooltip_text = title
 
@@ -553,11 +571,18 @@ func reset_state() -> void:
 	is_paused = false
 	_shown_hp = -1
 	_target_progress = 0.0
+	for tw in [_overlay_tween, _intro_tween, _controls_tween, _boss_bar_tween, _boss_subtitle_tween]:
+		if tw and tw.is_valid():
+			tw.kill()
 	for panel in [pause_panel, game_over_panel]:
 		if panel:
 			panel.visible = false
 	if overlay:
 		overlay.visible = false
+	if intro_banner:
+		intro_banner.visible = false
+	if controls_label:
+		controls_label.modulate.a = 1.0
 	if boss_bar_container:
 		boss_bar_container.visible = false
 	update_esperanza_bar(0.0)
@@ -713,49 +738,93 @@ func set_boss_defeated(needs_classroom: bool = false) -> void:
 			quota_label.text = "Limpiar salón"
 			quota_label.modulate = Color(1.0, 0.88, 0.38)
 		else:
-			quota_label.text = "¡Meta abierta!"
+			quota_label.text = "Meta abierta"
 			quota_label.modulate = Color(0.45, 0.98, 0.58)
 
 func show_boss_bar(boss_name: String, current_hp: int, max_hp: int) -> void:
 	_ensure_nodes()
+	if _boss_bar_tween and _boss_bar_tween.is_valid():
+		_boss_bar_tween.kill()
 	if boss_bar_container:
 		boss_bar_container.visible = true
 		boss_bar_container.modulate.a = 0.0
-		var tw := create_tween()
-		tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-		tw.tween_property(boss_bar_container, "modulate:a", 1.0, 0.3)
+		_boss_bar_tween = create_tween()
+		_boss_bar_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		_boss_bar_tween.tween_property(boss_bar_container, "modulate:a", 1.0, 0.3)
 	if boss_name_label:
-		boss_name_label.text = "JEFE: %s" % boss_name
+		boss_name_label.text = "Calma · %s" % boss_name
 	update_boss_bar(current_hp, max_hp)
 
 func update_boss_bar(current_hp: int, max_hp: int) -> void:
 	_ensure_nodes()
 	var safe_max := maxi(1, max_hp)
-	var ratio := clampf(float(maxi(0, current_hp)) / float(safe_max), 0.0, 1.0)
-	var pct := 0 if current_hp <= 0 else clampi(int(round(ratio * 100.0)), 1, 100)
+	var rem_ratio := clampf(float(maxi(0, current_hp)) / float(safe_max), 0.0, 1.0)
+	var calm_ratio := 1.0 - rem_ratio
+	var calm_pct := 100 if current_hp <= 0 else (0 if current_hp >= safe_max else clampi(int(round(calm_ratio * 100.0)), 1, 99))
 	if boss_progress_bar:
 		boss_progress_bar.max_value = 100.0
-		boss_progress_bar.value = float(pct)
-		if ratio > 0.50:
-			boss_progress_bar.modulate = Color(0.35, 0.95, 0.65)
-		elif ratio > 0.25:
-			boss_progress_bar.modulate = Color(1.0, 0.78, 0.28)
+		boss_progress_bar.value = float(calm_pct)
+		if calm_ratio >= 0.70:
+			boss_progress_bar.modulate = Color(0.35, 0.96, 0.65)
+		elif calm_ratio >= 0.35:
+			boss_progress_bar.modulate = Color(0.42, 0.88, 1.0)
 		else:
-			boss_progress_bar.modulate = Color(1.0, 0.32, 0.42)
+			boss_progress_bar.modulate = Color(0.72, 0.56, 0.95)
 	if boss_hp_label:
-		boss_hp_label.text = "%d%%" % pct
+		boss_hp_label.text = "%d%%" % calm_pct
+
+func show_boss_subtitle(text: String, duration: float = 2.0) -> void:
+	if text.strip_edges().is_empty():
+		return
+	if _boss_subtitle_label == null or not is_instance_valid(_boss_subtitle_label):
+		_boss_subtitle_label = Label.new()
+		_boss_subtitle_label.name = "BossSubtitleLabel"
+		_boss_subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_boss_subtitle_label.anchor_left = 0.5
+		_boss_subtitle_label.anchor_right = 0.5
+		_boss_subtitle_label.offset_left = -220.0
+		_boss_subtitle_label.offset_right = 220.0
+		_boss_subtitle_label.offset_top = 86.0
+		_boss_subtitle_label.offset_bottom = 108.0
+		_boss_subtitle_label.add_theme_font_size_override("font_size", 11)
+		_boss_subtitle_label.add_theme_color_override("font_color", Color(0.95, 0.96, 0.86))
+		_boss_subtitle_label.add_theme_color_override("font_outline_color", Color(0.06, 0.06, 0.12))
+		_boss_subtitle_label.add_theme_constant_override("outline_size", 4)
+		add_child(_boss_subtitle_label)
+	var top_base := boss_bar_container.offset_bottom + 4.0 if boss_bar_container else 86.0
+	_boss_subtitle_label.offset_top = top_base
+	_boss_subtitle_label.offset_bottom = top_base + 22.0
+	_boss_subtitle_label.text = text.left(54)
+	_boss_subtitle_label.visible = true
+	_boss_subtitle_label.modulate.a = 1.0
+	if _boss_subtitle_tween and _boss_subtitle_tween.is_valid():
+		_boss_subtitle_tween.kill()
+	_boss_subtitle_tween = create_tween()
+	_boss_subtitle_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_boss_subtitle_tween.tween_interval(maxf(0.5, duration - 0.35))
+	_boss_subtitle_tween.tween_property(_boss_subtitle_label, "modulate:a", 0.0, 0.35)
+	_boss_subtitle_tween.tween_callback(func():
+		if _boss_subtitle_label and is_instance_valid(_boss_subtitle_label):
+			_boss_subtitle_label.visible = false
+	)
 
 func hide_boss_bar(immediate: bool = false) -> void:
 	_ensure_nodes()
+	if _boss_subtitle_tween and _boss_subtitle_tween.is_valid():
+		_boss_subtitle_tween.kill()
+	if _boss_subtitle_label and is_instance_valid(_boss_subtitle_label):
+		_boss_subtitle_label.visible = false
+	if _boss_bar_tween and _boss_bar_tween.is_valid():
+		_boss_bar_tween.kill()
 	if boss_bar_container and boss_bar_container.visible:
 		if immediate:
 			boss_bar_container.modulate.a = 0.0
 			boss_bar_container.visible = false
 			return
-		var tw := create_tween()
-		tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-		tw.tween_property(boss_bar_container, "modulate:a", 0.0, 0.3)
-		tw.tween_callback(func(): boss_bar_container.visible = false)
+		_boss_bar_tween = create_tween()
+		_boss_bar_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		_boss_bar_tween.tween_property(boss_bar_container, "modulate:a", 0.0, 0.3)
+		_boss_bar_tween.tween_callback(func(): boss_bar_container.visible = false)
 
 ## Reutiliza los nodos de corazones (antes se destruían y creaban en cada golpe)
 ## y anima los que cambian.
@@ -793,22 +862,35 @@ func update_hearts(current: int, max_hp: int) -> void:
 	_shown_hp = current
 
 func _animate_heart_lost(heart: TextureRect) -> void:
+	var prev_tw: Tween = _heart_scale_tweens.get(heart)
+	if prev_tw and prev_tw.is_valid():
+		prev_tw.kill()
 	heart.scale = Vector2(1.8, 1.8)
 	heart.modulate = Color(3.0, 1.0, 1.0)
 	var tw := heart.create_tween().set_parallel(true)
 	tw.tween_property(heart, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_property(heart, "modulate", Color.WHITE, 0.35)
+	_heart_scale_tweens[heart] = tw
 
 func _wobble(node: Control) -> void:
+	var prev_tw: Tween = _heart_rot_tweens.get(node)
+	if prev_tw and prev_tw.is_valid():
+		prev_tw.kill()
 	var tw := node.create_tween()
 	tw.tween_property(node, "rotation", 0.3, 0.05)
 	tw.tween_property(node, "rotation", -0.25, 0.08)
 	tw.tween_property(node, "rotation", 0.0, 0.1)
+	_heart_rot_tweens[node] = tw
 
 func _pop(node: Control, amount: float = 1.3) -> void:
+	var prev_tw: Tween = _heart_scale_tweens.get(node)
+	if prev_tw and prev_tw.is_valid():
+		prev_tw.kill()
 	node.scale = Vector2(amount, amount)
-	node.create_tween().tween_property(node, "scale", Vector2.ONE, 0.3) \
+	var tw := node.create_tween()
+	tw.tween_property(node, "scale", Vector2.ONE, 0.3) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_heart_scale_tweens[node] = tw
 
 func update_progress(current_x: float, max_x: float) -> void:
 	_target_progress = clampf((current_x / max_x) * 100.0, 0.0, 100.0)
@@ -952,12 +1034,18 @@ func _fade_overlay(show: bool) -> void:
 
 func _on_retry_pressed() -> void:
 	set_paused(false)
-	if is_inside_tree() and get_tree():
+	var gs = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	if gs and gs.has_method("clear_all_pauses"):
+		gs.clear_all_pauses()
+	elif is_inside_tree() and get_tree():
 		get_tree().paused = false
 	restart_game.emit()
 
 func _on_menu_pressed() -> void:
 	set_paused(false)
-	if is_inside_tree() and get_tree():
+	var gs = get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	if gs and gs.has_method("clear_all_pauses"):
+		gs.clear_all_pauses()
+	elif is_inside_tree() and get_tree():
 		get_tree().paused = false
 	go_to_menu.emit()

@@ -61,9 +61,18 @@ func hitstop(duration: float = 0.06, time_scale: float = 0.05) -> void:
 	if _hitstop_id == current_id:
 		Engine.time_scale = 1.0
 
+func reset_time_scale() -> void:
+	_hitstop_id += 1
+	Engine.time_scale = 1.0
+
+func _exit_tree() -> void:
+	reset_time_scale()
+
 ## Retroalimentación háptica breve y segura solo en dispositivos móviles reales
 func vibrate_mobile(duration_ms: int = 18) -> void:
-	if DisplayServer.get_name() == "headless":
+	var gs := get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	var is_headless := (DisplayServer.get_name() == "headless") if gs == null else (bool(gs.call("is_headless_runtime")) if gs.has_method("is_headless_runtime") else DisplayServer.get_name() == "headless")
+	if is_headless:
 		return
 	if OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"):
 		Input.vibrate_handheld(clampi(duration_ms, 8, 80))
@@ -142,4 +151,30 @@ func burst(parent: Node, pos: Vector2, color: Color, amount: int = 14, speed: fl
 	p.emitting = true
 	p.finished.connect(p.queue_free)
 	# Respaldo seguro como tween hijo de p (se destruye automáticamente si p es liberado)
+	p.create_tween().tween_interval(p.lifetime + 0.15).finished.connect(p.queue_free)
+
+## Partículas ascendentes suaves de alivio y calma
+func calm_burst(parent: Node, pos: Vector2, color: Color = Color(0.55, 0.96, 0.85), amount: int = 8, speed: float = 95.0) -> void:
+	if parent == null or not is_instance_valid(parent):
+		return
+	var p := CPUParticles2D.new()
+	p.one_shot = true
+	p.emitting = false
+	p.amount = amount
+	p.lifetime = 0.55
+	p.explosiveness = 0.85
+	p.direction = Vector2.UP
+	p.spread = 70.0
+	p.gravity = Vector2(0, -120)
+	p.initial_velocity_min = speed * 0.45
+	p.initial_velocity_max = speed
+	p.scale_amount_min = 2.0
+	p.scale_amount_max = 3.5
+	p.color = color
+	p.color_ramp = _fade_gradient
+	p.z_index = 40
+	parent.add_child(p)
+	p.global_position = pos
+	p.emitting = true
+	p.finished.connect(p.queue_free)
 	p.create_tween().tween_interval(p.lifetime + 0.15).finished.connect(p.queue_free)

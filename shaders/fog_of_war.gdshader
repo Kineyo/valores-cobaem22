@@ -10,9 +10,15 @@ uniform vec2 rect_size = vec2(2000.0, 1400.0);
 uniform vec2 light_pos_1 = vec2(-2000.0, -2000.0); // Héroe
 uniform vec2 light_pos_2 = vec2(-2000.0, -2000.0); // Alumno 1
 uniform vec2 light_pos_3 = vec2(-2000.0, -2000.0); // Alumno 2
+uniform vec2 light_pos_4 = vec2(-2000.0, -2000.0); // Aliado 3
+uniform vec2 light_pos_5 = vec2(-2000.0, -2000.0); // Aliado 4
+uniform vec2 light_pos_6 = vec2(-2000.0, -2000.0); // Aliado 5
 uniform float light_radius_1 = 145.0;
 uniform float light_radius_2 = 90.0;
 uniform float light_radius_3 = 90.0;
+uniform float light_radius_4 = 85.0;
+uniform float light_radius_5 = 85.0;
+uniform float light_radius_6 = 85.0;
 
 uniform float fog_alpha : hint_range(0.0, 1.0) = 0.0;
 // Tonos atmosféricos de la bruma fría matutina de Temoaya
@@ -42,8 +48,23 @@ void fragment() {
 		float d3 = distance(world_pos, light_pos_3);
 		mask3 = smoothstep(light_radius_3 * 0.45, light_radius_3 * 1.00, d3);
 	}
+	float mask4 = 1.0;
+	if (light_pos_4.x > -1500.0) {
+		float d4 = distance(world_pos, light_pos_4);
+		mask4 = smoothstep(light_radius_4 * 0.45, light_radius_4 * 1.00, d4);
+	}
+	float mask5 = 1.0;
+	if (light_pos_5.x > -1500.0) {
+		float d5 = distance(world_pos, light_pos_5);
+		mask5 = smoothstep(light_radius_5 * 0.45, light_radius_5 * 1.00, d5);
+	}
+	float mask6 = 1.0;
+	if (light_pos_6.x > -1500.0) {
+		float d6 = distance(world_pos, light_pos_6);
+		mask6 = smoothstep(light_radius_6 * 0.45, light_radius_6 * 1.00, d6);
+	}
 
-	float base_mask = min(mask1, min(mask2, mask3));
+	float base_mask = min(min(min(mask1, mask2), min(mask3, mask4)), min(mask5, mask6));
 
 	// 3. Vapor y remolinos de bruma volumétrica en movimiento continuo
 	// Simulación armónica multifrecuencia optimizada para OpenGL ES 3 / WebGL
@@ -63,7 +84,10 @@ void fragment() {
 	float rim1 = 4.0 * mask1 * (1.0 - mask1);
 	float rim2 = 4.0 * mask2 * (1.0 - mask2);
 	float rim3 = 4.0 * mask3 * (1.0 - mask3);
-	float rim_glow = max(rim1, max(rim2, rim3));
+	float rim4 = 4.0 * mask4 * (1.0 - mask4);
+	float rim5 = 4.0 * mask5 * (1.0 - mask5);
+	float rim6 = 4.0 * mask6 * (1.0 - mask6);
+	float rim_glow = max(max(max(rim1, rim2), max(rim3, rim4)), max(rim5, rim6));
 
 	vec3 final_rgb = mix(mist_rgb, rim_glow_color.rgb, rim_glow * rim_glow_color.a);
 	float final_a = final_mask * fog_alpha * fog_color.a;

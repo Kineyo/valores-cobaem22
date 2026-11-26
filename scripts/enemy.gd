@@ -2,9 +2,9 @@ extends CharacterBody2D
 class_name Enemy
 
 ## Antivalores escolares en perspectiva 3/4:
-## - Grosería: Rápido e impulsivo, brinca agitado. Se redime proclamando ¡Amabilidad!
-## - Acoso: Sombra acechante con amplio rango de visión. Se redime proclamando ¡Respeto!
-## - Bullying: Pesado y territorial, embiste al entrar a su zona. Se redime proclamando ¡Empatía!
+## - Grosería: Rápido e impulsivo, brinca agitado. Se redime proclamando Amabilidad.
+## - Acoso: Sombra acechante con amplio rango de visión. Se redime proclamando Respeto.
+## - Bullying: Pesado y territorial, embiste al entrar a su zona. Se redime proclamando Empatía.
 
 enum Type { GROSERIA, ACOSO, BULLYING }
 
@@ -12,19 +12,19 @@ const TYPE_DATA := {
 	Type.GROSERIA: {
 		"texture": preload("res://assets/sprites/enemigo_groseria.png"),
 		"speed": 125.0, "name": "Grosería",
-		"color": Color(1.0, 0.35, 0.35), "value": "¡Amabilidad!",
+		"color": Color(1.0, 0.35, 0.35), "value": "Amabilidad",
 		"detection_range": 280.0,
 	},
 	Type.ACOSO: {
 		"texture": preload("res://assets/sprites/enemigo_acoso.png"),
 		"speed": 110.0, "name": "Acoso",
-		"color": Color(1.0, 0.65, 0.25), "value": "¡Respeto!",
+		"color": Color(1.0, 0.65, 0.25), "value": "Respeto",
 		"detection_range": 320.0,
 	},
 	Type.BULLYING: {
 		"texture": preload("res://assets/sprites/enemigo_bullying.png"),
 		"speed": 95.0, "name": "Bullying",
-		"color": Color(0.85, 0.45, 0.95), "value": "¡Empatía!",
+		"color": Color(0.85, 0.45, 0.95), "value": "Empatía",
 		"detection_range": 240.0,
 	},
 }
@@ -36,7 +36,7 @@ signal defeated(enemy: Enemy)
 @export var wander_radius: float = 140.0
 @export var detection_range: float = -1.0
 @export var respawn_delay: float = 3.2
-@export var max_respawns: int = 2 ## Límite de reapariciones por nivel antes de descansar
+@export var max_respawns: int = 2 ## Límite de reapariciones pacíficas por nivel (< 0 = ilimitado)
 
 var player: CharacterBody2D = null
 var is_active: bool = true
@@ -59,15 +59,25 @@ var max_hp: int = 1
 var current_hp: int = 1
 var active_hp_anim_state: String = "normal"
 var _hurt_jitter_timer: float = 0.0
+var _alert_cooldown: float = 0.0
+var _fx: Node = null
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var hitbox: Area2D = $Hitbox
 @onready var label: Label = $Label
 @onready var sfx_hit: AudioStreamPlayer = $SFXHit
 @onready var _base_sprite_y: float = sprite.position.y
+@onready var _base_scale: Vector2 = sprite.scale
+
+func _get_fx() -> Node:
+	if _fx == null or not is_instance_valid(_fx):
+		_fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+	return _fx
 
 func _ready() -> void:
+	_fx = _get_fx()
 	y_sort_enabled = true
+	add_to_group("enemies")
 	collision_layer = 8
 	collision_mask = 1
 	if has_node("Hitbox"):
@@ -139,11 +149,14 @@ func setup_type() -> void:
 
 func _physics_process(delta: float) -> void:
 	if not is_active:
-		if allow_respawn and current_respawns < max_respawns and _respawn_timer > 0.0:
+		if allow_respawn and (max_respawns < 0 or current_respawns < max_respawns) and _respawn_timer > 0.0:
 			_respawn_timer -= delta
 			if _respawn_timer <= 0.0:
 				respawn()
 		return
+
+	if _alert_cooldown > 0.0:
+		_alert_cooldown = maxf(0.0, _alert_cooldown - delta)
 
 	if spawn_grace_timer > 0.0:
 		spawn_grace_timer = maxf(0.0, spawn_grace_timer - delta)
@@ -175,7 +188,7 @@ func alert_allies(range_px: float = 340.0) -> void:
 	var r_sq := range_px * range_px
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e != self and e is Enemy and is_instance_valid(e) and e.is_inside_tree() and e.is_active:
-			if global_position.distance_squared_to(e.global_position) <= r_sq:
+			if e._alert_cooldown <= 0.0 and global_position.distance_squared_to(e.global_position) <= r_sq:
 				e.is_alerted = true
 
 ## Inteligencia artificial: persigue si el héroe está en rango; si no, patrulla
@@ -187,7 +200,7 @@ func _update_ai(delta: float, eff_speed: float = -1.0) -> void:
 	# Persecución directa si el jugador entra al radio de detección o hay alerta de grupo
 	if player and is_instance_valid(player) and player.can_control:
 		var dist_sq := global_position.distance_squared_to(player.global_position)
-		var should_chase := is_alerted or (dist_sq <= _detection_range_sq)
+		var should_chase := is_alerted or (dist_sq <= _detection_range_sq and _alert_cooldown <= 0.0)
 
 		if should_chase:
 			if not is_alerted and dist_sq <= _detection_range_sq:
@@ -196,6 +209,7 @@ func _update_ai(delta: float, eff_speed: float = -1.0) -> void:
 			# Desactivar alerta si el héroe escapó muy lejos (más del doble del rango)
 			if dist_sq > _detection_range_sq * 2.25:
 				is_alerted = false
+				_alert_cooldown = 1.2
 			else:
 				move_dir = (player.global_position - global_position).normalized()
 				# Evasión inteligente de paredes y esquinas (context-steering antienquistes)
@@ -251,14 +265,14 @@ func _animate(delta: float) -> void:
 		Type.GROSERIA:
 			var hop := absf(sin(_anim_time * 6.5))
 			sprite.position.y = _base_sprite_y - hop * 5.0
-			sprite.scale = Vector2(1.0 + (1.0 - hop) * 0.1, 1.0 - (1.0 - hop) * 0.1)
+			sprite.scale = _base_scale * Vector2(1.0 + (1.0 - hop) * 0.1, 1.0 - (1.0 - hop) * 0.1)
 		Type.ACOSO:
 			sprite.position.y = _base_sprite_y - 4.0 + sin(_anim_time * 3.0) * 4.0
 			sprite.self_modulate.a = 0.8 + sin(_anim_time * 4.5) * 0.2
 		Type.BULLYING:
 			var step := sin(_anim_time * (6.4 if is_injured_half else 3.8))
 			sprite.rotation = step * (0.10 if is_injured_half else 0.05)
-			sprite.scale = Vector2(1.0 + absf(step) * 0.08, 1.0 - absf(step) * 0.08)
+			sprite.scale = _base_scale * Vector2(1.0 + absf(step) * 0.08, 1.0 - absf(step) * 0.08)
 
 	if is_injured_half or _hurt_jitter_timer > 0.0:
 		sprite.position.x = sin(_anim_time * 38.0) * 2.0
@@ -283,7 +297,7 @@ func hit_by_attack(attacker_pos: Variant = null) -> void:
 
 	var fx_parent := get_parent()
 	var hit_pos := global_position + Vector2(0, -16)
-	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+	var fx := _get_fx()
 
 	if current_hp > 0:
 		_hurt_jitter_timer = 0.35
@@ -293,7 +307,7 @@ func hit_by_attack(attacker_pos: Variant = null) -> void:
 			velocity = (global_position - (attacker_pos as Vector2)).normalized() * 140.0
 		if fx:
 			fx.burst(fx_parent, hit_pos, _color, 10, 110.0)
-			fx.floating_text(fx_parent, hit_pos + Vector2(0, -24), "¡%d%%! ¡Cede!" % get_hp_percent(), Color(1.0, 0.85, 0.45), 13)
+			fx.floating_text(fx_parent, hit_pos + Vector2(0, -24), "Cede %d%%" % get_hp_percent(), Color(1.0, 0.85, 0.45), 13)
 			fx.shake(1.8, 0.09)
 		return
 
@@ -314,7 +328,7 @@ func hit_by_attack(attacker_pos: Variant = null) -> void:
 
 ## Reaparece en el punto de spawn con animación pop
 func respawn() -> void:
-	if not allow_respawn or current_respawns >= max_respawns:
+	if not allow_respawn or (max_respawns >= 0 and current_respawns >= max_respawns):
 		return
 	current_respawns += 1
 	current_hp = max_hp

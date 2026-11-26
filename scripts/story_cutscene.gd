@@ -1,6 +1,8 @@
 extends Control
 class_name StoryCutscene
 
+const BossRendererClass := preload("res://scripts/boss_renderer.gd")
+
 ## Controlador Cinemático para el Modo Historia de "Campeones de los Valores".
 ## Despliega diálogos educativos, retratos pixel-art y trasfondo del CEMSaD 22 ENTHAVI.
 ## Optimizado para pantalla táctil, ratón, teclado y mando (multiplataforma).
@@ -34,6 +36,8 @@ var _last_pointer_advance_ms: int = -1000
 var _portrait_draw_offset: Vector2 = Vector2.ZERO
 var _portrait_tween: Tween = null
 var _portrait_tex_cache: Dictionary = {}
+var _base_blip_pitch: float = 1.25
+var _skip_confirm_until_ms: int = 0
 
 var _game_settings: Node:
 	get:
@@ -178,9 +182,9 @@ func _show_node(idx: int) -> void:
 
 	if portrait_canvas:
 		portrait_canvas.queue_redraw()
-		_animate_portrait_emotion(str(node_data.get("emotion", "neutral")))
+		_animate_portrait_emotion(str(node_data.get("emotion", "neutral")), str(node_data.get("sfx", "")))
 
-func _animate_portrait_emotion(emotion: String) -> void:
+func _animate_portrait_emotion(emotion: String, sfx_cue: String = "") -> void:
 	if portrait_canvas == null or not is_inside_tree():
 		return
 	if _portrait_tween and _portrait_tween.is_valid():
@@ -197,13 +201,17 @@ func _animate_portrait_emotion(emotion: String) -> void:
 		_portrait_tween = portrait_canvas.create_tween()
 		_portrait_tween.tween_method(_set_portrait_offset, Vector2.ZERO, Vector2(0.0, -5.0), 0.09).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		_portrait_tween.tween_method(_set_portrait_offset, Vector2(0.0, -5.0), Vector2.ZERO, 0.12)
+	var cue := sfx_cue.to_lower()
+	if emo in ["angry", "menacing_fury", "solemn"] or cue in ["ominous", "rumble", "boss"]:
+		_base_blip_pitch = 0.85
+	elif emo in ["happy", "joyful"] or cue in ["triumphant", "hopeful", "cheer"]:
+		_base_blip_pitch = 1.42
+	elif cue in ["alert", "warning"]:
+		_base_blip_pitch = 1.12
+	else:
+		_base_blip_pitch = 1.25
 	if sfx_blip:
-		if emo in ["angry", "menacing_fury", "solemn"]:
-			sfx_blip.pitch_scale = 0.85
-		elif emo in ["happy", "joyful"]:
-			sfx_blip.pitch_scale = 1.45
-		else:
-			sfx_blip.pitch_scale = 1.25
+		sfx_blip.pitch_scale = _base_blip_pitch
 
 func _set_portrait_offset(off: Vector2) -> void:
 	_portrait_draw_offset = off
@@ -237,7 +245,7 @@ func _process(delta: float) -> void:
 		if char_count != dialogue_label.visible_characters:
 			dialogue_label.visible_characters = char_count
 			if char_count % 3 == 0 and sfx_blip and char_count < _full_text.length():
-				sfx_blip.pitch_scale = randf_range(1.2, 1.4)
+				sfx_blip.pitch_scale = clampf(_base_blip_pitch + randf_range(-0.08, 0.08), 0.65, 1.75)
 				sfx_blip.play()
 			# Asegurar que el scroll vertical acompañe al texto mecanografiado
 			var v_scroll := dialogue_label.get_v_scroll_bar()
@@ -271,7 +279,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_mark_input_handled()
 			return
 		elif event.keycode == KEY_ESCAPE:
-			_skip_cutscene()
+			_request_confirm_skip()
 			_mark_input_handled()
 			return
 
@@ -284,7 +292,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_mark_input_handled()
 			return
 		elif event.button_index in [JOY_BUTTON_B, JOY_BUTTON_BACK, JOY_BUTTON_START, JOY_BUTTON_Y]:
-			_skip_cutscene()
+			_request_confirm_skip()
 			_mark_input_handled()
 			return
 
@@ -294,7 +302,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_mark_input_handled()
 		return
 	elif event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
-		_skip_cutscene()
+		_request_confirm_skip()
 		_mark_input_handled()
 		return
 
@@ -325,6 +333,18 @@ func _advance_dialogue(from_pointer: bool = false) -> void:
 			_show_node(_current_index + 1)
 		else:
 			_finish()
+
+func _request_confirm_skip() -> void:
+	if _finishing:
+		return
+	var now_ms := Time.get_ticks_msec()
+	if now_ms <= _skip_confirm_until_ms:
+		_skip_confirm_until_ms = 0
+		_skip_cutscene()
+		return
+	_skip_confirm_until_ms = now_ms + 1800
+	if btn_skip:
+		btn_skip.text = "Confirmar Saltar"
 
 func _skip_cutscene() -> void:
 	if _finishing:
@@ -379,24 +399,16 @@ func _get_portrait_texture(p: String) -> Texture2D:
 	if path != "":
 		if _portrait_tex_cache.has(path):
 			return _portrait_tex_cache[path] as Texture2D
-		var loaded_tex: Texture2D = null
-		if ResourceLoader.exists(path):
-			loaded_tex = ResourceLoader.load(path) as Texture2D
-		if loaded_tex == null and FileAccess.file_exists(path):
-			var img := Image.load_from_file(ProjectSettings.globalize_path(path))
-			if img and not img.is_empty():
-				loaded_tex = ImageTexture.create_from_image(img)
+		var loaded_tex := AssetLoader.load_texture(path)
 		if loaded_tex != null:
 			_portrait_tex_cache[path] = loaded_tex
 			return loaded_tex
 		if "guardian" in p or "player" in p or "heroe" in p or "protagonista" in p:
 			var fallback_guardian := "res://assets/portraits/guardian.png"
-			if ResourceLoader.exists(fallback_guardian):
-				return ResourceLoader.load(fallback_guardian) as Texture2D
-			elif FileAccess.file_exists(fallback_guardian):
-				var fb_img := Image.load_from_file(ProjectSettings.globalize_path(fallback_guardian))
-				if fb_img and not fb_img.is_empty():
-					return ImageTexture.create_from_image(fb_img)
+			var fb_tex := AssetLoader.load_texture(fallback_guardian)
+			if fb_tex != null:
+				_portrait_tex_cache[fallback_guardian] = fb_tex
+				return fb_tex
 	return null
 
 ## Renderizado pixel-art de los retratos de personajes y antivalores
@@ -585,88 +597,31 @@ func _on_portrait_draw() -> void:
 	# 7. JEFES ANTIVALORES (Siluetas temáticas personalizadas)
 	# -------------------------------------------------------------------------
 	elif "boss" in p or "apatyx" in p or "desperdicius" in p or "superbus" in p or "murmullus" in p or "plagiatrix" in p or "titanor" in p:
-		var col_boss := Color(0.45, 0.20, 0.35)
-		var accent := Color(1.0, 0.4, 0.4)
-
+		var b_type := 5
+		var col_boss := Color(0.52, 0.14, 0.32)
+		var accent := Color(1.0, 0.35, 0.45)
 		if "apatyx" in p:
-			# Apatyx: Espectro encapuchado de la desidia con jirones de niebla
+			b_type = 0
 			col_boss = Color(0.38, 0.34, 0.55)
 			accent = Color(0.65, 0.60, 0.85)
-			portrait_canvas.draw_rect(Rect2(cx - 30, size.y - 34, 60, 34), col_boss.darkened(0.3))
-			portrait_canvas.draw_circle(Vector2(cx, cy - 6), 24.0, col_boss)
-			# Capucha caída
-			portrait_canvas.draw_polygon(PackedVector2Array([Vector2(cx - 24, cy - 10), Vector2(cx, cy - 32), Vector2(cx + 24, cy - 10)]), [col_boss.darkened(0.2)])
-			# Ojos pesados y somnolientos
-			portrait_canvas.draw_line(Vector2(cx - 12, cy - 4), Vector2(cx - 4, cy - 2), accent, 2.5)
-			portrait_canvas.draw_line(Vector2(cx + 4, cy - 2), Vector2(cx + 12, cy - 4), accent, 2.5)
-
 		elif "desperdicius" in p:
-			# Desperdicius: Titán del desperdicio con envoltorios plásticos y corona de basura
+			b_type = 1
 			col_boss = Color(0.48, 0.44, 0.24)
 			accent = Color(0.85, 0.75, 0.30)
-			portrait_canvas.draw_rect(Rect2(cx - 34, size.y - 34, 68, 34), col_boss.darkened(0.3))
-			portrait_canvas.draw_circle(Vector2(cx, cy - 4), 26.0, col_boss)
-			# Corona de basura dentada
-			portrait_canvas.draw_polygon(PackedVector2Array([Vector2(cx - 20, cy - 24), Vector2(cx - 12, cy - 36), Vector2(cx, cy - 24), Vector2(cx + 12, cy - 36), Vector2(cx + 20, cy - 24)]), [accent])
-			# Ojos glotones
-			portrait_canvas.draw_rect(Rect2(cx - 14, cy - 8, 8, 6), Color(0.95, 0.30, 0.25))
-			portrait_canvas.draw_rect(Rect2(cx + 6, cy - 8, 8, 6), Color(0.95, 0.30, 0.25))
-
 		elif "superbus" in p:
-			# Superbus: Heraldo de la arrogancia con manto púrpura y corona orgullosa
+			b_type = 2
 			col_boss = Color(0.58, 0.16, 0.28)
 			accent = Color(1.0, 0.85, 0.35)
-			portrait_canvas.draw_rect(Rect2(cx - 30, size.y - 34, 60, 34), col_boss.darkened(0.25))
-			portrait_canvas.draw_circle(Vector2(cx, cy - 6), 24.0, col_boss)
-			# Diadema dorada de soberbia
-			portrait_canvas.draw_line(Vector2(cx - 18, cy - 24), Vector2(cx + 18, cy - 24), accent, 3.0)
-			portrait_canvas.draw_rect(Rect2(cx - 3, cy - 32, 6, 8), accent)
-			# Mirada altanera y desdeñosa
-			portrait_canvas.draw_line(Vector2(cx - 14, cy - 8), Vector2(cx - 4, cy - 11), Color(1.0, 0.30, 0.35), 2.5)
-			portrait_canvas.draw_line(Vector2(cx + 4, cy - 11), Vector2(cx + 14, cy - 8), Color(1.0, 0.30, 0.35), 2.5)
-
 		elif "murmullus" in p:
-			# Ciber-Murmullus: Espectro de cables, difamación digital y glitch
+			b_type = 3
 			col_boss = Color(0.18, 0.45, 0.65)
 			accent = Color(0.30, 0.90, 1.0)
-			portrait_canvas.draw_rect(Rect2(cx - 30, size.y - 34, 60, 34), col_boss.darkened(0.3))
-			portrait_canvas.draw_rect(Rect2(cx - 24, cy - 28, 48, 44), col_boss)
-			# Antena cibernética
-			portrait_canvas.draw_line(Vector2(cx, cy - 28), Vector2(cx, cy - 38), accent, 2.0)
-			portrait_canvas.draw_rect(Rect2(cx - 3, cy - 42, 6, 6), Color(1.0, 0.3, 0.4))
-			# Líneas de scanline / glitch horizontal
-			portrait_canvas.draw_line(Vector2(cx - 20, cy - 14), Vector2(cx + 20, cy - 14), accent, 1.5)
-			portrait_canvas.draw_line(Vector2(cx - 16, cy + 4), Vector2(cx + 16, cy + 4), accent, 1.5)
-			portrait_canvas.draw_rect(Rect2(cx - 14, cy - 8, 8, 4), accent)
-			portrait_canvas.draw_rect(Rect2(cx + 6, cy - 8, 8, 4), accent)
-
 		elif "plagiatrix" in p:
-			# Plagiatrix: Autómata de la copia y falsificación con rostro dividido
+			b_type = 4
 			col_boss = Color(0.32, 0.36, 0.44)
 			accent = Color(0.70, 0.75, 0.85)
-			portrait_canvas.draw_rect(Rect2(cx - 30, size.y - 34, 60, 34), col_boss.darkened(0.3))
-			portrait_canvas.draw_rect(Rect2(cx - 24, cy - 28, 24, 46), col_boss)
-			portrait_canvas.draw_rect(Rect2(cx, cy - 28, 24, 46), col_boss.lightened(0.2)) # Rostro dividido
-			portrait_canvas.draw_line(Vector2(cx, cy - 30), Vector2(cx, cy + 18), Color(0.1, 0.1, 0.15), 2.0)
-			# Código de barras / sellos falsificados
-			for b in 4:
-				portrait_canvas.draw_line(Vector2(cx - 16 + b * 4, cy + 6), Vector2(cx - 16 + b * 4, cy + 14), accent, 1.5)
-			portrait_canvas.draw_rect(Rect2(cx - 14, cy - 8, 8, 4), Color(1.0, 0.35, 0.35))
-			portrait_canvas.draw_rect(Rect2(cx + 6, cy - 8, 8, 4), Color(0.35, 0.95, 0.85))
-
-		else:
-			# Titanor: Coloso de fuerza bruta con cuernos metálicos y cadenas
-			col_boss = Color(0.52, 0.14, 0.32)
-			accent = Color(1.0, 0.35, 0.45)
-			portrait_canvas.draw_rect(Rect2(cx - 34, size.y - 36, 68, 36), col_boss.darkened(0.3))
-			portrait_canvas.draw_circle(Vector2(cx, cy - 4), 28.0, col_boss)
-			# Cuernos amenazantes
-			portrait_canvas.draw_polygon(PackedVector2Array([Vector2(cx - 24, cy - 14), Vector2(cx - 36, cy - 38), Vector2(cx - 16, cy - 26)]), [col_boss.darkened(0.4)])
-			portrait_canvas.draw_polygon(PackedVector2Array([Vector2(cx + 24, cy - 14), Vector2(cx + 36, cy - 38), Vector2(cx + 16, cy - 26)]), [col_boss.darkened(0.4)])
-			# Ojos llameantes
-			portrait_canvas.draw_rect(Rect2(cx - 14, cy - 8, 9, 5), accent)
-			portrait_canvas.draw_rect(Rect2(cx + 5, cy - 8, 9, 5), accent)
-			portrait_canvas.draw_line(Vector2(cx - 10, cy + 10), Vector2(cx + 10, cy + 10), Color(0.1, 0.05, 0.08), 3.0)
+		var boss_origin := Vector2(cx, size.y - 12.0) + _portrait_draw_offset
+		BossRendererClass.draw_boss_silhouette(portrait_canvas, b_type, boss_origin, 0.0, col_boss, accent, false, false, 1.05)
 
 	# -------------------------------------------------------------------------
 	# 8. VOZ ANCESTRAL OTOMÍ DE TEMOAYA

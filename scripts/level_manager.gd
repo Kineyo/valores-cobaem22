@@ -137,8 +137,8 @@ static func get_default_levels() -> Array[Dictionary]:
 			"player_spawn": Vector2(110, 490),
 			"goal_position": Vector2(1350, 490),
 			"goal_label": "Edificio C ->",
-			"classroom_entrance_pos": Vector2(320, 480),
-			"classroom_exit_spawn": Vector2(320, 525),
+			"classroom_entrance_pos": Vector2(320, 444),
+			"classroom_exit_spawn": Vector2(320, 505),
 			"classroom_index": 3,
 			"classroom_name": "Salón 4: Biblioteca",
 			"quota_to_boss": 4,
@@ -170,8 +170,8 @@ static func get_default_levels() -> Array[Dictionary]:
 			"player_spawn": Vector2(100, 560),
 			"goal_position": Vector2(1356, 588),
 			"goal_label": "Cancha Deportiva ->",
-			"classroom_entrance_pos": Vector2(360, 560),
-			"classroom_exit_spawn": Vector2(360, 605),
+			"classroom_entrance_pos": Vector2(360, 532),
+			"classroom_exit_spawn": Vector2(360, 595),
 			"classroom_index": 4,
 			"classroom_name": "Salón 5: Cómputo",
 			"quota_to_boss": 4,
@@ -208,7 +208,7 @@ static func get_default_levels() -> Array[Dictionary]:
 			"classroom_entrance_pos": Vector2(350, 110),
 			"classroom_exit_spawn": Vector2(350, 175),
 			"classroom_index": 5,
-			"classroom_name": "Salón 6: Aula Magna",
+			"classroom_name": "Salón 6: Gimnasio / Aula Magna",
 			"quota_to_boss": 5,
 			"boss_type": 5, # Boss.BossType.BULLYING
 			"boss_spawn": Vector2(736, 368),
@@ -286,20 +286,20 @@ static func get_classroom_levels() -> Array[Dictionary]:
 			"scenario_image": "res://escenarios/salones/salon_2_aula_a.png",
 			"real_dimensions_m": Vector2(20.0, 12.0),
 			"map_size": Vector2(800, 480),
-			"player_spawn": Vector2(90, 380),
-			"goal_position": Vector2(720, 380),
+			"player_spawn": Vector2(85, 390),
+			"goal_position": Vector2(720, 120),
 			"goal_label": "Plaza Cívica ->",
 			"quota_to_boss": 4,
 			"boss_type": 6, # Boss.BossType.DESINTERES
 			"boss_spawn": Vector2(400, 175),
 			"students": [
-				{ "name": "María", "gender": 1, "pos": Vector2(600, 290), "initial_state": 0 }
+				{ "name": "María", "gender": 1, "pos": Vector2(520, 260), "initial_state": 0 }
 			],
 			"enemies": [
-				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(600, 235) },
-				{ "type": Enemy.Type.BULLYING, "pos": Vector2(600, 345) },
-				{ "type": Enemy.Type.ACOSO, "pos": Vector2(545, 290) },
-				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(655, 290) },
+				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(520, 205) },
+				{ "type": Enemy.Type.BULLYING, "pos": Vector2(520, 315) },
+				{ "type": Enemy.Type.ACOSO, "pos": Vector2(465, 260) },
+				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(575, 260) },
 			],
 			"obstacles": [
 				Rect2(0, 0, 800, 80),
@@ -322,20 +322,20 @@ static func get_classroom_levels() -> Array[Dictionary]:
 			"scenario_image": "res://escenarios/salones/salon_3_sala_civica.png",
 			"real_dimensions_m": Vector2(20.0, 12.0),
 			"map_size": Vector2(800, 480),
-			"player_spawn": Vector2(90, 380),
-			"goal_position": Vector2(720, 380),
+			"player_spawn": Vector2(100, 375),
+			"goal_position": Vector2(710, 390),
 			"goal_label": "Edificio B ->",
 			"quota_to_boss": 4,
 			"boss_type": 6, # Boss.BossType.DESINTERES
-			"boss_spawn": Vector2(400, 175),
+			"boss_spawn": Vector2(400, 185),
 			"students": [
-				{ "name": "Valeria", "gender": 1, "pos": Vector2(600, 290), "initial_state": 0 }
+				{ "name": "Valeria", "gender": 1, "pos": Vector2(620, 230), "initial_state": 0 }
 			],
 			"enemies": [
-				{ "type": Enemy.Type.ACOSO, "pos": Vector2(600, 235) },
-				{ "type": Enemy.Type.BULLYING, "pos": Vector2(600, 345) },
-				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(545, 290) },
-				{ "type": Enemy.Type.ACOSO, "pos": Vector2(655, 290) },
+				{ "type": Enemy.Type.ACOSO, "pos": Vector2(620, 175) },
+				{ "type": Enemy.Type.BULLYING, "pos": Vector2(620, 285) },
+				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(565, 230) },
+				{ "type": Enemy.Type.ACOSO, "pos": Vector2(675, 230) },
 			],
 			"obstacles": [
 				Rect2(0, 0, 800, 80),
@@ -358,20 +358,20 @@ static func get_classroom_levels() -> Array[Dictionary]:
 			"scenario_image": "res://escenarios/salones/salon_4_biblioteca.png",
 			"real_dimensions_m": Vector2(20.0, 12.0),
 			"map_size": Vector2(800, 480),
-			"player_spawn": Vector2(90, 380),
-			"goal_position": Vector2(720, 380),
+			"player_spawn": Vector2(95, 390),
+			"goal_position": Vector2(715, 130),
 			"goal_label": "Edificio C ->",
 			"quota_to_boss": 4,
 			"boss_type": 6, # Boss.BossType.DESINTERES
-			"boss_spawn": Vector2(400, 175),
+			"boss_spawn": Vector2(420, 180),
 			"students": [
-				{ "name": "Fernanda", "gender": 1, "pos": Vector2(600, 290), "initial_state": 0 }
+				{ "name": "Fernanda", "gender": 1, "pos": Vector2(560, 320), "initial_state": 0 }
 			],
 			"enemies": [
-				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(600, 235) },
-				{ "type": Enemy.Type.BULLYING, "pos": Vector2(600, 345) },
-				{ "type": Enemy.Type.ACOSO, "pos": Vector2(545, 290) },
-				{ "type": Enemy.Type.BULLYING, "pos": Vector2(655, 290) },
+				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(560, 265) },
+				{ "type": Enemy.Type.BULLYING, "pos": Vector2(560, 375) },
+				{ "type": Enemy.Type.ACOSO, "pos": Vector2(505, 320) },
+				{ "type": Enemy.Type.BULLYING, "pos": Vector2(615, 320) },
 			],
 			"obstacles": [
 				Rect2(0, 0, 800, 80),
@@ -393,20 +393,20 @@ static func get_classroom_levels() -> Array[Dictionary]:
 			"scenario_image": "res://escenarios/salones/salon_5_computo.png",
 			"real_dimensions_m": Vector2(20.0, 12.0),
 			"map_size": Vector2(800, 480),
-			"player_spawn": Vector2(90, 380),
-			"goal_position": Vector2(720, 380),
+			"player_spawn": Vector2(90, 385),
+			"goal_position": Vector2(715, 375),
 			"goal_label": "Cancha ->",
 			"quota_to_boss": 4,
 			"boss_type": 6, # Boss.BossType.DESINTERES
-			"boss_spawn": Vector2(400, 175),
+			"boss_spawn": Vector2(390, 180),
 			"students": [
-				{ "name": "Diego", "gender": 0, "pos": Vector2(600, 290), "initial_state": 0 }
+				{ "name": "Diego", "gender": 0, "pos": Vector2(590, 240), "initial_state": 0 }
 			],
 			"enemies": [
-				{ "type": Enemy.Type.ACOSO, "pos": Vector2(600, 235) },
-				{ "type": Enemy.Type.BULLYING, "pos": Vector2(600, 345) },
-				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(545, 290) },
-				{ "type": Enemy.Type.ACOSO, "pos": Vector2(655, 290) },
+				{ "type": Enemy.Type.ACOSO, "pos": Vector2(590, 185) },
+				{ "type": Enemy.Type.BULLYING, "pos": Vector2(590, 295) },
+				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(535, 240) },
+				{ "type": Enemy.Type.ACOSO, "pos": Vector2(645, 240) },
 			],
 			"obstacles": [
 				Rect2(0, 0, 800, 80),
@@ -423,24 +423,24 @@ static func get_classroom_levels() -> Array[Dictionary]:
 			"building_id": 6,
 			"is_classroom": true,
 			"classroom_index": 5,
-			"title": "Salón 6/6: Aula Magna Deportiva y Salud",
+			"title": "Salón 6/6: Gimnasio / Aula Magna Deportiva",
 			"scenario_image": "res://escenarios/salones/salon_6_gimnasio.png",
 			"real_dimensions_m": Vector2(20.0, 12.0),
 			"map_size": Vector2(800, 480),
-			"player_spawn": Vector2(90, 380),
-			"goal_position": Vector2(720, 380),
-			"goal_label": "¡VICTORIA!",
+			"player_spawn": Vector2(100, 380),
+			"goal_position": Vector2(715, 240),
+			"goal_label": "Cancha ->",
 			"quota_to_boss": 4,
 			"boss_type": 6, # Boss.BossType.DESINTERES
-			"boss_spawn": Vector2(400, 175),
+			"boss_spawn": Vector2(380, 175),
 			"students": [
-				{ "name": "Alejandro", "gender": 0, "pos": Vector2(600, 290), "initial_state": 0 }
+				{ "name": "Alejandro", "gender": 0, "pos": Vector2(520, 300), "initial_state": 0 }
 			],
 			"enemies": [
-				{ "type": Enemy.Type.BULLYING, "pos": Vector2(600, 235) },
-				{ "type": Enemy.Type.BULLYING, "pos": Vector2(600, 345) },
-				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(545, 290) },
-				{ "type": Enemy.Type.ACOSO, "pos": Vector2(655, 290) },
+				{ "type": Enemy.Type.BULLYING, "pos": Vector2(520, 245) },
+				{ "type": Enemy.Type.BULLYING, "pos": Vector2(520, 355) },
+				{ "type": Enemy.Type.GROSERIA, "pos": Vector2(465, 300) },
+				{ "type": Enemy.Type.ACOSO, "pos": Vector2(575, 300) },
 			],
 			"obstacles": [
 				Rect2(0, 0, 800, 80),
@@ -461,7 +461,7 @@ static func get_classroom_for_building(building_id: int) -> Dictionary:
 			return c
 	return classrooms[0] if not classrooms.is_empty() else {}
 
-## Obtiene la campaña completa intercalando exteriores y salones de clase (12 fases)
+## Obtiene la campaña completa intercalando exteriores y salones de clase (12 fases + extras si existen)
 static func get_all_campaign_stages() -> Array[Dictionary]:
 	var default_lvls := get_default_levels()
 	var classrooms := get_classroom_levels()
@@ -470,6 +470,10 @@ static func get_all_campaign_stages() -> Array[Dictionary]:
 		stages.append(default_lvls[i])
 		if i < classrooms.size():
 			stages.append(classrooms[i])
+	var all_lvls := get_all_levels()
+	for extra_lvl in all_lvls:
+		if int(extra_lvl.get("id", 0)) > default_lvls.size():
+			stages.append(extra_lvl)
 	return stages
 
 ## Obtiene todos los niveles, incluyendo cualquier escenario adicional detectado en 'escenarios/'

@@ -129,7 +129,7 @@ flowchart LR
 
 1. **Resolución Constructiva de Conflictos:** El personaje no aniquila ni destruye a sus adversarios; los impactos de energía positiva representan actos de diálogo y asertividad que desarticulan conductas agresivas y las convierten en virtudes.
 2. **Apropiación del Espacio Educativo:** Al recorrer salones, laboratorios, canchas y plazas cívicas que reproducen exactamente su escuela a escala métrica, las y los estudiantes desarrollan un vínculo de pertenencia y cuidado hacia su infraestructura.
-3. **Refuerzo Positivo Inmediato:** Cada antivalor superado despliega frases constructivas (*¡Amabilidad!*, *¡Respeto!*, *¡Empatía!*) acompañadas de retroalimentación sonora y visual.
+3. **Refuerzo Positivo Inmediato:** Cada antivalor superado despliega frases constructivas (*Amabilidad*, *Respeto*, *Empatía*) acompañadas de retroalimentación sonora y visual.
 
 ---
 
@@ -143,7 +143,7 @@ El juego cuenta con un esquema de control arcade responsivo diseñado para tecla
 | :--- | :---: | :---: | :---: | :--- |
 | **Moverse (8 Direcciones)** | <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> / <kbd>Flechas</kbd> | Stick Izquierdo / D-Pad | **Joystick Dinámico Izquierdo** | Desplazamiento analógico fluido 8D con muescas cardinales y guías en reposo. |
 | **Modo Enfoque (Focus Mode)** | <kbd>Shift</kbd> (Izquierdo/Derecho) | Gatillo <kbd>L1</kbd> / <kbd>LB</kbd> | Arrastre preciso en joystick | Reduce velocidad al 52% para micro-esquivas e ilumina el núcleo vital Touhou de 5.5 px. |
-| **Disparo de Virtud** | <kbd>Espacio</kbd> | Clic Izquierdo / Botón <kbd>A</kbd> / <kbd>R1</kbd> | **Joystick Dinámico Derecho "VIRTUD"** | Emite haces de luz en 360° con halo guinda/oro y flecha de puntería. |
+| **Disparo de Virtud** | <kbd>Espacio</kbd> | Clic Izquierdo (360°) / Botón <kbd>A</kbd> / <kbd>R1</kbd> | **Joystick Dinámico Derecho "VIRTUD"** | Dispara según el estilo elegido (*Pulso Guinda* o *Destello Guinda*) en 360° con flecha de puntería. |
 | **Pulso de Empatía** | <kbd>E</kbd> | Botón <kbd>X</kbd> | **Botón Táctil `PULSO`** | Emite una onda de apoyo que disipa proyectiles enemigos cercanos y ralentiza antivalores (10s CD). |
 | **Usar Ítem Equipado** | <kbd>Q</kbd> / <kbd>F</kbd> | Botón <kbd>Y</kbd> | **Botón Táctil `ÍTEM`** / Clic en Slot | Usa el único ítem equipado en el inventario (como la estrella **Esperanza** de 15s). |
 | **Apuntado Cardinal / 360°** | <kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> | Cursor del Ratón / Stick Der. | Arrastre de Joystick Derecho | Orienta la dirección del proyectil de virtud hacia los antivalores. |
@@ -164,7 +164,7 @@ El juego integra una nueva **Pantalla de Carga Asíncrona (`scenes/loading_scree
 - **Carga en Hilo Secundario:** Implementado mediante `ResourceLoader.load_threaded_request()`, asegurando una transición fluida sin congelamientos de fotogramas al instanciar mapas grandes.
 - **Barra de Progreso y Telemetría Escolar:** Visualización del porcentaje exacto acompañado de mensajes dinámicos de preparación de baldosas a escala real ($1\text{ m} = 40\text{ px}$).
 - **Carrusel Didáctico de Valores:** Rotación de 9 citas formativas sobre convivencia armónica, filosofía universal (Mandela, Rogers) y sabiduría ancestral otomí de Temoaya (*K'öte m'ui* - Respeto Comunitario) y náhuatl (*Tlamatiliztli* - Sabiduría Recta).
-- **Transiciones Cinematográficas:** La cortinilla de rombos pixel-art (`shaders/pixel_transition.gdshader`) incorpora una marca de agua suave del escudo COBAEM en el punto medio del fundido para erradicar cualquier corte brusco de pantalla.
+- **Transiciones Cinematográficas:** La cortinilla de rombos pixel-art (`shaders/pixel_transition.gdshader`) incorpora una marca de agua suave del escudo COBAEM en el punto medio del fundido para evitar cualquier corte brusco de pantalla.
 
 ---
 
@@ -195,7 +195,7 @@ flowchart TD
 1. **Cero Distorsión de Aspecto:** Los sprites se dibujan siempre con relación de aspecto $1:1$ mediante `snap_2d_transforms_to_pixel = true`.
 2. **Blindaje de Safe Area en Móviles:** La barra de corazones, el progreso de la meta y el botón de pausa se ajustan automáticamente a los márgenes seguros reportados por el sistema operativo, impidiendo que queden ocultos tras la muesca de la cámara.
 3. **Desacoplamiento Inteligente de Dispositivos:** Si el juego se abre en una PC sin pantalla táctil, los joysticks virtuales permanecen invisibles para no ensuciar la pantalla; en cuanto se detecta un toque de hardware en una pantalla táctil o dispositivo móvil, los controles se activan con opacidad en reposo (`resting_alpha = 0.18`) y se expanden dinámicamente al apoyar los pulgares.
-4. **Exportación Multiplataforma:** Incluye presets configurados para compilar en Linux (`.x86_64`), Windows (`.exe`), Android (`.apk` / Google Play configurando keystore propia de firma) y Web (`index.html` PWA monohilo para compatibilidad universal).
+4. **Exportación Multiplataforma:** Incluye presets configurados para compilar en Linux (`.x86_64`), Windows (`.exe`), Android (`Sensor Landscape`, `.apk` / Google Play), iOS (`.ipa` Landscape) y Web (`index.html` PWA con desbloqueo de audio en primer toque y descarga unificada de constancias PDF).
 
 ---
 
@@ -257,7 +257,7 @@ El juego cuenta con dos modos principales seleccionables desde la pantalla de in
 - **Sistema de Cuotas y Límites de Reaparición:** Para cada nivel, el jugador debe vencer una cantidad establecida de antivalores (`quota_to_boss`, entre 3 y 5). Los antivalores poseen un límite estricto de reaparición (`max_respawns = 2`). Al alcanzar la cuota, cesan las reapariciones normales y aparece el Jefe Final del escenario.
 - **Salida Bloqueada:** La meta permanece bloqueada y protegida hasta que el Jefe Final del nivel es redimido pacíficamente.
 - **Proyectiles de Energía Positiva:** El ataque del jugador emite orbes resplandecientes que viajan en línea recta. Mantener presionada la barra espaciadora o el botón táctil activa el disparo continuo.
-- **Sistema de Aliados con IA (`AllyBrain`):** Al rescatar y alegrar a los estudiantes secundarios (`Mateo`, `María`, `Valeria`, `Fernanda`, `Diego`, `Sofía` y `Alejandro`), cada personaje cambia dinámicamente entre sus **5 poses animadas** (`idle`, `walk_right`, `walk_left`, `back`, `attack`), esquiva proyectiles enemigos, prioriza atacar al jefe activo con orbes de virtud sin violencia y acude unido a ayudarte frente a **Titanor**.
+- **Sistema de Aliados con IA (`AllyBrain`):** Al rescatar y animar a los estudiantes secundarios (`Mateo`, `María`, `Valeria`, `Fernanda`, `Diego`, `Sofía` y `Alejandro`), cada personaje conserva su propio disparo distintivo (*Triple Reacción*, *Escudo Firme*, *Pulso Estéreo*, *Nota al Margen*, *Señal Abierta*, *Turno Abierto* y *Pase de Rebote*) y acude unido en la Cancha frente a **Titanor**.
 - **Inventario de 1 Solo Ítem & Ventaja "Esperanza" (15s):** El héroe cuenta con un espacio único en el HUD (`[Q]`/`[F]` en PC, `Y` en mando, `ÍTEM` en móvil) para portar un objeto de apoyo (`Corazón`, `Escudo` o la estrella **Esperanza**). Al activar **Esperanza**, durante **15 segundos** se destruyen y bloquean los clones del jefe final, se disipa e impide la niebla oscura y el jefe queda completamente indefenso bajo un aura dorada.
 
 ---
@@ -268,25 +268,25 @@ El juego cuenta con dos modos principales seleccionables desde la pantalla de in
 
 | Antivalor | Color Distintivo | Comportamiento & IA | Rango / Velocidad | Virtud Liberada | Recompensa |
 | :---: | :---: | :--- | :---: | :---: | :---: |
-| **Grosería** | 🔴 Rojo Carmesí | Enemigo impulsivo e inquieto. Da pequeños brincos erráticos y arremete con agresividad al detectar al jugador. | Radio medio / Rápido | **¡Amabilidad!** | `+100 pts` |
-| **Acoso** | 🟠 Naranja Ámbar | Sombra persistente que vigila a gran distancia. Rodea obstáculos y persigue constantemente al jugador sin perderlo de vista. | Radio amplio / Medio | **¡Respeto!** | `+150 pts` |
-| **Bullying** | 🟣 Morado Intenso | Adversario pesado y blindado. Patrulla perímetros clave y ejecuta embestidas directas cuando el jugador invade su territorio. | Radio corto / Embestida veloz | **¡Empatía!** | `+250 pts` |
+| **Grosería** | 🔴 Rojo Carmesí | Enemigo impulsivo e inquieto. Da pequeños brincos y arremete al detectar al jugador. | Radio medio / Rápido | **Amabilidad** | `+100 pts` |
+| **Acoso** | 🟠 Naranja Ámbar | Sombra persistente que vigila a gran distancia. Rodea obstáculos y persigue sin perder vista. | Radio amplio / Medio | **Respeto** | `+150 pts` |
+| **Bullying** | 🟣 Morado Intenso | Adversario pesado y territorial. Patrulla perímetros clave cuando el jugador entra en su territorio. | Radio corto / Embestida veloz | **Empatía** | `+250 pts` |
 
 ---
 
 ### 👑 Los 6 Jefes Finales de Escenario (Antivalores Mayores)
 
-Cada edificio del plantel está custodiado por una manifestación mayor que desafía al jugador con patrones de ataque telegrafiados en perspectiva 3/4 y barra de vida en el HUD:
+Cada edificio del plantel está custodiado por una manifestación mayor que desafía al jugador con patrones de ataque telegrafiados en perspectiva 3/4 y barra de calma en el HUD:
 
 | Nivel | Jefe Final | Ubicación Escolar | Salud (Fácil / Normal / Difícil) | Ataques y Patrones | Virtud de Redención |
 | :---: | :--- | :--- | :---: | :--- | :--- |
-| **1** | **Sombra de la Apatía** (*Apatyx*) | Acceso y Edificio D (Laboratorios) | **16 / 32 / 65 ♥** | Vórtice Espiral de Desgano, Ráfaga Ciclónica, Miasma Apatético | **¡Entusiasmo y Curiosidad!** |
-| **2** | **Troll del Desperdicio** (*Desperdicius*) | Edificio A — Cafetería y Desayunador | **20 / 40 / 80 ♥** | Lluvia de Desechos, Pisotón de Basura | **¡Responsabilidad y Cuidado Ambiental!** |
-| **3** | **Sombra de la Intolerancia** (*Superbus*) | Plaza Cívica y Escalinata Sur (+4m) | **24 / 48 / 100 ♥** | Onda de Rechazo, Ráfaga de Prejuicios | **¡Tolerancia y Dignidad Otomí!** |
-| **4** | **Espectro del Ciberacoso** (*Murmullus*) | Edificio B — Aulas 3-4 y Biblioteca | **28 / 56 / 120 ♥** | Cadenas de Rumores, Falla Espectral | **¡Empatía Digital y Honestidad!** |
-| **5** | **Titán del Plagio** (*Plagiatrix*) | Edificio C — Dirección y Cómputo | **32 / 64 / 140 ♥** | Copia Espejo, Barrera de Atajos | **¡Autenticidad e Integridad Académica!** |
-| **6** | **Coloso del Bullying** (*Titanor*) | Cancha de Usos Múltiples y Gradas | **75 / 180 / 450 ♥** | **Danmaku Touhou en 4 Fases (Ruleta de Balas, Espirales Curvas)** | **¡Fraternidad, Solidaridad y Fair Play!** |
-| **Aula** | **Maestro Desinterés** *(Inacción ante Bullying)* | Salones de Clases Interiores (1 a 6) | **25 / 55 / 120 ♥** | Mirada Indiferente, Burocracia Inmóvil | **¡Compromiso, Escucha y Empatía Docente!** |
+| **1** | **Sombra de la Apatía** (*Apatyx*) | Acceso y Edificio D (Laboratorios) | **16 / 32 / 65 ♥** | Vórtice Espiral de Desgano, Ráfaga Ciclónica, Niebla Apatética | **Entusiasmo y Curiosidad** |
+| **2** | **Troll del Desperdicio** (*Desperdicius*) | Edificio A — Cafetería y Desayunador | **20 / 40 / 80 ♥** | Lluvia de Desechos, Pisotón de Basura | **Responsabilidad y Cuidado Ambiental** |
+| **3** | **Sombra de la Intolerancia** (*Superbus*) | Plaza Cívica y Escalinata Sur (+4m) | **24 / 48 / 100 ♥** | Onda de Rechazo, Ráfaga de Prejuicios | **Tolerancia y Dignidad Otomí** |
+| **4** | **Espectro del Ciberacoso** (*Murmullus*) | Edificio B — Aulas 3-4 y Biblioteca | **28 / 56 / 120 ♥** | Cadenas de Rumores, Falla Espectral | **Empatía Digital y Honestidad** |
+| **5** | **Titán del Plagio** (*Plagiatrix*) | Edificio C — Dirección y Cómputo | **32 / 64 / 140 ♥** | Copia Espejo, Barrera de Atajos | **Autenticidad e Integridad Académica** |
+| **6** | **Coloso del Bullying** (*Titanor*) | Cancha de Usos Múltiples y Gradas | **75 / 180 / 450 ♥** | **Danmaku Touhou en 4 Fases (Ruleta de Balas, Espirales Curvas)** | **Fraternidad, Solidaridad y Fair Play** |
+| **Aula** | **Maestro Desinterés** *(Inacción ante Bullying)* | Salones de Clases Interiores (1 a 6) | **25 / 55 / 120 ♥** | Mirada Indiferente, Trámites Sin Respuesta | **Compromiso, Escucha y Empatía Docente** |
 
 ---
 
@@ -315,7 +315,7 @@ Para elevar el clímax del enfrentamiento contra el **Coloso del Bullying (Titan
    - Sumando las **3 transiciones cinemáticas de Cartas de Hechizo** (4.0s cada una con ondas de choque que limpian proyectiles del mapa y otorgan un corazón de recompensa), la batalla tiene una duración mínima estricta de **192 segundos (> 3 minutos y 12 segundos)** bajo una ejecución de ataque perfecta continua.
 
 > [!NOTE]
-> **Filosofía de Redención Educativa (Cero Violencia):** Al reducir los puntos de vida de un jefe o enemigo, nunca hay destrucción violenta ni muertes. El jefe sufre una transformación luminosa ascendente, proclama su virtud redentora (*¡El respeto nos une a todos!*) y se reconcilia con la comunidad escolar.
+> **Filosofía de Redención Educativa (Cero Violencia):** Al completar la calma de un jefe o antivalor, nunca hay destrucción violenta. El jefe se reconcilia con el grupo, proclama su virtud redentora (*El respeto nos une a todos*) y suma calma a la comunidad escolar.
 
 ---
 
@@ -336,7 +336,7 @@ Cada uno de los 6 edificios escolares cuenta con su **Salón de Clases Interior*
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-1. **El Acoso Oculto:** Al ingresar al salón, varios antivalores (Grosería, Acoso, Bullying) se encuentran rodeando en círculo a un alumno de la institución (Mateo, María, Xóchitl, Fernanda, Diego o Alejandro), intimidándolo.
+1. **El Acoso Oculto:** Al ingresar al salón, varios antivalores (Grosería, Acoso, Bullying) se encuentran rodeando en círculo a un alumno de la institución (Mateo, María, Valeria, Fernanda, Diego o Alejandro), intimidándolo.
 2. **Reacción Agresiva en Enjambre:** En cuanto los monstruos detectan al protagonista, rompen formación inmediatamente y arremeten en ataque coordinado.
 3. **El Jefe de Salón — Maestro Desinterés:** Representa la peligrosa **inacción de los adultos y docentes** que deciden no intervenir o mirar hacia otro lado ante el acoso escolar. Posee piel gris ceniza, ojos blancos vacíos y un traje desgastado con corbata torcida. Sus ataques incluyen la *Mirada Indiferente* (abanico de orbes fríos) y la *Burocracia Inmóvil* (barrera de trámites y exámenes).
 4. **Redención y Compromiso:** Al redimir a los agresores y al Maestro Desinterés con virtudes, el docente recupera su calidez humana, sus ojos cobran vida y jura comprometerse activamente en la protección, escucha y bienestar de sus alumnos.
@@ -367,10 +367,13 @@ Los escenarios cuentan con alumnos secundarios con uniforme oficial COBAEM (sué
 
 | Alumno | Semestre / Rol | Ubicación | Estado Inicial | Reacción al Redimir Antivalor / Jefe |
 | :--- | :--- | :--- | :---: | :--- |
-| **Mateo Hernández** | 1er Semestre (Nuevo Ingreso) | Escenario 1 (Acceso / Jardinera) | 😢 Afligido (`SAD`) | Se levanta sonriente con su libreta y brinda aliento al jugador. |
-| **Xóchitl Morales** | 3er Semestre (Cultura Otomí) | Escenario 3 (Plaza Cívica / Escalinata) | 😢 Herida (`SAD`) | Porta su faja artesanal con orgullo y comparte sabiduría tradicional. |
-| **Sofía Valdés** | 5º Semestre (Robótica y Cómputo) | Escenario 5 (Edificio C — Cómputo) | 😢 Decepcionada (`SAD`) | Enciende los monitores de software libre y lidera tutorías solidarias. |
-| **Emiliano 'Milo' Cruz**| 5º Semestre (Capitán Baloncesto) | Escenario 6 (Cancha de Usos Múltiples) | 😢 Frustrado (`SAD`) | Bota el balón alegremente e invita a todos al juego limpio (*Fair Play*). |
+| **Mateo Hernández** | 1er Semestre (Nuevo Ingreso) | Escenario 1 (Acceso / Laboratorio D) | Afligido (`SAD`) | Lanza **Triple Reacción** y anima a preguntar sin pena. |
+| **María López** | 2do Semestre (Cafetería) | Escenario 2 (Edificio A — Cafetería) | Agotada (`SAD`) | Activa **Escudo Firme** limpiando proyectiles hostiles. |
+| **Valeria Morales** | 3er Semestre (Comité Cívico) | Escenario 3 (Plaza Cívica / Escalinata) | Herida (`SAD`) | Emite **Pulso Estéreo** de inclusión con doble onda curva. |
+| **Fernanda Ortiz** | 4to Semestre (Lectura) | Escenario 4 (Edificio B — Biblioteca) | Reservada (`SAD`) | Fija **Nota al Margen** autodirigida frente a rumores. |
+| **Diego Ramírez** | 5to Semestre (Taller de Cómputo) | Escenario 5 (Edificio C — Cómputo) | Aislado (`SAD`) | Envía **Señal Abierta** (`ataque_senal.png`) protectora. |
+| **Sofía Valdés** | 5to Semestre (Representante — Dirección) | Escenario 5 (Edificio C — Dirección) | Saturada (`SAD`) | Activa **Turno Abierto** acelerando la respuesta del grupo. |
+| **Alejandro Cruz**| 6to Semestre (Capitán Baloncesto) | Escenario 6 (Cancha de Usos Múltiples) | Frustrado (`SAD`) | Lanza **Pase de Rebote** (`ataque_balon.png`) invitando al *Fair Play*. |
 
 > [!TIP]
 > **Mecánica de Aliento (+1 Esperanza):** Cuando un estudiante se encuentra en estado alegre (`HAPPY`), si el jugador se acerca con corazones incompletos, el alumno le ofrecerá una frase de apoyo y le restaurará **+1 Corazón de Esperanza**.
@@ -670,7 +673,7 @@ El proyecto está diseñado desde los cimientos para ejecutarse de manera fluida
 
 ## 🛠️ Guía para Desarrolladores y Modding
 
-¿Deseas personalizar el juego o añadir nuevos escenarios? El diseño modular de `LevelManager` te permite expandir la experiencia fácilmente:
+Si deseas personalizar el juego o añadir nuevos escenarios, el diseño modular de `LevelManager` permite expandir la experiencia fácilmente:
 
 ### ➕ Añadir un Nuevo Escenario
 
@@ -703,7 +706,7 @@ El proyecto está diseñado desde los cimientos para ejecutarse de manera fluida
 
 ## 🤝 Contribución y Código Abierto
 
-¡Las contribuciones de la comunidad estudiantil, docentes y desarrolladores son sumamente bienvenidas! Para participar:
+Las contribuciones de la comunidad estudiantil, docentes y desarrolladores son bienvenidas. Para participar:
 
 1. Realiza un **Fork** de este repositorio.
 2. Crea una rama para tu característica o corrección:
@@ -749,6 +752,6 @@ Este proyecto es software libre educativo distribuido bajo la licencia **GNU Gen
 ---
 
 *Desarrollado con dedicación cívica para las juventudes que construyen una convivencia escolar pacífica y solidaria.*  
-**¡Sé un Campeón de los Valores! 🏆**
+**Campeones de los Valores — CEMSaD 22 ENTHAVI**
 
 </div>

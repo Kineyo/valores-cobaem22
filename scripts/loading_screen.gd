@@ -31,12 +31,12 @@ const TIPS: Array[String] = [
 ]
 
 const STATUS_MESSAGES: Array[String] = [
-	"Cargando infraestructura del plantel CEMSaD 22...",
-	"Generando baldosas a escala real (1 metro = 40 px)...",
-	"Sincronizando cotas arquitectónicas del CAD escolar...",
-	"Cargando virtudes cívicas y antivalores formativos...",
-	"Optimizando controles táctiles y de escritorio...",
-	"¡Entorno verificado! Ingresando al plantel..."
+	"Cargando infraestructura del plantel CEMSaD 22",
+	"Generando baldosas a escala real (1 metro = 40 px)",
+	"Sincronizando cotas arquitectónicas del CAD escolar",
+	"Cargando virtudes cívicas y antivalores formativos",
+	"Optimizando controles táctiles y de escritorio",
+	"Entorno verificado. Ingresando al plantel"
 ]
 
 var _preloaded_scene: PackedScene = null
@@ -150,7 +150,7 @@ func _update_prompt_text() -> void:
 	elif MobileControls.is_touch_device():
 		prompt_label.text = "Toca la pantalla para continuar"
 	else:
-		prompt_label.text = "¡Listo! Ingresando al plantel escolar..."
+		prompt_label.text = "Listo. Ingresando al plantel escolar"
 
 func _start_loading() -> void:
 	if on_complete_callback.is_valid():

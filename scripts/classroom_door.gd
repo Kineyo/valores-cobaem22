@@ -18,6 +18,7 @@ var _anim_time: float = 0.0
 
 func _ready() -> void:
 	y_sort_enabled = true
+	z_index = -1
 	collision_layer = 16
 	collision_mask = 2 # Jugador
 	if get_node_or_null("CollisionShape2D") == null:
@@ -80,7 +81,7 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 func _on_body_entered(body: Node2D) -> void:
-	if body is Player:
+	if body is Player and body.can_control:
 		_player_inside = true
 		if not is_cleared:
 			var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null

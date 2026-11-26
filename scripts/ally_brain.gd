@@ -24,6 +24,8 @@ const ATTACK_RANGE_SQ: float = 540.0 * 540.0
 const DODGE_RADIUS_SQ: float = 78.0 * 78.0
 const SEPARATION_DIST_SQ: float = 54.0 * 54.0
 const ATTACK_POSE_DURATION: float = 0.32
+const STANDARD_PROJECTILE_SCALE: float = 1.0
+const STANDARD_VISUAL_SIZE: float = 24.0
 
 const ALLY_TINTS := {
 	"mateo": Color(0.45, 1.0, 0.65),
@@ -35,6 +37,65 @@ const ALLY_TINTS := {
 	"alejandro": Color(1.0, 0.75, 0.35),
 }
 
+const ALLY_SPECIAL_DATA := {
+	"mateo": {
+		"id": "triple_reaccion",
+		"name": "Triple Reacción",
+		"tagline": "Pregunta con calma en el laboratorio: burbujas en abanico que frenan la prisa.",
+		"color": Color(0.35, 1.0, 0.58),
+		"visual_style": &"triple_reaccion",
+		"texture_path": "",
+	},
+	"maria": {
+		"id": "escudo_firme",
+		"name": "Escudo Firme",
+		"tagline": "Pone límites claros y amables: aro protector que despeja proyectiles cercanos.",
+		"color": Color(1.0, 0.58, 0.82),
+		"visual_style": &"escudo_firme",
+		"texture_path": "",
+	},
+	"valeria": {
+		"id": "pulso_estereo",
+		"name": "Pulso Estéreo",
+		"tagline": "Comparte ritmo y escucha: ondas en estéreo que atraviesan enjambres.",
+		"color": Color(0.38, 0.95, 1.0),
+		"visual_style": &"pulso_estereo",
+		"texture_path": "",
+	},
+	"fernanda": {
+		"id": "nota_margen",
+		"name": "Nota al Margen",
+		"tagline": "Anota el dato directo y sin rodeos: separador guiado hacia el objetivo.",
+		"color": Color(1.0, 0.88, 0.32),
+		"visual_style": &"nota_margen",
+		"texture_path": "",
+	},
+	"diego": {
+		"id": "senal_abierta",
+		"name": "Señal Abierta",
+		"tagline": "Comparte red y apoyo técnico: pulso digital que limpia proyectiles cercanos.",
+		"color": Color(0.40, 0.82, 1.0),
+		"visual_style": &"senal_abierta",
+		"texture_path": "res://assets/characters/diego_computo/ataque_senal.png",
+	},
+	"sofia": {
+		"id": "turno_abierto",
+		"name": "Turno Abierto",
+		"tagline": "Coordina turnos en igualdad: acelera la recarga de todo el equipo.",
+		"color": Color(0.86, 0.58, 1.0),
+		"visual_style": &"turno_abierto",
+		"texture_path": "",
+	},
+	"alejandro": {
+		"id": "pase_rebote",
+		"name": "Pase de Rebote",
+		"tagline": "Abre la cancha a todos: balón limpio que rebota en muros y gana impulso.",
+		"color": Color(1.0, 0.72, 0.28),
+		"visual_style": &"pase_rebote",
+		"texture_path": "res://assets/characters/alejandro_cancha/ataque_balon.png",
+	},
+}
+
 var host: CharacterBody2D = null
 var level_ref: Node2D = null
 var ally_name: String = ""
@@ -44,6 +105,9 @@ var attack_cooldown: float = 1.45
 var active_combat: bool = false
 var last_target: Node2D = null
 var shots_fired: int = 0
+var shots_until_special: int = 3
+var specials_fired: int = 0
+var last_special_id: String = ""
 var state: AllyState = AllyState.FOLLOW
 
 var _cooldown_timer: float = 0.45
@@ -257,7 +321,8 @@ func tick(delta: float) -> Dictionary:
 
 	# 5. Separación suave entre aliados + bigotes evasores de obstáculos + límites del mapa
 	if state != AllyState.HOLD_AND_FIRE and desired_vel.length_squared() > 100.0:
-		desired_vel = _apply_obstacle_whiskers(desired_vel, delta)
+		var target_spd := follow_speed if state == AllyState.FOLLOW else (move_speed * 1.25 if state == AllyState.DODGE else move_speed)
+		desired_vel = _apply_obstacle_whiskers(desired_vel, target_spd, delta)
 	if state != AllyState.HOLD_AND_FIRE:
 		desired_vel += _compute_ally_separation() * 75.0
 	desired_vel = _steer_inside_map(desired_vel)
@@ -321,11 +386,11 @@ func _pick_free_angle(base_dir: Vector2) -> Vector2:
 			best_dir = cand
 	return best_dir
 
-func _apply_obstacle_whiskers(vel: Vector2, delta: float) -> Vector2:
+func _apply_obstacle_whiskers(vel: Vector2, target_speed: float, delta: float) -> Vector2:
 	_whisker_timer -= delta
 	if _whisker_timer > 0.0:
 		if _cached_whisker_dir != Vector2.ZERO:
-			return _cached_whisker_dir * vel.length()
+			return _cached_whisker_dir * target_speed
 		return vel
 	_whisker_timer = 0.10
 	_cached_whisker_dir = Vector2.ZERO
@@ -361,20 +426,40 @@ func _apply_obstacle_whiskers(vel: Vector2, delta: float) -> Vector2:
 		var dr := origin.distance_squared_to(hit_r.get("position", origin))
 		_cached_whisker_dir = left_dir if dl >= dr else right_dir
 
-	return _cached_whisker_dir * vel.length()
+	return _cached_whisker_dir * target_speed
 
 func _recover_near_player(player_node: Node2D) -> void:
 	var form_idx := _get_formation_index()
-	var ang := float(form_idx) * (TAU / 6.0)
-	var candidate := player_node.global_position + Vector2(cos(ang), sin(ang)) * 64.0
+	var base_ang := float(form_idx) * (TAU / 6.0)
+	var map_sz := Vector2.ZERO
 	if level_ref != null and is_instance_valid(level_ref):
 		var map_sz_var = level_ref.get("map_size")
 		if map_sz_var is Vector2:
-			var map_sz: Vector2 = map_sz_var
+			map_sz = map_sz_var
+	var space_state := host.get_world_2d().direct_space_state if (host.is_inside_tree() and host.get_world_2d()) else null
+	var player_origin := player_node.global_position + Vector2(0.0, -14.0)
+	var chosen := player_node.global_position
+	var found_clear := false
+	for step_i in range(6):
+		var ang := base_ang + float(step_i) * (TAU / 6.0)
+		var candidate := player_node.global_position + Vector2(cos(ang), sin(ang)) * 64.0
+		if map_sz != Vector2.ZERO:
 			candidate.x = clampf(candidate.x, 56.0, map_sz.x - 56.0)
 			candidate.y = clampf(candidate.y, 76.0, map_sz.y - 56.0)
-	host.global_position = candidate
-	_prev_pos = candidate
+		if space_state == null:
+			chosen = candidate
+			found_clear = true
+			break
+		var ray := PhysicsRayQueryParameters2D.create(player_origin, candidate + Vector2(0.0, -14.0), 1, [host.get_rid(), player_node.get_rid()])
+		if space_state.intersect_ray(ray).is_empty():
+			chosen = candidate
+			found_clear = true
+			break
+	if not found_clear and map_sz != Vector2.ZERO:
+		chosen.x = clampf(chosen.x, 56.0, map_sz.x - 56.0)
+		chosen.y = clampf(chosen.y, 76.0, map_sz.y - 56.0)
+	host.global_position = chosen
+	_prev_pos = chosen
 
 func _get_player() -> Node2D:
 	var p = host.get("player")
@@ -501,27 +586,23 @@ func _has_clear_los(target_pos: Vector2) -> bool:
 	var hit := space_state.intersect_ray(query)
 	return hit.is_empty()
 
-func _fire_virtue_projectile(dir: Vector2) -> bool:
-	if PROJECTILE_SCENE == null:
-		return false
-	var shoot_dir := dir.normalized() if dir.length_squared() > 0.001 else Vector2.RIGHT
-	var origin := host.global_position + Vector2(0.0, -14.0)
-	var spawn_offset := 10.0
+func reduce_cooldown(sec: float) -> void:
+	_cooldown_timer = maxf(0.0, _cooldown_timer - sec)
 
-	# Verificar espacio libre delante del aliado antes de instanciar el proyectil
-	if host.is_inside_tree() and host.get_world_2d() and host.get_world_2d().direct_space_state:
-		var sp := host.get_world_2d().direct_space_state
-		var q := PhysicsRayQueryParameters2D.create(origin, origin + shoot_dir * 18.0, 1, [host.get_rid()])
-		var hit := sp.intersect_ray(q)
-		if not hit.is_empty():
-			var hit_d_sq := origin.distance_squared_to(hit.get("position", origin))
-			if hit_d_sq < 196.0: # < 14 px: ajustar spawn al centro para no rozar la pared
-				spawn_offset = 0.0
+static func get_ally_key(raw_name: String) -> String:
+	var low := Student.normalize_name(raw_name)
+	if low == "emiliano" or low.begins_with("alejandro"):
+		return "alejandro"
+	for k: String in ALLY_SPECIAL_DATA.keys():
+		if low.begins_with(k):
+			return k
+	return "mateo"
 
-	var proj = PROJECTILE_SCENE.instantiate()
-	if proj == null:
-		return false
+static func get_special_info(raw_name: String) -> Dictionary:
+	var k := get_ally_key(raw_name)
+	return (ALLY_SPECIAL_DATA.get(k, ALLY_SPECIAL_DATA["mateo"]) as Dictionary).duplicate(true)
 
+func _resolve_projectile_parent() -> Node:
 	var parent_node: Node = null
 	if level_ref != null and is_instance_valid(level_ref):
 		parent_node = level_ref.get("entities")
@@ -529,30 +610,280 @@ func _fire_virtue_projectile(dir: Vector2) -> bool:
 			parent_node = level_ref
 	if parent_node == null:
 		parent_node = host.get_parent()
+	return parent_node
+
+func _spawn_ally_projectile(dir: Vector2, opts: Dictionary = {}) -> Node2D:
+	if PROJECTILE_SCENE == null or host == null or not is_instance_valid(host):
+		return null
+	var shoot_dir := dir.normalized() if dir.length_squared() > 0.001 else Vector2.RIGHT
+	var origin := host.global_position + Vector2(0.0, -14.0)
+	var spawn_offset := 10.0
+
+	if host.is_inside_tree() and host.get_world_2d() and host.get_world_2d().direct_space_state:
+		var sp := host.get_world_2d().direct_space_state
+		var q := PhysicsRayQueryParameters2D.create(origin, origin + shoot_dir * 18.0, 1, [host.get_rid()])
+		var hit := sp.intersect_ray(q)
+		if not hit.is_empty():
+			var hit_d_sq := origin.distance_squared_to(hit.get("position", origin))
+			if hit_d_sq < 196.0:
+				spawn_offset = 0.0
+
+	var proj := PROJECTILE_SCENE.instantiate() as Node2D
+	if proj == null:
+		return null
+
+	var parent_node := _resolve_projectile_parent()
 	if parent_node == null:
 		proj.free()
-		return false
+		return null
 
 	var world_spawn := origin + shoot_dir * spawn_offset
 	var local_spawn: Vector2 = (parent_node as Node2D).to_local(world_spawn) if parent_node is Node2D else world_spawn
 
-	# Configurar posición y dirección ANTES de add_child() para evitar colisión falsa en (0, 0)
 	proj.set("is_ally_projectile", true)
-	proj.set("speed", 460.0)
-	proj.set("lifetime", 1.45)
-	proj.z_index = 25
-	proj.scale = Vector2(1.1, 1.1)
-	proj.modulate = _get_virtue_tint()
+	proj.set("speed", float(opts.get("speed", 460.0)))
+	proj.set("lifetime", float(opts.get("lifetime", 1.45)))
+	proj.set("curve_speed", float(opts.get("curve_speed", 0.0)))
+	proj.set("is_homing", bool(opts.get("is_homing", false)))
+	proj.set("homing_strength", float(opts.get("homing_strength", 4.6)))
+	proj.set("homing_target", opts.get("homing_target", null))
+	proj.set("bounces_left", int(opts.get("bounces_left", 0)))
+	proj.set("pierce_left", int(opts.get("pierce_left", 0)))
+	proj.set("wave_amp", float(opts.get("wave_amp", 0.0)))
+	proj.set("wave_freq", float(opts.get("wave_freq", 0.0)))
+	proj.set("boost_on_bounce", float(opts.get("boost_on_bounce", 1.0)))
+	proj.set("mark_target", bool(opts.get("mark_target", false)))
+	proj.set("visual_style", opts.get("visual_style", &""))
+	proj.set("apply_slow_on_hit", float(opts.get("apply_slow_on_hit", 0.0)))
+	proj.set("clear_enemy_bullets_radius", float(opts.get("clear_enemy_bullets_radius", 0.0)))
+	proj.set("spin_speed", float(opts.get("spin_speed", 12.0)))
+	if opts.has("shared_hit_registry"):
+		proj.set("shared_hit_registry", opts.get("shared_hit_registry"))
+	if opts.get("custom_texture") != null:
+		proj.set("custom_texture", opts.get("custom_texture"))
+		proj.set("custom_visual_size", float(opts.get("custom_visual_size", STANDARD_VISUAL_SIZE)))
+	proj.z_index = 22
+	var sc := float(opts.get("scale", STANDARD_PROJECTILE_SCALE))
+	proj.scale = Vector2(sc, sc)
+	var base_tint: Color = opts.get("tint", _get_virtue_tint())
+	base_tint.a = 0.88 if bool(opts.get("is_special", false)) else 0.72
+	proj.modulate = base_tint
 	proj.position = local_spawn
 	if proj.has_method("set_direction"):
 		proj.set_direction(shoot_dir)
 
 	parent_node.add_child(proj)
-	shots_fired += 1
-	return true
+	return proj
+
+func fire_special_attack(dir: Vector2) -> bool:
+	if host == null or not is_instance_valid(host):
+		return false
+	var key := get_ally_key(ally_name)
+	var info: Dictionary = ALLY_SPECIAL_DATA.get(key, ALLY_SPECIAL_DATA["mateo"])
+	var tint: Color = info.get("color", _get_virtue_tint())
+	var vstyle: StringName = info.get("visual_style", &"")
+	var base_dir := dir.normalized() if dir.length_squared() > 0.001 else Vector2.RIGHT
+	var spawned := false
+
+	match key:
+		"mateo":
+			for idx_ang in [-0.24, 0.0, 0.24]:
+				var opts := {
+					"tint": Color(1.0, 0.92, 0.45) if idx_ang == 0.0 else tint,
+					"visual_style": vstyle,
+					"is_special": true,
+					"scale": STANDARD_PROJECTILE_SCALE,
+					"apply_slow_on_hit": 1.4 if idx_ang == 0.0 else 0.0,
+				}
+				if _spawn_ally_projectile(base_dir.rotated(idx_ang), opts) != null:
+					spawned = true
+		"maria":
+			spawned = _spawn_ally_projectile(base_dir, {
+				"tint": tint,
+				"visual_style": vstyle,
+				"is_special": true,
+				"scale": STANDARD_PROJECTILE_SCALE,
+				"speed": 410.0,
+				"clear_enemy_bullets_radius": 44.0,
+			}) != null
+			var p_node := _get_player()
+			if p_node != null and "empathy_cooldown_left" in p_node:
+				p_node.set("empathy_cooldown_left", maxf(0.0, float(p_node.get("empathy_cooldown_left")) - 1.5))
+		"valeria":
+			for pair in [[-0.20, 1.65], [0.20, -1.65]]:
+				if _spawn_ally_projectile(base_dir.rotated(pair[0]), {
+					"tint": tint,
+					"visual_style": vstyle,
+					"is_special": true,
+					"scale": STANDARD_PROJECTILE_SCALE,
+					"curve_speed": pair[1],
+					"pierce_left": 1,
+					"lifetime": 1.7,
+				}) != null:
+					spawned = true
+		"fernanda":
+			spawned = _spawn_ally_projectile(base_dir, {
+				"tint": tint,
+				"visual_style": vstyle,
+				"is_special": true,
+				"scale": STANDARD_PROJECTILE_SCALE,
+				"speed": 445.0,
+				"lifetime": 2.1,
+				"is_homing": true,
+				"homing_strength": 4.8,
+				"homing_target": last_target,
+				"mark_target": true,
+			}) != null
+		"diego":
+			var tex_d := AssetLoader.load_texture(str(info.get("texture_path", "")))
+			spawned = _spawn_ally_projectile(base_dir, {
+				"tint": Color.WHITE if tex_d != null else tint,
+				"visual_style": vstyle,
+				"is_special": true,
+				"custom_texture": tex_d,
+				"custom_visual_size": STANDARD_VISUAL_SIZE,
+				"spin_speed": 2.5,
+				"scale": STANDARD_PROJECTILE_SCALE,
+				"clear_enemy_bullets_radius": 40.0,
+			}) != null
+			if host.is_inside_tree() and host.get_tree():
+				var r_sq := 84.0 * 84.0
+				for ep in host.get_tree().get_nodes_in_group("enemy_projectiles"):
+					if ep is Node2D and is_instance_valid(ep) and host.global_position.distance_squared_to((ep as Node2D).global_position) <= r_sq:
+						ep.queue_free()
+		"sofia":
+			spawned = _spawn_ally_projectile(base_dir, {
+				"tint": tint,
+				"visual_style": vstyle,
+				"is_special": true,
+				"speed": 580.0,
+				"scale": STANDARD_PROJECTILE_SCALE,
+			}) != null
+			if level_ref != null and is_instance_valid(level_ref):
+				var students_arr = level_ref.get("students")
+				if students_arr is Array:
+					for s in students_arr:
+						if s != host and is_instance_valid(s):
+							var ob = s.get("brain")
+							if ob != null and ob.has_method("reduce_cooldown"):
+								ob.reduce_cooldown(0.65)
+			var p_node := _get_player()
+			if p_node != null and "empathy_cooldown_left" in p_node:
+				p_node.set("empathy_cooldown_left", maxf(0.0, float(p_node.get("empathy_cooldown_left")) - 1.0))
+		"alejandro", _:
+			var tex_a := AssetLoader.load_texture(str(info.get("texture_path", "")))
+			spawned = _spawn_ally_projectile(base_dir, {
+				"tint": Color.WHITE if tex_a != null else tint,
+				"visual_style": vstyle,
+				"is_special": true,
+				"custom_texture": tex_a,
+				"custom_visual_size": STANDARD_VISUAL_SIZE,
+				"spin_speed": 11.0,
+				"scale": STANDARD_PROJECTILE_SCALE,
+				"speed": 510.0,
+				"lifetime": 2.0,
+				"bounces_left": 2,
+				"boost_on_bounce": 1.10,
+			}) != null
+
+	if spawned:
+		shots_fired += 1
+		specials_fired += 1
+		last_special_id = str(info.get("id", key))
+		var fx := host.get_node_or_null("/root/Fx") if host.is_inside_tree() else null
+		var fx_parent := _resolve_projectile_parent()
+		if fx and fx_parent:
+			fx.burst(fx_parent, host.global_position + Vector2(0, -16), tint, 8, 95.0)
+			fx.floating_text(fx_parent, host.global_position + Vector2(0, -44), str(info.get("name", "Apoyo")), tint, 11)
+	return spawned
+
+func _fire_standard_ally_shot(dir: Vector2) -> bool:
+	var key := get_ally_key(ally_name)
+	var info: Dictionary = ALLY_SPECIAL_DATA.get(key, ALLY_SPECIAL_DATA["mateo"])
+	var tint: Color = info.get("color", _get_virtue_tint())
+	var vstyle: StringName = info.get("visual_style", &"")
+	var base_dir := dir.normalized() if dir.length_squared() > 0.001 else Vector2.RIGHT
+
+	match key:
+		"mateo":
+			var shared := {}
+			var ok := false
+			for ang in [-0.14, 0.14]:
+				if _spawn_ally_projectile(base_dir.rotated(ang), {
+					"tint": tint,
+					"visual_style": vstyle,
+					"scale": STANDARD_PROJECTILE_SCALE,
+					"shared_hit_registry": shared,
+				}) != null:
+					ok = true
+			return ok
+		"maria":
+			return _spawn_ally_projectile(base_dir, {
+				"tint": tint,
+				"visual_style": vstyle,
+				"scale": STANDARD_PROJECTILE_SCALE,
+				"speed": 395.0,
+				"clear_enemy_bullets_radius": 28.0,
+			}) != null
+		"valeria":
+			return _spawn_ally_projectile(base_dir, {
+				"tint": tint,
+				"visual_style": vstyle,
+				"scale": STANDARD_PROJECTILE_SCALE,
+				"wave_amp": 72.0,
+				"wave_freq": 10.0,
+			}) != null
+		"fernanda":
+			return _spawn_ally_projectile(base_dir, {
+				"tint": tint,
+				"visual_style": vstyle,
+				"scale": STANDARD_PROJECTILE_SCALE,
+				"speed": 430.0,
+				"is_homing": true,
+				"homing_strength": 2.2,
+				"homing_target": last_target,
+			}) != null
+		"diego":
+			var tex_d := AssetLoader.load_texture(str(info.get("texture_path", "")))
+			return _spawn_ally_projectile(base_dir, {
+				"tint": Color.WHITE if tex_d != null else tint,
+				"visual_style": vstyle,
+				"custom_texture": tex_d,
+				"custom_visual_size": STANDARD_VISUAL_SIZE,
+				"spin_speed": 2.0,
+				"scale": STANDARD_PROJECTILE_SCALE,
+				"clear_enemy_bullets_radius": 30.0,
+			}) != null
+		"sofia":
+			return _spawn_ally_projectile(base_dir, {
+				"tint": tint,
+				"visual_style": vstyle,
+				"speed": 580.0,
+				"scale": STANDARD_PROJECTILE_SCALE,
+			}) != null
+		"alejandro", _:
+			var tex_a := AssetLoader.load_texture(str(info.get("texture_path", "")))
+			return _spawn_ally_projectile(base_dir, {
+				"tint": Color.WHITE if tex_a != null else tint,
+				"visual_style": vstyle,
+				"custom_texture": tex_a,
+				"custom_visual_size": STANDARD_VISUAL_SIZE,
+				"spin_speed": 10.0,
+				"scale": STANDARD_PROJECTILE_SCALE,
+				"speed": 485.0,
+				"bounces_left": 1,
+			}) != null
+
+func _fire_virtue_projectile(dir: Vector2) -> bool:
+	if shots_until_special > 0 and ((shots_fired + 1) % shots_until_special == 0):
+		return fire_special_attack(dir)
+	if _fire_standard_ally_shot(dir):
+		shots_fired += 1
+		return true
+	return false
 
 func _get_virtue_tint() -> Color:
-	var low := ally_name.to_lower()
+	var low := Student.normalize_name(ally_name)
 	for k: String in ALLY_TINTS.keys():
 		if low.begins_with(k):
 			return ALLY_TINTS[k]

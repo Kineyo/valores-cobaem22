@@ -24,35 +24,35 @@ const StoryDataClass := preload("res://scripts/story_data.gd")
 const AllyBrainClass := preload("res://scripts/ally_brain.gd")
 
 const PHRASES_SAD := [
-	"Tengo miedo de abrir la mochila y que se burlen...",
-	"¿Por qué nadie dice nada cuando empujan en el pasillo?",
-	"Siento un nudo en la garganta antes de entrar al salón...",
-	"Ojalá alguien se sentara conmigo en el receso...",
-	"El ambiente se siente helado y pesado..."
+	"Me da pena abrir la mochila y que se burlen.",
+	"Nadie dice nada cuando empujan en el pasillo.",
+	"Siento un nudo en la garganta antes de entrar al salón.",
+	"Ojalá alguien se sentara conmigo en el receso.",
+	"El ambiente se siente frío y distante."
 ]
 
 const PHRASES_HAPPY := [
-	"¡Ya no estamos solos! ¡Estoy contigo en esta pelea!",
-	"¡El respeto y la empatía rompen cualquier sombra!",
-	"¡Cuidado con los proyectiles, compañero, yo cubro tu flanco!",
-	"¡Vamos juntos hacia la meta, orgullo CEMSaD 22!",
-	"¡La Esperanza nos devuelve la fuerza en equipo!"
+	"Ya no estamos solos. Seguimos contigo paso a paso.",
+	"El respeto y la empatía rompen cualquier sombra.",
+	"Cuidado con los proyectiles, compañero, aquí vamos juntos.",
+	"Vamos hacia la meta, orgullo CEMSaD 22.",
+	"La Esperanza nos devuelve la fuerza en equipo."
 ]
 
 const PHRASES_HAPPY_PLAYER_F_MIXED := [
-	"¡Ya no estamos solos! ¡Estoy contigo en esta pelea, compañera!",
-	"¡El respeto y la empatía rompen cualquier sombra!",
-	"¡Cuidado con los proyectiles, compañera, yo cubro tu flanco!",
-	"¡Vamos juntos hacia la meta, orgullo CEMSaD 22!",
-	"¡La Esperanza nos devuelve la fuerza en equipo!"
+	"Ya no estamos solos. Seguimos contigo paso a paso, compañera.",
+	"El respeto y la empatía rompen cualquier sombra.",
+	"Cuidado con los proyectiles, compañera, aquí vamos juntos.",
+	"Vamos hacia la meta, orgullo CEMSaD 22.",
+	"La Esperanza nos devuelve la fuerza en equipo."
 ]
 
 const PHRASES_HAPPY_PLAYER_F_BOTH := [
-	"¡Ya no estamos solas! ¡Estoy contigo en esta pelea, amiga!",
-	"¡El respeto y la empatía rompen cualquier sombra!",
-	"¡Cuidado con los proyectiles, compañera, yo cubro tu flanco!",
-	"¡Vamos juntas hacia la meta, orgullo CEMSaD 22!",
-	"¡La Esperanza nos devuelve la fuerza en equipo!"
+	"Ya no estamos solas. Seguimos contigo paso a paso, amiga.",
+	"El respeto y la empatía rompen cualquier sombra.",
+	"Cuidado con los proyectiles, compañera, aquí vamos juntas.",
+	"Vamos juntas hacia la meta, orgullo CEMSaD 22.",
+	"La Esperanza nos devuelve la fuerza en equipo."
 ]
 
 @export var student_name: String = "Estudiante"
@@ -77,6 +77,7 @@ var _resist_timer: float = 0.0
 var _pose_hold_timer: float = 0.0
 var _squash_stretch: Vector2 = Vector2.ONE
 var _base_sprite_scale: Vector2 = Vector2.ONE
+var _scaled_texture: Texture2D = null
 var _tex_idle: Texture2D = null
 var _tex_walk_right: Texture2D = null
 var _tex_walk_left: Texture2D = null
@@ -104,17 +105,7 @@ func _ready() -> void:
 	queue_redraw()
 
 func _load_tex_safe(path: String) -> Texture2D:
-	if path.is_empty():
-		return null
-	if ResourceLoader.exists(path):
-		var res = ResourceLoader.load(path)
-		if res is Texture2D:
-			return res
-	if FileAccess.file_exists(path):
-		var img := Image.load_from_file(ProjectSettings.globalize_path(path))
-		if img != null and not img.is_empty():
-			return ImageTexture.create_from_image(img)
-	return null
+	return AssetLoader.load_texture(path)
 
 func _setup_sprite() -> void:
 	var s_canon := normalize_name(student_name)
@@ -190,6 +181,7 @@ func _setup_sprite() -> void:
 		var max_dim := float(maxi(1, maxi(tex.get_width(), tex.get_height())))
 		var s := 51.2 / max_dim
 		_base_sprite_scale = Vector2(s, s)
+		_scaled_texture = tex
 		sprite.scale = _base_sprite_scale # Escala normalizada a 51.2 px sin importar resolución (512px o 2048px)
 		sprite.position = Vector2(0, -22)
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -215,7 +207,7 @@ func take_ally_bump(hit_dir: Vector2) -> void:
 	var fx := _get_fx()
 	var p = get_parent() if get_parent() else self
 	if fx:
-		fx.floating_text(p, global_position + Vector2(0, -44), "¡Resisto!", Color(0.55, 0.92, 1.0), 11)
+		fx.floating_text(p, global_position + Vector2(0, -44), "Resisto", Color(0.55, 0.92, 1.0), 11)
 
 func _setup_collision() -> void:
 	if get_node_or_null("CollisionShape2D") == null:
@@ -251,12 +243,12 @@ func _physics_process(delta: float) -> void:
 		_squash_stretch = _squash_stretch.lerp(Vector2.ONE, minf(1.0, 10.0 * delta))
 
 	if sprite:
-		var scale_tex := _base_sprite_scale
-		if sprite.texture != null:
+		if sprite.texture != null and sprite.texture != _scaled_texture:
 			var max_d := float(maxi(1, maxi(sprite.texture.get_width(), sprite.texture.get_height())))
 			var ns := 51.2 / max_d
-			scale_tex = Vector2(ns, ns)
-		sprite.scale = scale_tex * _squash_stretch
+			_base_sprite_scale = Vector2(ns, ns)
+			_scaled_texture = sprite.texture
+		sprite.scale = _base_sprite_scale * _squash_stretch
 		if current_state == State.SAD:
 			sprite.modulate = Color(0.78, 0.78, 0.85)
 			sprite.position.y = -18.0 + sin(_anim_time * 2.5) * 1.5
@@ -340,6 +332,9 @@ func _update_ally_pose_texture(act: Dictionary) -> void:
 		sprite.flip_h = false
 
 ## Pasa al alumno a estado feliz de inmediato (ej. cuota completada, disparo de virtud o jefe redimido)
+func is_sad() -> bool:
+	return current_state == State.SAD
+
 func cheer_up() -> void:
 	if current_state == State.SAD:
 		_start_relieved_transition()
@@ -352,7 +347,7 @@ func _start_relieved_transition() -> void:
 	var fx = _get_fx()
 	var parent = get_parent() if get_parent() else self
 	if fx:
-		fx.floating_text(parent, global_position + Vector2(0, -42), "¡Qué alivio!", Color(0.9, 1.0, 0.6), 13)
+		fx.floating_text(parent, global_position + Vector2(0, -42), "Qué alivio", Color(0.9, 1.0, 0.6), 13)
 		fx.burst(parent, global_position + Vector2(0, -20), Color(1.0, 0.9, 0.4), 10, 100.0)
 
 	var tw := create_tween()
@@ -438,7 +433,7 @@ func _heal_player() -> void:
 	var fx = _get_fx()
 	var parent = get_parent() if get_parent() else self
 	if fx:
-		fx.floating_text(parent, global_position + Vector2(0, -50), "¡+1 Esperanza!", Color(0.4, 1.0, 0.5), 14)
+		fx.floating_text(parent, global_position + Vector2(0, -50), "+1 Esperanza", Color(0.4, 1.0, 0.5), 14)
 		fx.burst(parent, player.global_position, Color(1.0, 0.3, 0.5), 12, 140.0)
 
 func _spawn_tear_particle() -> void:

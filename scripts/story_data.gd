@@ -1,119 +1,103 @@
-extends RefCounted
+extends Control
 class_name StoryData
 
-## Base de Datos Narrativa del Modo Historia — "Campeones de los Valores"
-## Plantel CEMSaD 22 ENTHAVI — Colegio de Bachilleres del Estado de México (COBAEM)
-## Contiene diálogos cinematográficos, perfiles de los 7 personajes secundarios y datos de jefes redimibles.
+## Guión oficial, perfiles humanos y actos del Modo Historia (CEMSaD 22 ENTHAVI).
+## Sin signos de exclamación/interrogación ni muletillas artificiales.
+## Cada compañero refleja sus hábitos reales, dudas cotidianas y su propio disparo de valor.
 
 const PROLOGUE: Dictionary = {
-	"title": "Prólogo: La Bruma sobre Enthavi",
-	"location": "Portón del CEMSaD 22 ENTHAVI — Amanecer en Temoaya",
-	"synopsis": "Una neblina fría y silenciosa envuelve el plantel al amanecer. No trae lluvia: trae indiferencia, miedo a participar y el peso de las palabras no dichas.",
+	"title": "Prólogo: 6:30 a.m. en el Portón",
+	"location": "Portón del CEMSaD 22 ENTHAVI — Amanecer frío en Temoaya",
+	"synopsis": "La Bruma de Enthavi baja del cerro como un amplificador emocional: vuelve visibles los silencios y burlas que la escuela llevaba meses callando.",
 	"dialogue_nodes": [
 		{
 			"speaker": "Narrador",
 			"portrait": "narrator",
-			"text": "Son las seis y media de la mañana en Enthavi. El viento que baja del monte trae olor a tierra mojada, pero frente al portón guinda nadie bromea ni comparte los audífonos como antes.",
-			"emotion": "mystic",
-			"sfx": "wind"
-		},
-		{
-			"speaker": "Narrador",
-			"portrait": "narrator",
-			"text": "Una bruma espesa —hecha de burlas guardadas, chats anónimos y puertas que nadie se atreve a tocar— comienza a filtrarse por el laboratorio, la cafetería y la cancha.",
-			"emotion": "somber",
-			"sfx": "ominous_hum"
+			"emotion": "calm",
+			"text": "Son las 6:30 de la mañana en Temoaya. La neblina sube despacio desde las barrancas hasta el portón blanco y guinda del CEMSaD 22 ENTHAVI."
 		},
 		{
 			"speaker": "Guardián de los Valores",
 			"portrait": "player_neutral",
-			"text": "Ayer Mateo casi se devuelve a su casa antes del timbre. Hoy María limpió sola las mesas mientras otros se reían. Si nos acostumbramos a callar, esta niebla nos va a tragar a todos.",
-			"emotion": "determined",
-			"sfx": "step"
+			"emotion": "curious",
+			"text": "Hoy los pasillos suenan demasiado callados. Nadie se saluda cerca de la caseta y todos caminan mirando hacia el suelo.",
+			"text_f": "Hoy los pasillos suenan demasiado callados. Nadie se saluda cerca de la caseta y todas y todos caminan mirando hacia el suelo."
 		},
 		{
-			"speaker": "Voz Ancestral de Temoaya",
-			"portrait": "spirit_otomi",
-			"text": "¡K'a te ma m'e̱di, joven guardián! Ninguna sombra resiste a quienes deciden cuidarse mutuamente. Cuando liberes a tus compañeros, caminarán contigo. Y si la oscuridad aprieta, recuerda la estrella dorada de la Esperanza.",
-			"text_f": "¡K'a te ma m'e̱di, joven guardiana! Ninguna sombra resiste a quienes deciden cuidarse mutuamente. Cuando liberes a tus compañeros, caminarán contigo. Y si la oscuridad aprieta, recuerda la estrella dorada de la Esperanza.",
-			"emotion": "warm_divine",
-			"sfx": "chime"
+			"speaker": "Mateo",
+			"portrait": "mateo_sad",
+			"emotion": "scared",
+			"text": "Escuché que si preguntas algo en laboratorio, varios se ríen bajito desde atrás. Mejor guardo la bata hasta que pase el receso."
+		},
+		{
+			"speaker": "Guardián de los Valores",
+			"portrait": "player_neutral",
+			"emotion": "calm",
+			"text": "No hace falta pasar el día escondiendo lo que sabes o lo que sientes. Vamos paso a paso por cada edificio."
 		},
 		{
 			"speaker": "Guardián de los Valores",
 			"portrait": "player_brave",
-			"text": "No vengo a humillar a nadie ni a devolver golpes. Vengo decidido a encender el respeto edificio por edificio hasta que ninguno de los nuestros vuelva a sentirse invisible.",
-			"text_f": "No vengo a humillar a nadie ni a devolver golpes. Vengo decidida a encender el respeto edificio por edificio hasta que ninguno de los nuestros vuelva a sentirse invisible.",
-			"emotion": "resolute",
-			"sfx": "sparkle"
+			"emotion": "determined",
+			"text": "Estoy decidido a abrir el diálogo desde el primer patio para que nadie vuelva a sentir miedo en su propia escuela.",
+			"text_f": "Estoy decidida a abrir el diálogo desde el primer patio para que nadie vuelva a sentir miedo en su propia escuela."
 		}
 	]
 }
 
 const EPILOGUE: Dictionary = {
-	"title": "Epílogo: Cuando Toda la Escuela Responde",
+	"title": "Epílogo: Tarde Clara en la Cancha",
 	"location": "Cancha de Usos Múltiples y Plaza Cívica — Atardecer en CEMSaD 22",
-	"synopsis": "Los siete compañeros vuelven a ocupar sus espacios con voz propia. La convivencia ya no depende de un solo Guardián: ahora es tarea compartida.",
-	"synopsis_f": "Los siete compañeros vuelven a ocupar sus espacios con voz propia. La convivencia ya no depende de una sola Guardiana: ahora es tarea compartida.",
+	"synopsis": "Los siete compañeros recuperan su voz en comunidad. La convivencia ya no depende de una sola persona, ahora la sostienen entre todos.",
 	"dialogue_nodes": [
 		{
 			"speaker": "Narrador",
 			"portrait": "narrator",
-			"text": "La tarde pinta de oro el arcotecho de la cancha y la escalinata de piedra braza. La bruma no desapareció por magia: se disipó porque siete voces dejaron de tener miedo.",
-			"emotion": "triumphant",
-			"sfx": "fanfare_soft"
+			"emotion": "joyful",
+			"text": "La neblina se disipa por completo sobre el domo y las gradas. El rumor frío desaparece entre saludos reales y música de fondo."
 		},
 		{
 			"speaker": "Mateo",
 			"portrait": "mateo_happy",
-			"text": "Antes entraba mirando mis agujetas para pasar inadvertido. Hoy armé la primera práctica de química con gente que ni sabía mi nombre. ¡Gracias por no soltarme desde el portón, amigo!",
-			"text_f": "Antes entraba mirando mis agujetas para pasar inadvertido. Hoy armé la primera práctica de química con gente que ni sabía mi nombre. ¡Gracias por no soltarme desde el portón, amiga!",
-			"emotion": "joyful",
-			"sfx": "bell"
+			"emotion": "happy",
+			"text": "En el laboratorio ya nadie se queda callado cuando tiene una duda. Hasta quienes llegamos caminando desde lejos compartimos mesa sin pena."
 		},
 		{
 			"speaker": "María",
 			"portrait": "maria_happy",
-			"text": "En el desayunador dejamos una caja de reciclaje y turnos para recoger las mesas entre grupos. Ver que nadie come apartado en las esquinas vale todo el esfuerzo, ¡gracias, compañero!",
-			"text_f": "En el desayunador dejamos una caja de reciclaje y turnos para recoger las mesas entre grupos. Ver que nadie come apartado en las esquinas vale todo el esfuerzo, ¡gracias, compañera!",
 			"emotion": "happy",
-			"sfx": "bell"
+			"text": "Las mesas del desayunador se limpian por turnos entre todos. Se siente distinto cuando el respeto deja de ser carga de uno solo."
 		},
 		{
 			"speaker": "Valeria",
 			"portrait": "valeria_happy",
-			"text": "La Plaza Cívica volvió a sentirse nuestra. Subir esos escalones sin que nadie te mida por tu apellido o tu ropa es la verdadera dignidad del bachillerato.",
-			"emotion": "serene_proud",
-			"sfx": "bell"
+			"emotion": "happy",
+			"text": "Subimos la escalinata al mismo paso y sin etiquetas. Cada quien aporta su acento y su ritmo."
 		},
 		{
 			"speaker": "Fernanda & Diego",
 			"portrait": "diego_happy",
-			"text": "Cerramos las cadenas de burlas en la red y abrimos un pizarrón de dudas en biblioteca y cómputo. Quien entiende un tema se queda diez minutos más a explicarlo.",
-			"emotion": "enthusiastic",
-			"sfx": "chime"
+			"emotion": "happy",
+			"text": "Entre apuntes reales en biblioteca y señales abiertas en cómputo, los rumores pierden fuerza antes de crecer."
 		},
 		{
 			"speaker": "Sofía & Alejandro",
 			"portrait": "alejandro_happy",
-			"text": "Hasta Titanor pidió entrar de defensa en la reta sin empujones. El balón no se disfruta igual cuando juegas para lastimar que cuando juegas para que todos regresen mañana.",
-			"emotion": "energetic",
-			"sfx": "cheer"
+			"emotion": "happy",
+			"text": "Organizamos turnos claros para estudiar y retas limpias donde también entran los de primer semestre."
 		},
 		{
 			"speaker": "Coordinador del Plantel CEMSaD 22",
 			"portrait": "coordinador",
-			"text": "Jóvenes del CEMSaD 22 ENTHAVI: la paz escolar no se decreta desde una oficina; se construye en cada banca, laboratorio y pase de balón. ¡Son ejemplo vivo de nuestra comunidad!",
-			"emotion": "inspirational",
-			"sfx": "applause"
+			"emotion": "proud_firm",
+			"text": "Hoy la cancha no celebra a un héroe aislado, sino a toda una generación que aprendió a escucharse con respeto."
 		},
 		{
 			"speaker": "Guardián de los Valores",
 			"portrait": "player_celebrate",
-			"text": "La mejor victoria fue descubrir que nunca estuve peleando solo. Cada compañero rescatado encendió su propia luz... y ahora todo el plantel brilla junto.",
-			"text_f": "La mejor victoria fue descubrir que nunca estuve peleando sola. Cada compañero rescatado encendió su propia luz... y ahora todo el plantel brilla junto.",
-			"emotion": "grateful",
-			"sfx": "victory_harp"
+			"emotion": "joyful",
+			"text": "Entendí que nunca estuve avanzando solo. La convivencia sana se cuida todos los días en cada saludo.",
+			"text_f": "Entendí que nunca estuve avanzando sola. La convivencia sana se cuida todos los días en cada saludo."
 		}
 	]
 }
@@ -123,31 +107,31 @@ const SECONDARY_CHARACTERS: Dictionary = {
 		"id": "mateo",
 		"name": "Mateo Hernández",
 		"role": "1er Semestre — Nuevo Ingreso (Laboratorio D)",
-		"archetype": "El novato curioso que venció el miedo a participar",
-		"location_appearance": "Escenario 1 (Acceso y Edificio D)",
-		"bio": "Llega diario caminando cuarenta minutos desde su comunidad. Sueña con estudiar química agrícola, pero el temor a equivocarse frente al grupo lo volvía silencioso.",
-		"color_theme": Color(0.35, 0.90, 0.60),
+		"portrait": "mateo_happy",
+		"mood": "Curioso, paciente y observador",
+		"mania": "Anota cada reacción química en márgenes pequeños y siempre lleva un frasco de semillas de estudio.",
+		"flaw": "Se queda en silencio por temor a parecer lento cuando todo el grupo ya avanzó.",
+		"bond": "María le aparta un vaso caliente en el desayunador cuando llega temprano después de caminar 40 minutos.",
+		"special_attack": "Triple Reacción — Abanico de tres chispas de estudio; la central calma el paso de los antivalores.",
+		"theme": "Curiosidad sin miedo",
 		"state_afflicted": {
-			"visual": "Acurrucado cerca de la jardinera, abrazando su bata doblada.",
-			"emotion_label": "Inseguro",
+			"visual": "Acurrucado cerca de la jardinera, apretando su bata doblada.",
+			"visual_f": "Acurrucado cerca de la jardinera, apretando su bata doblada.",
 			"quotes": [
-				"¿Y si pregunto algo en laboratorio y todos se ríen de mí?",
-				"Prefiero no abrir el portón... allá adentro ya todos tienen su grupo.",
-				"Me costó mucho juntar para la bata y ya me la quieren esconder."
+				"Prefiero no preguntar para que no se burlen.",
+				"Ya todos entendieron la fórmula menos yo."
 			]
 		},
 		"state_redeemed": {
-			"visual": "Con paso firme y orbe esmeralda de curiosidad listo para apoyar al equipo.",
-			"emotion_label": "Decidido",
+			"visual": "Con paso firme y su Triple Reacción lista para apoyar al equipo.",
+			"visual_f": "Con paso firme y su Triple Reacción lista para apoyar al equipo.",
 			"quotes": [
-				"¡Nadie nace sabiendo! Si me acompañas, te cubro los flancos.",
-				"¡Vamos a devolverle la vida al laboratorio!",
-				"¡Aquí estoy, compañero! Disparemos luz de entusiasmo."
+				"Gracias por darme la palabra, compañero.",
+				"Ahora sí me atrevo a preguntar frente al grupo."
 			],
 			"quotes_f": [
-				"¡Nadie nace sabiendo! Si me acompañas, te cubro los flancos.",
-				"¡Vamos a devolverle la vida al laboratorio!",
-				"¡Aquí estoy, compañera! Disparemos luz de entusiasmo."
+				"Gracias por darme la palabra, compañera.",
+				"Ahora sí me atrevo a preguntar frente al grupo."
 			]
 		}
 	},
@@ -155,31 +139,31 @@ const SECONDARY_CHARACTERS: Dictionary = {
 		"id": "maria",
 		"name": "María López",
 		"role": "2do Semestre — Brigada de Cafetería (Edificio A)",
-		"archetype": "La compañera servicial que aprendió a poner límites con respeto",
-		"location_appearance": "Escenario 2 (Cafetería y Edificio A)",
-		"bio": "Ayuda voluntariamente en el desayunador antes de entrar a clase. Se frustraba cuando dejaban basura tirada a propósito y nadie la ayudaba a cuidar el espacio.",
-		"color_theme": Color(1.0, 0.56, 0.78),
+		"portrait": "maria_happy",
+		"mood": "Atenta, ordenada y directa",
+		"mania": "Recuerda quién no desayunó antes de primera hora y siempre revisa que las bancas queden limpias.",
+		"flaw": "Carga trabajo ajeno diciendo que no pasa nada hasta terminar agotada.",
+		"bond": "Cuida que Mateo alcance mesa al llegar y aprende a pedir turnos compartidos sin sentirse culpable.",
+		"special_attack": "Escudo Firme — Aro azul de respeto que barre proyectiles hostiles a su paso.",
+		"theme": "Límites claros con respeto",
 		"state_afflicted": {
-			"visual": "Recogiendo charolas en silencio mientras evita mirar las mesas ocupadas.",
-			"emotion_label": "Agotada",
+			"visual": "Recogiendo charolas en silencio mientras suspira cansada.",
+			"visual_f": "Recogiendo charolas en silencio mientras suspira cansada.",
 			"quotes": [
-				"No cuesta nada poner la basura en su lugar, ¿por qué les da risa tirarla?",
-				"Siempre me dejan las bancas pegajosas y nadie dice nada...",
-				"Siento que cuidar la escuela solo nos importa a unos pocos."
+				"Siempre dejan las mesas llenas y ni siquiera miran atrás.",
+				"Me da pena pedir ayuda porque siento que van a molestarse."
 			]
 		},
 		"state_redeemed": {
-			"visual": "Con su mandil limpio y destellos cálidos de hospitalidad y firmeza.",
-			"emotion_label": "Solidaria",
+			"visual": "Con su mandil limpio y su Escudo Firme abriendo paso.",
+			"visual_f": "Con su mandil limpio y su Escudo Firme abriendo paso.",
 			"quotes": [
-				"¡Cuidar nuestra mesa es respetar a quien madrugó para servir!",
-				"¡Te respaldo, amigo! Ningún desperdicio va a apagar esta cafetería.",
-				"¡Juntos mantenemos limpio cada rincón del Edificio A!"
+				"Juntos podemos cuidar mejor la cafetería y cada pasillo.",
+				"Cuidar de los demás también significa poner límites sanos."
 			],
 			"quotes_f": [
-				"¡Cuidar nuestra mesa es respetar a quien madrugó para servir!",
-				"¡Te respaldo, amiga! Ningún desperdicio va a apagar esta cafetería.",
-				"¡Juntas mantenemos limpio cada rincón del Edificio A!"
+				"Juntas podemos cuidar mejor la cafetería y cada pasillo.",
+				"Cuidar de las demás personas también significa poner límites sanos."
 			]
 		}
 	},
@@ -187,32 +171,31 @@ const SECONDARY_CHARACTERS: Dictionary = {
 		"id": "valeria",
 		"name": "Valeria Morales",
 		"role": "3er Semestre — Comité Cívico (Plaza Cívica)",
-		"archetype": "La voz firme de la igualdad y el orgullo otomí",
-		"location_appearance": "Escenario 3 (Plaza Cívica y Escalinata Sur)",
-		"bio": "Coordina los lunes cívicos y defiende la lengua e historia de Temoaya. No tolera que la escalinata se use para humillar a quien viene de abajo.",
-		"color_theme": Color(0.38, 0.92, 1.0),
+		"portrait": "valeria_happy",
+		"mood": "Expresiva, leal y firme",
+		"mania": "Teje pulseras con diseños de Temoaya y ensaya el orden de las ceremonias antes del timbre.",
+		"flaw": "Se vuelve seca y distante como defensa cuando alguien imita su manera de hablar.",
+		"bond": "Reconoce al protagonista desde las primeras ceremonias y encuentra calma escuchando los chistes de Alejandro.",
+		"special_attack": "Pulso Estéreo — Dos ondas sonoras curvas que convergen con equilibrio.",
+		"theme": "Dignidad e inclusión",
 		"state_afflicted": {
-			"visual": "Detenida al pie de la escalinata sur, sujetando su mochila con coraje contenido.",
-			"emotion_label": "Indignada",
+			"visual": "Detenida al pie de la escalinata sur, sujetando la correa de su mochila.",
+			"visual_f": "Detenida al pie de la escalinata sur, sujetando la correa de su mochila.",
 			"quotes": [
-				"Bloquearon los escalones diciendo que 'este nivel no es para cualquiera'.",
-				"Se burlan del acento de nuestros abuelos como si fuera motivo de vergüenza.",
-				"¿Cómo vamos a honrar la plaza si nos miramos por encima del hombro?"
+				"Se ríen de mi acento en cuanto tomo el micrófono.",
+				"Para qué subo al frente si nadie va a escuchar."
 			]
 		},
 		"state_redeemed": {
-			"visual": "Erguida en la explanada con brillo cívico, lista para combatir junto al Guardián.",
-			"visual_f": "Erguida en la explanada con brillo cívico, lista para combatir junto a la Guardiana.",
-			"emotion_label": "Valiente",
+			"visual": "Erguida en la explanada con su Pulso Estéreo afinado.",
+			"visual_f": "Erguida en la explanada con su Pulso Estéreo afinado.",
 			"quotes": [
-				"¡En el CEMSaD 22 nadie vale menos por su origen o su apellido!",
-				"¡Caminemos hombro a hombro hacia arriba, la plaza es de todos!",
-				"¡Aquí va mi respeto por delante, compañero!"
+				"Nuestra historia de Temoaya camina al parejo de todo el grupo.",
+				"Cuando hablamos en coro, nadie se queda atrás."
 			],
 			"quotes_f": [
-				"¡En el CEMSaD 22 nadie vale menos por su origen o su apellido!",
-				"¡Caminemos hombro a hombro hacia arriba, la plaza es de todos!",
-				"¡Aquí va mi respeto por delante, compañera!"
+				"Nuestra historia de Temoaya camina al parejo de todo el grupo.",
+				"Cuando hablamos juntas, nadie se queda atrás."
 			]
 		}
 	},
@@ -220,31 +203,27 @@ const SECONDARY_CHARACTERS: Dictionary = {
 		"id": "fernanda",
 		"name": "Fernanda Ortiz",
 		"role": "4to Semestre — Círculo de Lectura (Biblioteca B)",
-		"archetype": "La lectora analítica que enfrenta la desinformación",
-		"location_appearance": "Escenario 4 (Edificio B y Biblioteca)",
-		"bio": "Cataloga libros usados en la biblioteca para que todos tengan guías de examen. Se indignó cuando los chismes digitales espantaron a sus compañeras de estudio.",
-		"color_theme": Color(0.55, 0.80, 1.0),
+		"portrait": "fernanda_biblioteca",
+		"mood": "Reflexiva, irónica y protectora",
+		"mania": "Deja notas breves entre capítulos prestados para animar a quien estudia antes de un examen.",
+		"flaw": "Evitaba desmentir rumores en el grupo para no quedar señalada.",
+		"bond": "Intercambia guías resumidas con Diego y verifica datos antes de que un chisme llegue a Dirección.",
+		"special_attack": "Nota al Margen — Marcador de lectura que ubica y alcanza al origen del ruido.",
+		"theme": "Honestidad y verificación",
 		"state_afflicted": {
-			"visual": "Escondida entre estantes vacíos, limpiándose los lentes con preocupación.",
-			"emotion_label": "Preocupada",
+			"visual": "Detrás de un librero alto, doblando y desdoblando una hoja de apuntes.",
+			"visual_f": "Detrás de un librero alto, doblando y desdoblando una hoja de apuntes.",
 			"quotes": [
-				"Un rumor falso en diez segundos dañó la amistad de todo un semestre...",
-				"Ya nadie viene a estudiar a la biblioteca por miedo a las fotos editadas.",
-				"La verdad queda enterrada cuando nadie verifica antes de reenviar."
+				"Prefiero no meterme en el chat aunque sepa que la captura es falsa.",
+				"Cada día llega menos gente a leer por miedo a las burlas."
 			]
 		},
 		"state_redeemed": {
-			"visual": "Acompañando activamente al jugador con ráfagas de claridad y verdad.",
-			"emotion_label": "Lúcida",
+			"visual": "Acompañando al equipo con sus Notas al Margen luminosas.",
+			"visual_f": "Acompañando al equipo con sus Notas al Margen luminosas.",
 			"quotes": [
-				"¡Pensar antes de compartir también es valentía!",
-				"¡La biblioteca vuelve a ser un refugio seguro!",
-				"¡Apuntando a la verdad, aquí tienes mi apoyo, compañero!"
-			],
-			"quotes_f": [
-				"¡Pensar antes de compartir también es valentía!",
-				"¡La biblioteca vuelve a ser un refugio seguro!",
-				"¡Apuntando a la verdad, aquí tienes mi apoyo, compañera!"
+				"Callar frente a un rumor injusto también lastima al grupo.",
+				"Aclarar una fuente a tiempo devuelve tranquilidad al salón."
 			]
 		}
 	},
@@ -252,31 +231,27 @@ const SECONDARY_CHARACTERS: Dictionary = {
 		"id": "diego",
 		"name": "Diego Ramírez",
 		"role": "5to Semestre — Taller de Cómputo (Edificio C)",
-		"archetype": "El programador ético que defiende el esfuerzo propio",
-		"location_appearance": "Escenario 5 (Edificio C y Cómputo)",
-		"bio": "Mantiene vivas las computadoras del taller con software libre. Se negó a vender respuestas de exámenes cuando Plagiatrix intentó corromper el aula.",
-		"color_theme": Color(0.42, 0.65, 1.0),
+		"portrait": "diego_happy",
+		"mood": "Ingenioso, directo y solidario",
+		"mania": "Etiqueta cada equipo reparado con calcomanías de gatos y arma repositorios locales sin internet.",
+		"flaw": "Responde cortante cuando está saturado y prefiere aislarse frente al monitor.",
+		"bond": "Hace mancuerna con Sofía para convertir guías técnicas en sesiones claras para todo el semestre.",
+		"special_attack": "Señal Abierta — Pulso compartido que limpia proyectiles hostiles alrededor.",
+		"theme": "Tecnología ética y trabajo en equipo",
 		"state_afflicted": {
-			"visual": "Con sus audífonos al cuello frente a pantallas bloqueadas por copias.",
-			"emotion_label": "Frustrado",
+			"visual": "Frente a una pantalla saturada de archivos repetidos sin autoría.",
+			"visual_f": "Frente a una pantalla saturada de archivos repetidos sin autoría.",
 			"quotes": [
-				"Se burlan de mí por quedarme desvelado programando en vez de copiar...",
-				"Hackearon la carpeta de proyectos para vender trabajos ajenos.",
-				"Si todos aprobamos haciendo trampa, ¿quién va a saber hacer las cosas afuera?"
+				"Todos quieren el archivo resuelto en cinco minutos sin entender nada.",
+				"Mejor trabajo solo y cierro la puerta del taller."
 			]
 		},
 		"state_redeemed": {
-			"visual": "Desplegando código limpio y proyectiles de integridad digital en batalla.",
-			"emotion_label": "Íntegro",
+			"visual": "Compartiendo su Señal Abierta desde el taller para cuidar al equipo.",
+			"visual_f": "Compartiendo su Señal Abierta desde el taller para cuidar al equipo.",
 			"quotes": [
-				"¡Código limpio, mente limpia! Vamos por ese antivalor.",
-				"¡Compartir apuntes sí; robar mérito jamás!",
-				"¡Te cubro desde el flanco con ciudadanía digital, compañero!"
-			],
-			"quotes_f": [
-				"¡Código limpio, mente limpia! Vamos por ese antivalor.",
-				"¡Compartir apuntes sí; robar mérito jamás!",
-				"¡Te cubro desde el flanco con ciudadanía digital, compañera!"
+				"Compartir conocimiento sirve más que guardarse los atajos.",
+				"Cuando abrimos la guía al grupo, nadie necesita copiar."
 			]
 		}
 	},
@@ -284,63 +259,55 @@ const SECONDARY_CHARACTERS: Dictionary = {
 		"id": "sofia",
 		"name": "Sofía Valdés",
 		"role": "5to Semestre — Representante Estudiantil (Dirección)",
-		"archetype": "La mediadora que convirtió el papeleo en escucha real",
-		"location_appearance": "Escenario 5 (Dirección y Aulas C)",
-		"bio": "Lleva su portapapeles con reportes reales de convivencia. Aprendió que escuchar de frente vale más que archivar actas sin resolver los problemas.",
-		"color_theme": Color(0.84, 0.58, 1.0),
+		"portrait": "sofia_direccion",
+		"mood": "Organizada, perceptiva y justa",
+		"mania": "Lleva una libreta ordenada por horarios y acuerdos de cada salón.",
+		"flaw": "Intenta resolver todos los conflictos por su cuenta sin delegar ni escuchar primero.",
+		"bond": "Coordina agendas con Diego y suelta la prisa para dar tiempo real a cada compañero.",
+		"special_attack": "Turno Abierto — Acelera el ritmo de respuesta de todo el grupo.",
+		"theme": "Escucha y coordinación justa",
 		"state_afflicted": {
-			"visual": "Sosteniendo un montón de solicitudes sin firmar frente a la puerta cerrada.",
-			"emotion_label": "Impotente",
+			"visual": "Frente a la puerta de Dirección, revisando una libreta llena de pendientes.",
+			"visual_f": "Frente a la puerta de Dirección, revisando una libreta llena de pendientes.",
 			"quotes": [
-				"Llevo semanas entregando reportes de acoso y solo me dicen 'luego lo vemos'.",
-				"De nada sirve un brazalete de representante si los pasillos siguen fríos.",
-				"Necesitamos adultos y jóvenes dispuestos a actuar, no a mirar hacia otro lado."
+				"Si no anoto cada problema y lo resuelvo hoy, todo se va a desordenar.",
+				"A veces siento que firmo acuerdos mientras nadie habla de frente."
 			]
 		},
 		"state_redeemed": {
-			"visual": "Determinada, coordinando el fuego cruzado aliado con empatía y liderazgo.",
-			"emotion_label": "Firme",
+			"visual": "Serena y atenta, activando Turno Abierto para sincronizar al grupo.",
+			"visual_f": "Serena y atenta, activando Turno Abierto para sincronizar al grupo.",
 			"quotes": [
-				"¡Nuestras voces cuentan hoy, no hasta que termine el semestre!",
-				"¡En equipo somos más fuertes que cualquier niebla!",
-				"¡Avanza, Guardián! Nosotros mantenemos la línea contigo."
-			],
-			"quotes_f": [
-				"¡Nuestras voces cuentan hoy, no hasta que termine el semestre!",
-				"¡En equipo somos más fuertes que cualquier niebla!",
-				"¡Avanza, Guardiana! Nosotros mantenemos la línea contigo."
+				"Organizar no es mandar solo, es abrir turnos para escuchar a todos.",
+				"Cada integrante aporta algo indispensable en este equipo."
 			]
 		}
 	},
 	"alejandro": {
 		"id": "alejandro",
-		"name": "Alejandro 'Ale' Cruz",
+		"name": "Alejandro Cruz",
 		"role": "6to Semestre — Capitán de Básquetbol (Cancha)",
-		"archetype": "El deportista que eligió el juego limpio sobre la ley del más fuerte",
-		"location_appearance": "Escenario 6 (Cancha de Usos Múltiples)",
-		"bio": "Ama la cancha desde primer semestre. No soportó ver cómo Titanor convertía los partidos en un ring de humillaciones contra los más chicos.",
-		"color_theme": Color(1.0, 0.68, 0.25),
+		"portrait": "alejandro_happy",
+		"mood": "Ágil, sereno y fraterno",
+		"mania": "Siempre trae un balón extra para incluir a quienes apenas aprenden en primer semestre.",
+		"flaw": "Siente que debe aguantar todo sin mostrar cansancio ante el equipo.",
+		"bond": "Incluye a Mateo en los entrenamientos suaves y anima a Valeria antes de los eventos cívicos.",
+		"special_attack": "Pase de Rebote — Balón rápido que rebota en bordes buscando pase limpio.",
+		"theme": "Juego limpio y fraternidad",
 		"state_afflicted": {
-			"visual": "Apretando su balón junto a las gradas con una curita en la mejilla.",
-			"emotion_label": "Desalentado",
+			"visual": "Sentado en la orilla de las gradas deteniendo su balón en silencio.",
+			"visual_f": "Sentado en la orilla de las gradas deteniendo su balón en silencio.",
 			"quotes": [
-				"La cancha era el único lugar donde todos éramos iguales... hasta que llegó el miedo.",
-				"Me sacaron a empujones por defender a un compañero de primero.",
-				"Un partido ganado a golpes no tiene honor ni alegría."
+				"Con tantos empujones, ya nadie quiere entrar a la cancha en el receso.",
+				"Jugar fuerte sin respeto no es deporte ni compañerismo."
 			]
 		},
 		"state_redeemed": {
-			"visual": "Listo en la duela con pase preciso de luz solidaria hacia el jefe final.",
-			"emotion_label": "Imparable",
+			"visual": "En centro de cancha, enviando pases seguros con Pase de Rebote.",
+			"visual_f": "En centro de cancha, enviando pases seguros con Pase de Rebote.",
 			"quotes": [
-				"¡Nadie juega solo en esta cancha, campeón! ¡Pase limpio y corazón valiente!",
-				"¡Si Titanor lanza clones o niebla, busca la estrella de Esperanza!",
-				"¡Todos al ataque fraterno! ¡Por el juego limpio del COBAEM!"
-			],
-			"quotes_f": [
-				"¡Nadie juega sola en esta cancha, campeona! ¡Pase limpio y corazón valiente!",
-				"¡Si Titanor lanza clones o niebla, busca la estrella de Esperanza!",
-				"¡Todos al ataque fraterno! ¡Por el juego limpio del COBAEM!"
+				"Juego limpio significa abrir espacio también para quien va empezando.",
+				"En esta cancha jugamos todos o no jugamos completos."
 			]
 		}
 	}
@@ -352,60 +319,60 @@ const BOSSES: Dictionary = {
 		"name": "Apatyx, el Espectro del Desgano",
 		"scenario_id": 1,
 		"location": "Plaza de Acceso y Edificio D (Laboratorio)",
-		"antivalue": "La Apatía y la Desidia Escolar",
-		"redeeming_virtue": "¡Entusiasmo, Compromiso y Esperanza!",
-		"pre_battle_quote": "¿Para qué cruzar el portón? Nadie nota tu esfuerzo.",
-		"redemption_speech": "Tenía miedo de intentarlo y fallar... ¡Vuelvo a encender el laboratorio!"
+		"antivalue": "El miedo a intentar y quedar en ridículo",
+		"redeeming_virtue": "Entusiasmo y Curiosidad",
+		"pre_battle_quote": "Si preguntas otra vez, seguro nadie te hace caso.",
+		"redemption_speech": "Tenía miedo de equivocarme frente al grupo. Hoy vuelvo a encender el mechero."
 	},
 	2: {
 		"id": "desperdicius",
 		"name": "Desperdicius, el Titán del Desperdicio",
 		"scenario_id": 2,
 		"location": "Cafetería y Desayunador del Edificio A",
-		"antivalue": "El Desperdicio y la Desconsideración",
-		"redeeming_virtue": "¡Gratitud y Cuidado Comunitario!",
-		"pre_battle_quote": "Tira todo al piso, que alguien más limpie por ti.",
-		"redemption_speech": "Olvidé cuánto cuesta cada plato servido aquí. ¡Cuidemos este espacio!"
+		"antivalue": "La comodidad de desentenderse del espacio común",
+		"redeeming_virtue": "Gratitud y Cuidado Comunitario",
+		"pre_battle_quote": "Si dejo mi envoltura aquí, alguien más vendrá a levantarla luego.",
+		"redemption_speech": "Nunca miré a quienes madrugan desde las cinco por nosotros. Yo recojo mi lugar."
 	},
 	3: {
 		"id": "superbus",
 		"name": "Superbus, el Heraldo de la Arrogancia",
 		"scenario_id": 3,
 		"location": "Plaza Cívica y Escalinata Sur (+4m)",
-		"antivalue": "La Soberbia y la Exclusión",
-		"redeeming_virtue": "¡Humildad y Fraternidad!",
-		"pre_battle_quote": "Esta terraza tiene nivel; los de abajo no pertenecen aquí.",
-		"redemption_speech": "Esta escalinata nos une, no nos divide. ¡Todos merecemos respeto!"
+		"antivalue": "La arrogancia como disfraz de inseguridad",
+		"redeeming_virtue": "Humildad y Fraternidad",
+		"pre_battle_quote": "Estos escalones marcan distancia entre quienes saben y quienes sobran.",
+		"redemption_speech": "Medir a otros por su apellido o acento solo me dejó más solo."
 	},
 	4: {
 		"id": "murmullus",
 		"name": "Ciber-Murmullus, el Espectro de la Difamación",
 		"scenario_id": 4,
 		"location": "Edificio B — Aulas 3-4 y Biblioteca",
-		"antivalue": "El Ciberacoso y el Rumor Anónimo",
-		"redeeming_virtue": "¡Verdad y Ciudadanía Digital!",
-		"pre_battle_quote": "Un reenvío anónimo y nadie sabrá quién rompió su paz.",
-		"redemption_speech": "Detrás de cada pantalla hay una persona real. ¡Basta de rumores crueles!"
+		"antivalue": "El anonimato detrás de la pantalla",
+		"redeeming_virtue": "Verdad y Ciudadanía Digital",
+		"pre_battle_quote": "Solo reenvié una captura sin pensarlo, en el chat nadie sabe quién fue.",
+		"redemption_speech": "Detrás de cada captura hay un compañero que mañana entra al mismo salón."
 	},
 	5: {
 		"id": "plagiatrix",
 		"name": "Plagiatrix, el Señor de la Falsedad",
 		"scenario_id": 5,
 		"location": "Edificio C — Dirección y Taller de Cómputo",
-		"antivalue": "El Plagio y el Atajo Deshonesto",
-		"redeeming_virtue": "¡Honestidad Académica e Integridad!",
-		"pre_battle_quote": "Copia y pega el trabajo ajeno; nadie premia el desvelo.",
-		"redemption_speech": "Un diploma sin esfuerzo deja vacía el alma. ¡Defenderé mi propia voz!"
+		"antivalue": "El temor a intentar con esfuerzo propio",
+		"redeeming_virtue": "Honestidad Académica e Integridad",
+		"pre_battle_quote": "Para qué desvelarse si puedes cambiar el nombre del archivo y entregar hoy.",
+		"redemption_speech": "Una calificación prestada no sirve cuando toca resolver algo de verdad."
 	},
 	6: {
 		"id": "titanor",
 		"name": "Titanor, el Coloso del Bullying Escolar",
 		"scenario_id": 6,
 		"location": "Cancha de Usos Múltiples y Gradas",
-		"antivalue": "La Intimidación y la Ley del Más Fuerte",
-		"redeeming_virtue": "¡Solidaridad, Juego Limpio y Esperanza!",
-		"pre_battle_quote": "¡En esta cancha manda el miedo y los golpes!",
-		"redemption_speech": "Golpeaba para esconder mi propio temor... ¡Hoy protejo a mi plantel!"
+		"antivalue": "El miedo disfrazado de fuerza bruta",
+		"redeeming_virtue": "Solidaridad, Juego Limpio y Esperanza",
+		"pre_battle_quote": "En esta cancha manda quien impone silencio y deja fuera a los nuevos.",
+		"redemption_speech": "Empujaba para que nadie notara lo solo que llegaba cada mañana."
 	}
 }
 
@@ -413,211 +380,193 @@ const SCENARIO_CUTSCENES: Dictionary = {
 	1: {
 		"id": 1,
 		"title": "Acto I: El Primer Paso en el Portón",
-		"scenario_name": "Acceso, Caseta C.V. y Edificio D",
-		"real_space": "Portón Principal, Jardinera y Laboratorio de Usos Múltiples (183 m²)",
+		"location": "Plaza de Acceso y Edificio D — Laboratorios",
 		"dialogue_nodes": [
 			{
 				"speaker": "Guardián de los Valores",
 				"portrait": "player_neutral",
-				"text": "El portón del CEMSaD 22 siempre fue bullicioso a esta hora... pero la niebla que baja hacia el laboratorio hace que los pies pesen el doble. Aun así, estoy listo para ayudar.",
-				"text_f": "El portón del CEMSaD 22 siempre fue bullicioso a esta hora... pero la niebla que baja hacia el laboratorio hace que los pies pesen el doble. Aun así, estoy lista para ayudar.",
-				"emotion": "attentive"
+				"emotion": "curious",
+				"text": "Una bruma fría cubre el patio de acceso y la entrada al Laboratorio D. Nadie se anima a cruzar solo."
 			},
 			{
 				"speaker": "Mateo",
 				"portrait": "mateo_sad",
-				"text": "Si doy un paso más, seguro me preguntan en clase y me equivoco... Todos parecen saber ya qué hacer menos yo. Quizá no debí inscribirme.",
-				"emotion": "scared"
-			},
-			{
-				"speaker": "Guardián de los Valores",
-				"portrait": "player_brave",
-				"text": "Escúchame bien, Mateo: nadie entra a la prepa sabiéndolo todo. Cuando disipemos esta apatía, tú también tendrás tu lugar... y lucharemos espalda con espalda.",
-				"emotion": "determined"
+				"emotion": "scared",
+				"text": "Cada vez que intento responder en clase, el eco repite risas desde las últimas mesas."
 			},
 			{
 				"speaker": "Apatyx",
 				"portrait": "boss_apatyx",
-				"text": "Qué discurso tan agotador, jovencito... Los matraces del laboratorio llevan días cubiertos de polvo. ¿Para qué esforzarse si da lo mismo aprobar que rendirse?",
-				"text_f": "Qué discurso tan agotador, jovencita... Los matraces del laboratorio llevan días cubiertos de polvo. ¿Para qué esforzarse si da lo mismo aprobar que rendirse?",
-				"emotion": "angry"
+				"emotion": "mocking",
+				"text": "Si te equivocas frente a todos vas a quedar en evidencia. Mejor quédate en silencio."
+			},
+			{
+				"speaker": "Apatyx",
+				"portrait": "boss_apatyx",
+				"emotion": "cold",
+				"text": "Escucha mi consejo, estudiante: la indiferencia cansa menos que intentarlo otra vez."
 			},
 			{
 				"speaker": "Guardián de los Valores",
 				"portrait": "player_attack",
-				"text": "Porque cada pregunta honesta enciende una mente nueva. ¡Mateo, quédate detrás de mí hasta que despejemos la sombra de Apatyx!",
-				"emotion": "determined"
+				"emotion": "determined",
+				"text": "Equivocarse es parte de aprender. Vamos a devolverle la curiosidad y el respeto al laboratorio."
 			}
 		]
 	},
 	2: {
 		"id": 2,
 		"title": "Acto II: La Mesa Compartida",
-		"scenario_name": "Edificio A — Cafetería, Desayunador y Aulas 1-2",
-		"real_space": "Pasillo de Aulas 1-2 y Mesas de Picnic bajo Arcotecho",
+		"location": "Edificio A — Cafetería y Aulas",
 		"dialogue_nodes": [
 			{
 				"speaker": "María",
 				"portrait": "maria_sad",
-				"text": "¡Qué bueno que llegaste, compañero! Las señoras del desayunador prepararon comida caliente desde las cinco de la mañana, pero un grupo volcó los platos en la banca y se marchó riendo.",
-				"text_f": "¡Qué bueno que llegaste, compañera! Las señoras del desayunador prepararon comida caliente desde las cinco de la mañana, pero un grupo volcó los platos en la banca y se marchó riendo.",
-				"emotion": "scared"
-			},
-			{
-				"speaker": "Desperdicius",
-				"portrait": "boss_desperdicius",
-				"text": "¡Ja! Si no quieren recoger envolturas, pongan menos mesas. Aquí manda el que consume sin mirar a quién deja limpiando atrás.",
-				"emotion": "angry"
+				"emotion": "tired",
+				"text": "Otra vez dejaron las charolas amontonadas como si alguien más tuviera obligación de limpiar por ellos."
 			},
 			{
 				"speaker": "Mateo",
 				"portrait": "mateo_happy",
-				"text": "¡Ya no te vamos a dejar sola, María! Cuando nos cuidamos entre compañeros, hasta el patio más sucio vuelve a brillar.",
-				"emotion": "happy"
+				"emotion": "warm",
+				"text": "Hoy llegué temprano y vi cómo levantabas todo tú sola. Esta vez te ayudamos a organizar las mesas."
+			},
+			{
+				"speaker": "Desperdicius",
+				"portrait": "boss_desperdicius",
+				"emotion": "smug",
+				"text": "No te compliques, nadie agradece ese esfuerzo extra. Deja la mesa sucia y sigue caminando."
 			},
 			{
 				"speaker": "Guardián de los Valores",
 				"portrait": "player_brave",
-				"text": "Respetar el alimento y a quien nos sirve no es opcional. ¡Desperdicius, hoy aprenderás el valor de compartir con gratitud!",
-				"emotion": "determined"
+				"emotion": "calm",
+				"text": "Cuidar los espacios comunes es respetar a quienes estudian y trabajan aquí desde temprano."
 			}
 		]
 	},
 	3: {
 		"id": 3,
 		"title": "Acto III: Cuatro Metros de Dignidad",
-		"scenario_name": "Plaza Cívica (748 m²) y Escalinata Sur (+4m)",
-		"real_space": "Asta Bandera, Muro de Piedra Braza Negra y Escalinata Sur",
+		"location": "Plaza Cívica y Escalinata Sur",
 		"dialogue_nodes": [
-			{
-				"speaker": "Guardián de los Valores",
-				"portrait": "player_neutral",
-				"text": "Aquí cantamos el himno cada lunes frente al asta bandera. Pero alguien trazó una frontera invisible justo en la escalinata sur.",
-				"emotion": "solemn"
-			},
 			{
 				"speaker": "Valeria",
 				"portrait": "valeria_sad",
-				"text": "Dicen que quienes hablan con acento de comunidad o traen los zapatos gastados no deberían subir a la terraza superior. ¡Eso no es mi COBAEM!",
-				"emotion": "angry"
+				"emotion": "hurt",
+				"text": "Al pie de esta escalinata algunos murmuran cuando pronuncio palabras en otomí o hablo frente al patio."
+			},
+			{
+				"speaker": "María",
+				"portrait": "maria_happy",
+				"emotion": "supportive",
+				"text": "No tienes por qué bajar la voz. Si subimos juntos a la explanada, nadie va a callarte."
 			},
 			{
 				"speaker": "Superbus",
 				"portrait": "boss_superbus",
-				"text": "La altura existe para recordar quién está arriba y quién debe bajar la vista. No todos nacieron para pisar el primer escalón.",
-				"emotion": "angry"
+				"emotion": "arrogant",
+				"text": "Solo unos cuantos merecen ocupar este podio y dirigir el saludo en la plaza."
 			},
 			{
 				"speaker": "Valeria",
 				"portrait": "valeria_brave",
-				"text": "¡Esta piedra braza la levantaron manos trabajadoras de Enthavi! Cuando me liberes, Guardián, mis chispas cívicas también pelearán a tu lado.",
-				"text_f": "¡Esta piedra braza la levantaron manos trabajadoras de Enthavi! Cuando me liberes, Guardiana, mis chispas cívicas también pelearán a tu lado.",
-				"emotion": "determined"
-			},
-			{
-				"speaker": "Guardián de los Valores",
-				"portrait": "player_attack",
-				"text": "¡La soberbia pesa más de lo que protege! ¡Demostremos en la plaza que la dignidad no conoce escalones!",
-				"emotion": "determined"
+				"emotion": "proud_firm",
+				"text": "Guardián, caminemos al frente. Esta explanada es de todas y todos los que construyen el plantel.",
+				"text_f": "Guardiana, caminemos al frente. Esta explanada es de todas y todos los que construyen el plantel."
 			}
 		]
 	},
 	4: {
 		"id": 4,
 		"title": "Acto IV: Detrás de la Pantalla",
-		"scenario_name": "Edificio B — Aulas 3-4 y Biblioteca Escolar",
-		"real_space": "Terraza Superior (+4m), Barandal Blanco y Biblioteca",
+		"location": "Edificio B — Aulas y Biblioteca",
 		"dialogue_nodes": [
 			{
 				"speaker": "Fernanda",
 				"portrait": "fernanda_sad",
-				"text": "Mira la biblioteca, amigo... vacía. Alguien creó una página anónima para burlarse de las fotos de clase y ahora varios compañeros temen abrir su mochila.",
-				"text_f": "Mira la biblioteca, amiga... vacía. Alguien creó una página anónima para burlarse de las fotos de clase y ahora varios compañeros temen abrir su mochila.",
-				"emotion": "scared"
+				"emotion": "worried",
+				"text": "Circulan capturas recortadas fuera de contexto en el chat escolar, y nadie pregunta de dónde salieron."
 			},
 			{
 				"speaker": "Ciber-Murmullus",
 				"portrait": "boss_murmullus",
-				"text": "Qué frágiles son... Solo presioné 'reenviar' una vez y el rumor hizo el resto. En la red nadie tiene rostro ni culpa.",
-				"emotion": "angry"
+				"emotion": "glitch",
+				"text": "Es más fácil reenviar un rumor sin dar la cara. Mañana ya todos habrán olvidado quién empezó."
+			},
+			{
+				"speaker": "Valeria",
+				"portrait": "valeria_happy",
+				"emotion": "firm",
+				"text": "Quien recibe el mensaje sí lo recuerda toda la semana. Empecemos por pedir fuentes reales."
 			},
 			{
 				"speaker": "Guardián de los Valores",
 				"portrait": "player_brave",
-				"text": "Herir desde el anonimato es doble cobardía. Las pantallas sirven para acercarnos y aprender, no para acorralar en silencio a un compañero.",
-				"emotion": "determined"
+				"emotion": "determined",
+				"text": "Cada pantalla comunica personas reales. Vamos a frenar el ruido con verdad y respeto."
 			}
 		]
 	},
 	5: {
 		"id": 5,
 		"title": "Acto V: Sin Atajos ni Silencios",
-		"scenario_name": "Edificio C — Dirección y Taller de Cómputo",
-		"real_space": "Dirección Escolar, Aula 5, Rampa Verde y Taller de Cómputo (115.2 m²)",
+		"location": "Edificio C — Dirección y Taller de Cómputo",
 		"dialogue_nodes": [
 			{
 				"speaker": "Diego",
 				"portrait": "diego_sad",
-				"text": "¡Qué alivio verte, compañero! Plagiatrix metió archivos falsos en los equipos de cómputo y convenció a medio grupo de copiar los proyectos finales sin entender una sola línea.",
-				"text_f": "¡Qué alivio verte, compañera! Plagiatrix metió archivos falsos en los equipos de cómputo y convenció a medio grupo de copiar los proyectos finales sin entender una sola línea.",
-				"emotion": "scared"
+				"emotion": "frustrated",
+				"text": "Llenaron las carpetas del taller con trabajos copiados idénticos y luego culpan a la red cuando fallan."
 			},
 			{
 				"speaker": "Sofía",
 				"portrait": "sofia_sad",
-				"text": "Y en el pasillo de Dirección nuestros reportes siguen esperando firma. Si los salones interiores siguen cerrados a la empatía, esta niebla nunca se irá.",
-				"emotion": "determined"
+				"emotion": "stressed",
+				"text": "Yo intento tener cada acta al día, pero sin diálogo real en los grupos los mismos problemas regresan."
 			},
 			{
 				"speaker": "Plagiatrix",
 				"portrait": "boss_plagiatrix",
-				"text": "¿Para qué quemarse las pestañas estudiando? Clona la respuesta, entrega el papel y disfruta del premio sin esfuerzo.",
-				"emotion": "angry"
+				"emotion": "smug",
+				"text": "Entregar rápido importa más que comprender el tema. Toma el atajo y sal temprano."
 			},
 			{
 				"speaker": "Guardián de los Valores",
-				"portrait": "player_attack",
-				"text": "Un logro robado se quiebra en la primera prueba real de la vida. ¡Diego, Sofía, recuperemos la honestidad y la escucha en el Edificio C!",
-				"emotion": "determined"
+				"portrait": "player_brave",
+				"emotion": "firm",
+				"text": "Aprender con honestidad y escucharse en equipo vale mucho más que un archivo copiado."
 			}
 		]
 	},
 	6: {
 		"id": 6,
 		"title": "Acto VI: Toda la Escuela en la Cancha",
-		"scenario_name": "Cancha de Usos Múltiples (540 m²) y Gradas",
-		"real_space": "Pavimento Deportivo, Tableros de Básquetbol y Bancas de Estudio",
+		"location": "Cancha de Usos Múltiples y Gradas",
 		"dialogue_nodes": [
-			{
-				"speaker": "Guardián de los Valores",
-				"portrait": "player_neutral",
-				"text": "La cancha de usos múltiples... Aquí convergen todos los caminos del CEMSaD 22. Y ahí al centro nos espera la raíz de todo este miedo.",
-				"emotion": "solemn"
-			},
 			{
 				"speaker": "Alejandro",
 				"portrait": "alejandro_sad",
-				"text": "¡Ten cuidado, campeón! Titanor se rodea de clones de sombra y oscurece la cancha entera con niebla. Pero si encuentras la estrella dorada de Esperanza [Q], ¡quedarán anulados por 15 segundos!",
-				"text_f": "¡Ten cuidado, campeona! Titanor se rodea de clones de sombra y oscurece la cancha entera con niebla. Pero si encuentras la estrella dorada de Esperanza [Q], ¡quedarán anulados por 15 segundos!",
-				"emotion": "determined"
+				"emotion": "tense",
+				"text": "La bruma se juntó en las gradas. Algunos impiden entrar a jugar a los grupos nuevos usando intimidación."
 			},
 			{
 				"speaker": "Titanor",
 				"portrait": "boss_titanor",
-				"text": "¿De verdad creyeron que unos cuantos valores iban a frenarme? En esta cancha solo sobrevive quien golpea primero y hace callar al resto!",
-				"emotion": "angry"
+				"emotion": "menacing_fury",
+				"text": "Aquí nadie entra sin permiso de la fuerza. El miedo mantiene el orden en este patio."
 			},
 			{
 				"speaker": "Mateo & Valeria & Sofía",
-				"portrait": "allies_united",
-				"text": "¡Se acabó el miedo, Titanor! Ya no tienes enfrente a alumnos aislados: hoy todo el plantel pelea unido en esta duela!",
-				"emotion": "happy"
+				"portrait": "valeria_happy",
+				"emotion": "determined",
+				"text": "Ya no tienes frente a un solo estudiante. Toda la comunidad está lista para defender el juego limpio."
 			},
 			{
 				"speaker": "Guardián de los Valores",
-				"portrait": "player_attack",
-				"text": "¡Compañeros, cubramos la cancha con luz de fraternidad! ¡Titanor, hoy soltarás esa armadura de rencor!",
-				"emotion": "determined"
+				"portrait": "player_brave",
+				"emotion": "determined",
+				"text": "El respeto verdadero no necesita intimidar a nadie. Vamos a recuperar nuestra cancha en equipo."
 			}
 		]
 	}

@@ -43,14 +43,16 @@ signal touch_mode_changed(touch_active: bool)
 @export var show_pause_button: bool = true
 ## Si se debe renderizar el botón táctil de Modo Enfoque (precisión Danmaku 52%)
 @export var show_focus_button: bool = true
+## Si se deben renderizar los botones táctiles de acción secundaria (Pulso de Empatía e Ítem)
+@export var show_action_buttons: bool = true
 
 const FOCUS_BUTTON_RADIUS: float = 22.0
 const FOCUS_HIT_RADIUS_SQ: float = 784.0 # Radio 28px (>= 44x44 dp ergonómico)
 const FOCUS_HOLD_THRESHOLD_MS: int = 350
-const PULSE_BUTTON_RADIUS: float = 20.0
-const PULSE_HIT_RADIUS_SQ: float = 676.0
-const ITEM_BUTTON_RADIUS: float = 19.0
-const ITEM_HIT_RADIUS_SQ: float = 625.0
+const PULSE_BUTTON_RADIUS: float = 23.0
+const PULSE_HIT_RADIUS_SQ: float = 841.0
+const ITEM_BUTTON_RADIUS: float = 23.0
+const ITEM_HIT_RADIUS_SQ: float = 841.0
 
 # ==============================================================================
 # ESTADO INTERNO Y CONTROL DE TOQUES MULTITÁCTILES
@@ -121,8 +123,19 @@ func _ready() -> void:
 	_cache_inputmap_deadzone()
 	_ensure_focus_action()
 
-	# En pantallas táctiles o Android, visible por defecto; en PC, oculto hasta F1 o primer toque físico
-	visible = _has_native_touch or _force_visible
+	var touch_override := -1
+	var gs := get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	if gs and "touch_controls_override" in gs:
+		touch_override = int(gs.get("touch_controls_override"))
+	if touch_override == 1:
+		_force_visible = true
+		visible = true
+	elif touch_override == 0:
+		_force_visible = false
+		visible = false
+	else:
+		# En pantallas táctiles o Android, visible por defecto; en PC, oculto hasta F1 o primer toque físico
+		visible = _has_native_touch or _force_visible
 	mouse_filter = MOUSE_FILTER_PASS
 
 	_update_positions()
@@ -348,7 +361,11 @@ func deactivate() -> void:
 
 func activate() -> void:
 	is_active = true
-	if is_touch_device() or _force_visible:
+	var gs_act := get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	var touch_override := int(gs_act.get("touch_controls_override")) if (gs_act and "touch_controls_override" in gs_act) else -1
+	if touch_override == 0 and not _force_visible:
+		visible = false
+	elif touch_override == 1 or is_touch_device() or _force_visible:
 		visible = true
 	_target_left_alpha = resting_alpha if visible else 0.0
 	_target_right_alpha = resting_alpha if visible else 0.0
@@ -368,12 +385,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Atajo de depuración en PC (F1 conmuta visibilidad)
 	if event is InputEventKey and event.pressed and not event.is_echo():
 		if event.keycode == KEY_F1:
-			_force_visible = not _force_visible
+			_force_visible = not visible
 			visible = _force_visible
 			if not visible:
 				_release_active_touches()
 			_target_left_alpha = resting_alpha if visible else 0.0
 			_target_right_alpha = resting_alpha if visible else 0.0
+			var gs := get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+			if gs and gs.has_method("set_touch_controls_override"):
+				gs.set_touch_controls_override(1 if visible else 0)
 			touch_mode_changed.emit(visible)
 			queue_redraw()
 			if is_inside_tree() and get_viewport():
@@ -517,7 +537,7 @@ func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> bool:
 			focus_toggled.emit(_focus_toggled)
 			queue_redraw()
 			return true
-		if show_focus_button and _pulse_touch_id == -1 and pos.x >= vp_half_x and pos.distance_squared_to(_pulse_pos) <= PULSE_HIT_RADIUS_SQ:
+		if show_action_buttons and _pulse_touch_id == -1 and pos.x >= vp_half_x and pos.distance_squared_to(_pulse_pos) <= PULSE_HIT_RADIUS_SQ:
 			_pulse_touch_id = touch_id
 			_pulse_pressed = true
 			_ensure_pulse_action()
@@ -525,7 +545,7 @@ func _handle_touch(touch_id: int, pressed: bool, pos: Vector2) -> bool:
 			_vibrate_tap(16)
 			queue_redraw()
 			return true
-		if show_focus_button and _item_touch_id == -1 and pos.x >= vp_half_x and pos.distance_squared_to(_item_pos) <= ITEM_HIT_RADIUS_SQ:
+		if show_action_buttons and _item_touch_id == -1 and pos.x >= vp_half_x and pos.distance_squared_to(_item_pos) <= ITEM_HIT_RADIUS_SQ:
 			_item_touch_id = touch_id
 			_item_pressed = true
 			_ensure_item_action()
@@ -810,6 +830,9 @@ func _draw() -> void:
 			var f_col := Color(1.0, 0.96, 0.85, fa) if _focus_toggled else Color(1.0, 0.88, 0.68, fa)
 			draw_string(focus_font, _focus_pos + Vector2(-f_sz.x * 0.5, f_sz.y * 0.30), f_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, f_size, f_col)
 
+	# 3b y 3c. Botones táctiles de Pulso de Empatía e Ítem (desacoplados de show_focus_button)
+	if show_action_buttons and (_right_alpha > 0.005 or _pulse_pressed or _item_pressed or has_item_available):
+		var action_font := ThemeDB.fallback_font
 		# 3b. Botón táctil Pulso de Empatía ("PULSO") con arco de recarga real
 		var pulse_on_cd := pulse_cooldown_remaining > 0.05
 		var pa := active_alpha if _pulse_pressed else (resting_alpha * 0.85 if pulse_on_cd else maxf(_right_alpha, resting_alpha))
@@ -820,22 +843,22 @@ func _draw() -> void:
 		if pulse_on_cd:
 			var ready_ratio := clampf(1.0 - (pulse_cooldown_remaining / maxf(0.1, pulse_cooldown_max)), 0.0, 1.0)
 			draw_arc(_pulse_pos, PULSE_BUTTON_RADIUS - 3.0, -PI * 0.5, -PI * 0.5 + TAU * ready_ratio, 24, Color(0.45, 0.96, 1.0, 0.92 * active_alpha), 2.2)
-		if focus_font:
+		if action_font:
 			var p_txt := ("%ds" % ceili(pulse_cooldown_remaining)) if pulse_on_cd else "PULSO"
-			var p_sz := focus_font.get_string_size(p_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 8)
-			draw_string(focus_font, _pulse_pos + Vector2(-p_sz.x * 0.5, p_sz.y * 0.30), p_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(0.90, 0.98, 1.0, pa))
+			var p_sz := action_font.get_string_size(p_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 8)
+			draw_string(action_font, _pulse_pos + Vector2(-p_sz.x * 0.5, p_sz.y * 0.30), p_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(0.90, 0.98, 1.0, pa))
 
 		# 3c. Botón táctil Uso de Ítem ("ÍTEM") con color y etiqueta corta del ítem equipado
-		var ia := active_alpha if (_item_pressed or has_item_available) else maxf(_right_alpha, resting_alpha)
+		var ia := active_alpha if (_item_pressed or has_item_available) else (maxf(_right_alpha, resting_alpha) * 0.55)
 		var active_col := item_accent_color
 		var item_bg := Color(active_col.r * 0.55, active_col.g * 0.50, active_col.b * 0.25, 0.92 * ia) if (_item_pressed or has_item_available) else Color(0.20, 0.18, 0.12, 0.50 * ia)
 		var item_border := Color(active_col.r, active_col.g, active_col.b, 0.98 * ia) if has_item_available else Color(0.80, 0.72, 0.45, 0.78 * ia)
 		draw_circle(_item_pos, ITEM_BUTTON_RADIUS, item_bg)
 		draw_arc(_item_pos, ITEM_BUTTON_RADIUS, 0.0, TAU, 28, item_border, 2.2 if has_item_available else 1.4)
-		if focus_font:
+		if action_font:
 			var i_txt := item_short_label if (has_item_available and not item_short_label.is_empty()) else "ÍTEM"
-			var i_sz := focus_font.get_string_size(i_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 8)
-			draw_string(focus_font, _item_pos + Vector2(-i_sz.x * 0.5, i_sz.y * 0.30), i_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(1.0, 0.96, 0.75, ia))
+			var i_sz := action_font.get_string_size(i_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 8)
+			draw_string(action_font, _item_pos + Vector2(-i_sz.x * 0.5, i_sz.y * 0.30), i_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(1.0, 0.96, 0.75, ia))
 
 	# 4. BOTÓN DE PAUSA ERGONÓMICO SUPERIOR DERECHO (Mínimo 44x44 dp)
 	if show_pause_button and is_inside_tree() and get_tree() and not get_tree().paused:

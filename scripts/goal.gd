@@ -15,11 +15,14 @@ signal player_reached_goal
 var already_reached: bool = false
 var is_locked: bool = false
 var level_ref: Node2D = null
+const LOCKED_MSG_COOLDOWN: float = 2.0
+
 var _time: float = 0.0
+var _last_locked_msg_time: float = -10.0
 
 func _ready() -> void:
 	y_sort_enabled = true
-	body_entered.connect(_on_body_entered)
+	body_entered.connect(_on_body_entered, CONNECT_DEFERRED)
 
 func set_goal_text(txt: String) -> void:
 	if label:
@@ -40,7 +43,7 @@ func unlock() -> void:
 		tw.tween_property(sprite, "modulate", Color.WHITE, 0.5)
 	var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
 	if fx:
-		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -32), "¡SALIDA DESBLOQUEADA!", Color(1.0, 0.92, 0.45), 14)
+		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -32), "SALIDA DESBLOQUEADA", Color(1.0, 0.92, 0.45), 14)
 		fx.burst(get_parent() if get_parent() else self, global_position, Color(1.0, 0.85, 0.35), 14, 120.0)
 	if is_inside_tree():
 		for body in get_overlapping_bodies():
@@ -54,12 +57,16 @@ func _process(delta: float) -> void:
 	sprite.position.y = _base_sprite_y + roundf(sin(_time * 2.2) * 3.0)
 
 func _on_body_entered(body: Node2D) -> void:
+	if not is_instance_valid(body):
+		return
 	if body is Player:
 		if level_ref != null and "has_classroom" in level_ref and level_ref.has_classroom and not level_ref.is_classroom_cleared:
-			var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
-			if fx:
-				fx.shake(2.5, 0.2)
-				fx.floating_text(get_parent() if get_parent() else self, body.global_position + Vector2(0, -32), "Debemos limpiar los salones de antivalores antes de continuar", Color(1.0, 0.35, 0.35), 13)
+			if _time - _last_locked_msg_time >= LOCKED_MSG_COOLDOWN:
+				_last_locked_msg_time = _time
+				var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+				if fx:
+					fx.shake(2.5, 0.2)
+					fx.floating_text(get_parent() if get_parent() else self, body.global_position + Vector2(0, -32), "Debemos limpiar los salones de antivalores antes de continuar", Color(1.0, 0.35, 0.35), 13)
 			var push_dir: Vector2 = (body.global_position - global_position).normalized()
 			if push_dir == Vector2.ZERO:
 				push_dir = Vector2.LEFT
@@ -70,12 +77,14 @@ func _on_body_entered(body: Node2D) -> void:
 			return
 
 		if is_locked:
-			var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
-			if fx:
-				var celebrating: bool = (level_ref != null and bool(level_ref.get("is_final_boss_celebrating")))
-				var locked_msg := "¡Los alumnos celebran: Finalmente lo derrotamos!" if celebrating else "¡Vence al antivalor jefe primero!"
-				var locked_color := Color(1.0, 0.92, 0.45) if celebrating else Color(1.0, 0.45, 0.45)
-				fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -28), locked_msg, locked_color, 11)
+			if _time - _last_locked_msg_time >= LOCKED_MSG_COOLDOWN:
+				_last_locked_msg_time = _time
+				var fx = get_node_or_null("/root/Fx") if is_inside_tree() else null
+				if fx:
+					var celebrating: bool = (level_ref != null and bool(level_ref.get("is_final_boss_celebrating")))
+					var locked_msg := "Los alumnos celebran: Finalmente lo derrotamos" if celebrating else "Vence al antivalor jefe primero"
+					var locked_color := Color(1.0, 0.92, 0.45) if celebrating else Color(1.0, 0.45, 0.45)
+					fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -28), locked_msg, locked_color, 11)
 			return
 		trigger(body)
 

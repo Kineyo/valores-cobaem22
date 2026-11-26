@@ -1,14 +1,16 @@
 extends CanvasLayer
 class_name UndertaleClimax
 
+const BossRendererClass := preload("res://scripts/boss_renderer.gd")
+
 ## Escena Clímax estilo Undertale cuando Titanor alcanza 1 HP.
 ## Todo se detiene y Titanor se resquebraja mientras héroe y aliados se transforman en 8 corazones de valores.
 ## Reproduce música original inspirada en Finale antes de dar paso a la Ceremonia Final.
 
 signal climax_finished
 
-const BOSS_DIALOG := "Esta vez lograron vencerme, pero siempre habrá un maestro que ignore a los alumnos, un alumno que haga bullying, o un alumno rebelde. Y ahí volveré y seré más fuerte."
-const STUDENTS_DIALOG := "Cuando eso pase, nosotros estaremos para lograr erradicarte de nuevo, no permitiremos que el bullying regrese a nuestra institución."
+const BOSS_DIALOG := "Esta vez lograron detenerme, pero siempre habrá un momento donde falte diálogo, alguien ignore al grupo o el miedo calle al salón. Y ahí intentaré volver con más fuerza."
+const STUDENTS_DIALOG := "Cuando eso pase, nosotros estaremos aquí para detenerte de nuevo, no permitiremos que el maltrato regrese a nuestra institución."
 
 const VALUE_HEARTS := [
 	{ "who": "Tú (Héroe)", "value": "Valentía", "color": Color(1.0, 0.17, 0.29) },
@@ -170,7 +172,7 @@ func _enter_phase(p: Phase) -> void:
 		Phase.TRANSFORM:
 			_speaker_text = "* TITANOR — 1 HP (CORAZONES EN RESONANCIA)"
 			var role_lbl := "Guardiana" if _is_female_hero() else "Guardián"
-			_full_text = "* El Coloso del Bullying se resquebraja... ¡Tu valor de %s y el de tus compañeros se convierten en luz!" % role_lbl
+			_full_text = "* El Coloso del Bullying cede su postura. Tu valor de %s y el de tus compañeros se convierten en luz." % role_lbl
 			_char_reveal = float(_full_text.length())
 		Phase.DIALOG_BOSS:
 			_speaker_text = "* TITANOR (Blanco y Negro)"
@@ -181,8 +183,8 @@ func _enter_phase(p: Phase) -> void:
 			_full_text = STUDENTS_DIALOG
 			_char_reveal = 0.0
 		Phase.CONVERGENCE:
-			_speaker_text = "* UNIDAD ESCOLAR — ¡FRATERNIDAD Y ESPERANZA!"
-			_full_text = "* ¡Todos los corazones brillan unidos! ¡La sombra de Titanor se disipa en armonía!"
+			_speaker_text = "* UNIDAD ESCOLAR · FRATERNIDAD Y ESPERANZA"
+			_full_text = "* Todos los corazones brillan unidos. La sombra de Titanor se disipa en armonía."
 			_char_reveal = float(_full_text.length())
 		Phase.DONE:
 			_finish_sequence()
@@ -302,7 +304,8 @@ func _on_arena_draw() -> void:
 	var font := ThemeDB.fallback_font
 	var n_hearts := VALUE_HEARTS.size()
 	var arc_rx := minf(270.0, sz.x * 0.38)
-	var arc_center_y := sz.y * 0.52
+	var dialog_top_y: float = _dialog_panel.position.y if _dialog_panel != null else sz.y * 0.66
+	var arc_center_y := minf(sz.y * 0.48, dialog_top_y - 78.0)
 	var transform_flash := clampf(1.0 - _phase_time / 1.1, 0.0, 1.0) if current_phase == Phase.TRANSFORM else 0.0
 
 	for i in range(n_hearts):
@@ -340,31 +343,16 @@ func _draw_monochrome_titanor(pos: Vector2, alpha: float) -> void:
 	var g_col := Color(0.32, 0.32, 0.32, alpha)
 	var b_col := Color(0.05, 0.05, 0.05, alpha)
 
-	# Silueta Titanor estrictamente en blanco, gris y negro estilo Undertale
-	_arena_draw.draw_rect(Rect2(pos.x - 36, pos.y - 36, 72, 74), w_col)
-	_arena_draw.draw_rect(Rect2(pos.x - 32, pos.y - 32, 64, 66), g_col)
-	# Hombreras
-	_arena_draw.draw_rect(Rect2(pos.x - 46, pos.y - 34, 14, 24), w_col)
-	_arena_draw.draw_rect(Rect2(pos.x + 32, pos.y - 34, 14, 24), w_col)
-	# Cabeza y corona
-	_arena_draw.draw_rect(Rect2(pos.x - 24, pos.y - 68, 48, 36), w_col)
-	_arena_draw.draw_rect(Rect2(pos.x - 20, pos.y - 64, 40, 28), b_col)
-	_arena_draw.draw_polygon(PackedVector2Array([
-		Vector2(pos.x - 16, pos.y - 70), Vector2(pos.x - 10, pos.y - 82),
-		Vector2(pos.x, pos.y - 73), Vector2(pos.x + 10, pos.y - 82),
-		Vector2(pos.x + 16, pos.y - 70),
-	]), [w_col])
-	# Ojos blancos contrastantes
-	_arena_draw.draw_rect(Rect2(pos.x - 13, pos.y - 56, 8, 6), w_col)
-	_arena_draw.draw_rect(Rect2(pos.x + 5, pos.y - 56, 8, 6), w_col)
+	# Silueta oficial de Titanor renderizada en escala de grises estilo Undertale
+	BossRendererClass.draw_boss_silhouette(_arena_draw, 5, pos + Vector2(0, 40), _time, g_col, w_col, false, false, 1.0)
 	# Grietas negras/blancas de fractura visible
 	var crack := Color(1, 1, 1, alpha)
-	_arena_draw.draw_line(pos + Vector2(-4, -62), pos + Vector2(6, -42), b_col, 4.0)
-	_arena_draw.draw_line(pos + Vector2(-4, -62), pos + Vector2(6, -42), crack, 2.0)
-	_arena_draw.draw_line(pos + Vector2(6, -42), pos + Vector2(-8, -14), b_col, 4.0)
-	_arena_draw.draw_line(pos + Vector2(6, -42), pos + Vector2(-8, -14), crack, 2.0)
-	_arena_draw.draw_line(pos + Vector2(-24, -22), pos + Vector2(20, 12), b_col, 3.5)
-	_arena_draw.draw_line(pos + Vector2(-24, -22), pos + Vector2(20, 12), crack, 1.6)
+	_arena_draw.draw_line(pos + Vector2(-4, -46), pos + Vector2(6, -24), b_col, 4.0)
+	_arena_draw.draw_line(pos + Vector2(-4, -46), pos + Vector2(6, -24), crack, 2.0)
+	_arena_draw.draw_line(pos + Vector2(6, -24), pos + Vector2(-8, 6), b_col, 4.0)
+	_arena_draw.draw_line(pos + Vector2(6, -24), pos + Vector2(-8, 6), crack, 2.0)
+	_arena_draw.draw_line(pos + Vector2(-24, -10), pos + Vector2(20, 22), b_col, 3.5)
+	_arena_draw.draw_line(pos + Vector2(-24, -10), pos + Vector2(20, 22), crack, 1.6)
 
 func _draw_pixel_heart(center: Vector2, col: Color, sc: float = 1.0) -> void:
 	var px := 2.4 * sc

@@ -43,6 +43,7 @@ const DANMAKU_CYCLE_PERIOD := 7.0
 const DANMAKU_ACTIVE_WINDOW := 5.0
 const COVER_VANISH_DURATION := 3.0
 const CIBER_TELEPORT_INTERVAL := 10.0
+const BOSS_PROJECTILE_SCALE := 1.0
 
 ## Umbrales porcentuales estandarizados (en vez de puntos fijos)
 const PHASE_ENRAGED_RATIO := 0.50
@@ -61,6 +62,10 @@ const BossRendererClass := preload("res://scripts/boss_renderer.gd")
 const RESCUE_STUDENTS_DATA := BossDataClass.RESCUE_STUDENTS_DATA
 const BOSS_DATA := BossDataClass.BOSS_DATA
 const BOSS_DIFFICULTY_HP := BossDataClass.BOSS_DIFFICULTY_HP
+const TELEGRAPH_STUN_CHANCE: float = 0.0625 ## Reducido un 75% desde 0.25 para evitar cadenas de aturdimiento
+const STUN_IMMUNITY_COOLDOWN: float = 6.5
+const ESPERANZA_STAGGER_DURATION_NORMAL: float = 2.5
+const ESPERANZA_STAGGER_DURATION_HARD: float = 1.5
 
 @export var boss_type: BossType = BossType.APATIA
 @export var detection_range: float = 400.0
@@ -132,6 +137,10 @@ var _pause_banner_timer: float = 0.0
 var _pause_owned_by_boss: bool = false
 var esperanza_debuff_timer: float = 0.0
 var is_esperanza_defenseless: bool = false
+var _empathy_slow_timer: float = 0.0
+var _stun_immunity_timer: float = 0.0
+var _esperanza_stagger_timer: float = 0.0
+var _stun_hit_cooldown: float = 0.0
 
 ## Estados porcentuales de animación y secuencia 1 HP estilo Undertale
 var _enraged_anim_triggered: bool = false
@@ -144,6 +153,9 @@ var _shatter_shard_timer: float = 0.0
 var _undertale_climax_emitted: bool = false
 var _undertale_climax_completed: bool = false
 var _difficulty_idx_cache: int = 1
+var _mid_dialog_35_sent: bool = false
+var _mid_dialog_70_sent: bool = false
+var _chime_player: AudioStreamPlayer = null
 
 func _get_fx() -> Node:
 	if is_inside_tree():
@@ -167,7 +179,6 @@ func _ready() -> void:
 
 	_setup_nodes()
 	setup_boss_type(boss_type)
-	apply_difficulty()
 
 	# Estado inicial de entrada cinemática
 	current_state = State.APPEARING
@@ -186,6 +197,9 @@ func _exit_tree() -> void:
 	_dismiss_dramatic_pause()
 	_clear_fake_clones()
 	_clear_rescue_students()
+	if _chime_player and is_instance_valid(_chime_player):
+		_chime_player.stop()
+		_chime_player.stream = null
 
 func _setup_nodes() -> void:
 	collision_layer = 8
@@ -224,16 +238,7 @@ func _setup_nodes() -> void:
 			_hitbox.body_entered.connect(_on_hitbox_body_entered)
 
 func _load_boss_texture(res_path: String) -> Texture2D:
-	if ResourceLoader.exists(res_path):
-		var loaded = ResourceLoader.load(res_path)
-		if loaded is Texture2D:
-			return loaded
-	var abs_path := ProjectSettings.globalize_path(res_path)
-	if FileAccess.file_exists(abs_path):
-		var img := Image.load_from_file(abs_path)
-		if img != null and not img.is_empty():
-			return ImageTexture.create_from_image(img)
-	return null
+	return AssetLoader.load_texture(res_path)
 
 func setup_boss_type(type: BossType) -> void:
 	boss_type = type
@@ -258,6 +263,10 @@ func setup_boss_type(type: BossType) -> void:
 	desperation_fog_active = false
 	is_esperanza_defenseless = false
 	esperanza_debuff_timer = 0.0
+	_empathy_slow_timer = 0.0
+	_stun_immunity_timer = 0.0
+	_esperanza_stagger_timer = 0.0
+	_stun_hit_cooldown = 0.0
 	_enraged_anim_triggered = false
 	_critical_anim_triggered = false
 	active_hp_anim_state = "normal"
@@ -266,6 +275,8 @@ func setup_boss_type(type: BossType) -> void:
 	shatter_progress = 0.0
 	_undertale_climax_emitted = false
 	_undertale_climax_completed = false
+	_mid_dialog_35_sent = false
+	_mid_dialog_70_sent = false
 	teleport_count = 0
 	summoned_enemies_count = 0
 	last_special_message = ""
@@ -317,6 +328,14 @@ func set_fog_active(active: bool) -> void:
 func _physics_process(delta: float) -> void:
 	_anim_time += delta
 	_roulette_angle += delta * (1.25 + 0.85 * get_missing_hp_ratio() if boss_type == BossType.BULLYING else 1.25)
+	if _empathy_slow_timer > 0.0:
+		_empathy_slow_timer = maxf(0.0, _empathy_slow_timer - delta)
+	if _stun_immunity_timer > 0.0:
+		_stun_immunity_timer = maxf(0.0, _stun_immunity_timer - delta)
+	if _stun_hit_cooldown > 0.0:
+		_stun_hit_cooldown = maxf(0.0, _stun_hit_cooldown - delta)
+	if _esperanza_stagger_timer > 0.0:
+		_esperanza_stagger_timer = maxf(0.0, _esperanza_stagger_timer - delta)
 
 	if _flash_timer > 0.0:
 		_flash_timer -= delta
@@ -355,12 +374,10 @@ func _physics_process(delta: float) -> void:
 		queue_redraw()
 		return
 
-	# Controlar ventaja ESPERANZA (15s: sin clones, sin niebla, jefe completamente indefenso)
+	# Controlar ventaja ESPERANZA (15s: sin clones, sin niebla; aturdimiento breve inicial y luego sigue esquivando)
 	if is_esperanza_defenseless:
 		esperanza_debuff_timer -= delta
 		_barrier_active = false
-		_dash_velocity = Vector2.ZERO
-		velocity = Vector2.ZERO
 		if _is_covered_and_vanished:
 			_end_cover_and_vanish()
 		if not active_clones.is_empty():
@@ -371,22 +388,29 @@ func _physics_process(delta: float) -> void:
 			var lvl_esp := _get_level_node()
 			if lvl_esp and lvl_esp.has_method("set_boss_desperation_fog"):
 				lvl_esp.set_boss_desperation_fog(false)
-		if current_state != State.APPEARING and current_state != State.REDEEMED:
-			current_state = State.STUNNED
-			_state_timer = maxf(0.2, esperanza_debuff_timer)
 		if esperanza_debuff_timer <= 0.0:
 			is_esperanza_defenseless = false
 			esperanza_debuff_timer = 0.0
+			_esperanza_stagger_timer = 0.0
 			if current_state == State.STUNNED:
 				current_state = State.IDLE
 				_state_timer = 0.8
 			var fx_end := _get_fx()
 			if fx_end and is_inside_tree():
-				fx_end.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -56), "¡Esperanza agotada! ¡Alerta!", Color(1.0, 0.72, 0.38), 13)
-		if is_inside_tree() and PhysicsServer2D.body_get_space(get_rid()).is_valid():
-			move_and_slide()
-		queue_redraw()
-		return
+				fx_end.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -56), "Esperanza agotada · Alerta", Color(1.0, 0.72, 0.38), 13)
+		elif _esperanza_stagger_timer > 0.0:
+			_dash_velocity = Vector2.ZERO
+			velocity = Vector2.ZERO
+			if current_state != State.APPEARING and current_state != State.REDEEMED:
+				current_state = State.STUNNED
+				_state_timer = maxf(0.1, _esperanza_stagger_timer)
+			if is_inside_tree() and PhysicsServer2D.body_get_space(get_rid()).is_valid():
+				move_and_slide()
+			queue_redraw()
+			return
+		elif current_state == State.STUNNED:
+			current_state = State.IDLE
+			_state_timer = 0.6
 
 	# Controlar temporizador de cobertura + desaparición (3 segundos)
 	if _is_covered_and_vanished:
@@ -399,12 +423,12 @@ func _physics_process(delta: float) -> void:
 		if current_hp < max_hp and not _five_hp_triggered and not _is_covered_and_vanished and not _is_spell_transition:
 			_teleport_timer -= delta
 			if _teleport_timer <= 0.0:
-				_teleport_timer = maxf(2.2, 5.2 - 2.8 * get_missing_hp_ratio())
+				_teleport_timer = maxf(4.6, 7.2 - 2.4 * get_missing_hp_ratio())
 				_perform_boss_teleport()
 
 			_clone_timer -= delta
 			if _clone_timer <= 0.0:
-				_clone_timer = maxf(4.5, 8.5 - 3.5 * get_missing_hp_ratio())
+				_clone_timer = maxf(8.2, 12.5 - 4.0 * get_missing_hp_ratio())
 				_spawn_fake_clones(2 if get_missing_hp_ratio() < 0.5 else 3)
 
 		if _ten_hp_triggered and not _five_hp_triggered:
@@ -418,7 +442,7 @@ func _physics_process(delta: float) -> void:
 			if not _is_covered_and_vanished:
 				_cover_cooldown_timer -= delta
 				if _cover_cooldown_timer <= 0.0:
-					_cover_cooldown_timer = 9.0
+					_cover_cooldown_timer = 13.5
 					trigger_cover_and_vanish(COVER_VANISH_DURATION)
 
 	# Teletransporte periódico cada 10s para Ciber-Murmullus (Edificio B)
@@ -532,11 +556,35 @@ func get_missing_hp_ratio() -> float:
 		return 0.0
 	return clampf(1.0 - get_hp_ratio(), 0.0, 1.0)
 
-## Velocidad efectiva que incrementa conforme Titanor pierde vida
+## Velocidad efectiva que incrementa conforme Titanor pierde vida y respeta Pulso de Empatía
 func get_effective_speed() -> float:
-	if boss_type == BossType.BULLYING:
-		return move_speed * (1.0 + 0.75 * get_missing_hp_ratio())
-	return move_speed
+	var spd := move_speed * (1.0 + 0.75 * get_missing_hp_ratio()) if boss_type == BossType.BULLYING else move_speed
+	if is_esperanza_defenseless and _esperanza_stagger_timer <= 0.0:
+		spd *= 0.68
+	if _empathy_slow_timer > 0.0:
+		spd *= 0.55
+	return spd
+
+func apply_empathy_slow(duration: float = 2.0) -> void:
+	_empathy_slow_timer = maxf(_empathy_slow_timer, duration)
+
+func _can_fire_delayed_attack() -> bool:
+	return (
+		is_instance_valid(self)
+		and is_inside_tree()
+		and current_state != State.REDEEMED
+		and current_state != State.STUNNED
+		and not is_esperanza_defenseless
+		and not _is_spell_transition
+		and not _is_transforming
+		and not is_shattering_at_one_hp
+	)
+
+func _to_parent_local(world_pos: Vector2) -> Vector2:
+	var p := get_parent()
+	if p is Node2D:
+		return (p as Node2D).to_local(world_pos)
+	return world_pos
 
 ## Movimiento de merodeo o aproximación táctica
 func _update_idle_movement(delta: float) -> void:
@@ -549,7 +597,7 @@ func _update_idle_movement(delta: float) -> void:
 
 			# En Fase 4 de Titanor (Last Spell), orbita suavemente cerca del centro de la cancha
 			if boss_type == BossType.BULLYING and _spell_phase == 4:
-				var arena_center := Vector2(720, 450)
+				var arena_center := _get_arena_bounds() * 0.5
 				var to_center := (arena_center - global_position).normalized()
 				velocity = velocity.move_toward(to_center * (eff_speed * 0.55), 320.0 * delta)
 				return
@@ -602,7 +650,7 @@ func _start_telegraph() -> void:
 	var fx = _get_fx()
 	if fx:
 		var parent = get_parent() if get_parent() else self
-		fx.floating_text(parent, global_position + Vector2(0, -60), "¡" + atk_name + "!", Color(1.0, 0.35, 0.45), 13)
+		fx.floating_text(parent, global_position + Vector2(0, -60), atk_name, Color(1.0, 0.35, 0.45), 13)
 		fx.shake(2.0, 0.18)
 
 func _update_telegraph(delta: float) -> void:
@@ -706,14 +754,14 @@ func _execute_attack() -> void:
 
 ## Impactado por un disparo de virtudes o ataque cuerpo a cuerpo del héroe
 func hit_by_attack(attacker_pos: Variant = null, damage: int = 1) -> void:
-	if current_state == State.REDEEMED or current_state == State.APPEARING or _is_transforming:
+	if current_state == State.REDEEMED or current_state == State.APPEARING or _is_transforming or is_shattering_at_one_hp:
 		return
 
 	if _is_covered_and_vanished:
 		var fx_cov = _get_fx()
 		if fx_cov:
 			var parent_cov = get_parent() if get_parent() else self
-			fx_cov.floating_text(parent_cov, global_position + Vector2(0, -40), "¡CUBIERTO EN LA NIEBLA!", Color(0.7, 0.75, 0.95), 12)
+			fx_cov.floating_text(parent_cov, global_position + Vector2(0, -40), "Cubierto en niebla", Color(0.7, 0.75, 0.95), 12)
 		return
 
 	# Si está en transición entre cartas de hechizo, absorbe el golpe con cúpula dorada
@@ -721,7 +769,7 @@ func hit_by_attack(attacker_pos: Variant = null, damage: int = 1) -> void:
 		var fx_t = _get_fx()
 		if fx_t:
 			var parent_t = get_parent() if get_parent() else self
-			fx_t.floating_text(parent_t, global_position + Vector2(0, -40), "¡CAMBIO DE FASE!", Color(1.0, 0.85, 0.2), 12)
+			fx_t.floating_text(parent_t, global_position + Vector2(0, -40), "Cambio de fase", Color(1.0, 0.85, 0.2), 12)
 			fx_t.burst(parent_t, global_position + Vector2(0, -24), Color.GOLD, 6, 80.0)
 		return
 
@@ -730,9 +778,15 @@ func hit_by_attack(attacker_pos: Variant = null, damage: int = 1) -> void:
 		var fx_b = _get_fx()
 		if fx_b:
 			var parent_b = get_parent() if get_parent() else self
-			fx_b.floating_text(parent_b, global_position + Vector2(0, -40), "¡ATAJO BLOQUEADO!", Color(0.6, 0.85, 1.0), 12)
+			fx_b.floating_text(parent_b, global_position + Vector2(0, -40), "Atajo bloqueado", Color(0.6, 0.85, 1.0), 12)
 			fx_b.burst(parent_b, global_position + Vector2(0, -24), Color.CYAN, 8, 110.0)
 		return
+
+	# Anti-ráfaga: durante aturdimiento impide que aliados+jugador derritan la vida en segundos
+	if current_state == State.STUNNED and damage < max_hp:
+		if _stun_hit_cooldown > 0.0:
+			return
+		_stun_hit_cooldown = 0.28 if _difficulty_idx_cache >= 2 else 0.18
 
 	# Interceptar umbrales porcentuales críticos y tope de 1 HP en Titanor (salvo test de daño total max_hp)
 	if boss_type == BossType.BULLYING and damage < max_hp:
@@ -761,14 +815,44 @@ func hit_by_attack(attacker_pos: Variant = null, damage: int = 1) -> void:
 	var hit_pos := global_position + Vector2(0, -24)
 	var accent_col: Color = BOSS_DATA[boss_type]["accent_color"]
 
+	var calm_ratio := 1.0 - get_hp_ratio()
 	if fx:
-		fx.hitstop(0.08, 0.05)
-		fx.shake(3.8, 0.20)
-		fx.burst(get_parent(), hit_pos, accent_col, 16, 170.0)
-		fx.burst(get_parent(), hit_pos, Color.WHITE, 8, 120.0)
+		fx.shake(1.1, 0.06)
+		if fx.has_method("calm_burst"):
+			fx.calm_burst(get_parent(), hit_pos, Color(0.55, 0.96, 0.85), 10, 115.0)
+		else:
+			fx.burst(get_parent(), hit_pos, accent_col, 10, 120.0)
+		fx.burst(get_parent(), hit_pos, Color(1.0, 0.95, 0.65), 6, 90.0)
 
-	# Destello luminoso de impacto
-	modulate = Color(2.5, 2.2, 1.2, 1.0)
+	# Tono pentatónico armónico según avance de calma (sin sonido agresivo)
+	var gs_chk := get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	var silent_hl: bool = bool(gs_chk.call("is_silent_headless")) if (gs_chk and gs_chk.has_method("is_silent_headless")) else (DisplayServer.get_name() == "headless")
+	if not silent_hl and is_inside_tree():
+		if _chime_player == null:
+			_chime_player = AudioStreamPlayer.new()
+			_chime_player.bus = "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master"
+			_chime_player.volume_db = -11.0
+			if ResourceLoader.exists("res://assets/audio/ataque.wav"):
+				_chime_player.stream = ResourceLoader.load("res://assets/audio/ataque.wav") as AudioStream
+			add_child(_chime_player)
+		if _chime_player and _chime_player.stream:
+			var scale_pitches := [1.00, 1.12, 1.25, 1.33, 1.50]
+			var p_idx := clampi(int(calm_ratio * 4.99), 0, 4)
+			_chime_player.pitch_scale = float(scale_pitches[p_idx])
+			_chime_player.play()
+
+	# Micro-diálogos intermedios humanos al bajar la tensión
+	var bdata: Dictionary = BOSS_DATA.get(boss_type, {})
+	var mid_dialogs: Array = bdata.get("mid_dialogs", [])
+	if calm_ratio >= 0.35 and not _mid_dialog_35_sent and mid_dialogs.size() >= 1:
+		_mid_dialog_35_sent = true
+		special_phase_message.emit(str(mid_dialogs[0]))
+	elif calm_ratio >= 0.70 and not _mid_dialog_70_sent and mid_dialogs.size() >= 2:
+		_mid_dialog_70_sent = true
+		special_phase_message.emit(str(mid_dialogs[1]))
+
+	# Destello cálido dorado-cian
+	modulate = Color(1.6, 1.9, 1.8, 1.0)
 	_flash_timer = 0.12
 
 	# Retroceso suave
@@ -786,36 +870,41 @@ func hit_by_attack(attacker_pos: Variant = null, damage: int = 1) -> void:
 			scale = Vector2(1.22, 0.82)
 			create_tween().tween_property(self, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 			if fx:
-				fx.floating_text(get_parent(), hit_pos + Vector2(0, -34), "¡%d%% — FASE INTENSA!" % hp_pct, Color(1.0, 0.78, 0.28), 14)
-				fx.burst(get_parent(), hit_pos, Color(1.0, 0.72, 0.25), 14, 150.0)
+				fx.hitstop(0.03, 0.15)
+				fx.floating_text(get_parent(), hit_pos + Vector2(0, -34), "%d%% — Baja la guardia" % hp_pct, Color(0.55, 0.95, 1.0), 13)
+				fx.burst(get_parent(), hit_pos, Color(0.55, 0.95, 1.0), 12, 140.0)
 			hp_phase_animation_triggered.emit("enraged", hp_pct)
 		if hp_ratio <= PHASE_CRITICAL_RATIO and not _critical_anim_triggered:
 			_critical_anim_triggered = true
 			active_hp_anim_state = "critical"
 			visual_crack_level = maxf(visual_crack_level, 0.45)
 			if fx:
-				fx.shake(5.2, 0.30)
-				fx.floating_text(get_parent(), hit_pos + Vector2(0, -48), "¡%d%% — RESISTENCIA CRÍTICA!" % hp_pct, Color(1.0, 0.35, 0.45), 14)
-				fx.burst(get_parent(), hit_pos, Color(1.0, 0.35, 0.45), 18, 170.0)
+				fx.hitstop(0.03, 0.15)
+				fx.shake(2.6, 0.18)
+				fx.floating_text(get_parent(), hit_pos + Vector2(0, -48), "%d%% — Casi en calma" % hp_pct, Color(1.0, 0.90, 0.45), 13)
+				fx.burst(get_parent(), hit_pos, Color(1.0, 0.90, 0.45), 14, 150.0)
 			hp_phase_animation_triggered.emit("critical", hp_pct)
 
 	# Comprobar progresión porcentual de Fases Danmaku para Titanor (antes de su fase 18%)
 	if boss_type == BossType.BULLYING and hp_ratio > TITANOR_DESPERATION_RATIO and not _ten_hp_triggered:
 		if hp_ratio <= TITANOR_PHASE4_RATIO and _spell_phase < 4:
-			_trigger_spell_card_phase(4, "¡ÚLTIMO HECHIZO (30%): RESPLANDOR DE LA INCLUSIÓN!")
+			_trigger_spell_card_phase(4, "Fase Final (30%): Resplandor de Inclusión")
 		elif hp_ratio <= TITANOR_PHASE3_RATIO and _spell_phase < 3:
-			_trigger_spell_card_phase(3, "¡CARTA DE HECHIZO (50%): RULETA KALEIDOSCÓPICA CRUZADA!")
+			_trigger_spell_card_phase(3, "Fase 3 (50%): Ruleta Cruzada")
 		elif hp_ratio <= TITANOR_PHASE2_RATIO and _spell_phase < 2:
-			_trigger_spell_card_phase(2, "¡CARTA DE HECHIZO (75%): DOBLE ESPIRAL DE OPRESIÓN!")
+			_trigger_spell_card_phase(2, "Fase 2 (75%): Doble Espiral")
 
-	# Comprobar redención pacífica o interrupción en carga
+	# Comprobar redención pacífica o interrupción en carga (75% menos probable e inmunidad tras aturdirse)
 	if current_hp <= 0:
 		redeem()
-	elif current_state == State.TELEGRAPHING and randf() < 0.25:
-		current_state = State.STUNNED
-		_state_timer = 0.75
-		if fx:
-			fx.floating_text(get_parent(), hit_pos + Vector2(0, -25), "¡INTERRUPCIÓN!", Color(1.0, 0.9, 0.3), 14)
+	elif current_state == State.TELEGRAPHING and _stun_immunity_timer <= 0.0:
+		var stun_chance := TELEGRAPH_STUN_CHANCE * (0.5 if _difficulty_idx_cache >= 2 else 1.0)
+		if randf() < stun_chance:
+			current_state = State.STUNNED
+			_state_timer = 0.40
+			_stun_immunity_timer = STUN_IMMUNITY_COOLDOWN
+			if fx:
+				fx.floating_text(get_parent(), hit_pos + Vector2(0, -25), "Interrupción", Color(1.0, 0.9, 0.3), 14)
 
 ## Dispara la transición cinemática a una nueva fase Danmaku
 func _trigger_spell_card_phase(new_phase: int, spell_name: String) -> void:
@@ -832,6 +921,7 @@ func _trigger_spell_card_phase(new_phase: int, spell_name: String) -> void:
 
 	var fx = _get_fx()
 	if fx:
+		fx.hitstop(0.04, 0.08)
 		fx.shake(7.0, 0.5)
 		var parent = get_parent() if get_parent() else self
 		fx.burst(parent, global_position + Vector2(0, -24), Color(1.0, 0.85, 0.3), 36, 240.0)
@@ -862,7 +952,7 @@ func _grant_phase_clear_reward() -> void:
 		var fx = _get_fx()
 		if fx:
 			var parent = get_parent() if get_parent() else self
-			fx.floating_text(parent, player.global_position + Vector2(0, -45), "¡FASE SUPERADA! +1 ❤️", Color(0.4, 1.0, 0.5), 14)
+			fx.floating_text(parent, player.global_position + Vector2(0, -45), "Fase superada +1 Vida", Color(0.4, 1.0, 0.5), 14)
 			fx.burst(parent, player.global_position, Color(0.3, 1.0, 0.5), 16, 120.0)
 
 ## Redención pacífica (filosofía sin violencia): el antivalor mayor se transforma e ilumina
@@ -900,6 +990,7 @@ func redeem() -> void:
 	var fx = _get_fx()
 	var hit_pos := global_position + Vector2(0, -30)
 	if fx:
+		fx.hitstop(0.04, 0.08)
 		fx.shake(6.5, 0.5)
 		fx.burst(get_parent(), hit_pos, Color(1.0, 0.85, 0.2), 32, 220.0)
 		fx.burst(get_parent(), hit_pos, Color.WHITE, 20, 160.0)
@@ -998,7 +1089,7 @@ func _perform_boss_teleport() -> void:
 	teleport_count += 1
 	if fx:
 		fx.burst(parent_node, global_position + Vector2(0, -24), Color(0.35, 0.90, 1.0), 18, 160.0)
-		fx.floating_text(parent_node, global_position + Vector2(0, -56), "¡Teletransporte!", Color(0.75, 0.92, 1.0), 13)
+		fx.floating_text(parent_node, global_position + Vector2(0, -56), "Teletransporte", Color(0.75, 0.92, 1.0), 13)
 	queue_redraw()
 
 ## Teletransporte periódico cada 10s del Jefe del Edificio B (evitando obstáculos del corredor)
@@ -1019,7 +1110,7 @@ func _perform_ciberacoso_teleport() -> void:
 	teleport_count += 1
 	if fx:
 		fx.burst(parent_node, global_position + Vector2(0, -24), Color.MAGENTA, 16, 140.0)
-		fx.floating_text(parent_node, global_position + Vector2(0, -52), "¡Ciber-Teletransporte!", Color.CYAN, 13)
+		fx.floating_text(parent_node, global_position + Vector2(0, -52), "Ciber-Teletransporte", Color.CYAN, 13)
 	queue_redraw()
 
 func _prune_clones() -> void:
@@ -1050,19 +1141,21 @@ func _spawn_fake_clones(count: int = 2) -> void:
 	for i in range(can_add):
 		var ang := randf() * TAU
 		var offset := Vector2(cos(ang), sin(ang)) * randf_range(90.0, 165.0)
-		var spawn_pos := global_position + offset
-		spawn_pos.x = clampf(spawn_pos.x, 100.0, bounds.x - 100.0)
-		spawn_pos.y = clampf(spawn_pos.y, 100.0, bounds.y - 100.0)
+		var raw_spawn := Vector2(
+			clampf(global_position.x + offset.x, 100.0, bounds.x - 100.0),
+			clampf(global_position.y + offset.y, 100.0, bounds.y - 100.0)
+		)
+		var spawn_pos := _find_safe_boss_pos(raw_spawn, global_position)
 
 		var clone := BossFakeCloneClass.new(self, data["color"], data["accent_color"], randf() * TAU)
-		clone.position = spawn_pos
+		clone.position = _to_parent_local(spawn_pos)
 		parent_node.add_child(clone)
 		active_clones.append(clone)
 		if fx:
 			fx.burst(parent_node, spawn_pos + Vector2(0, -24), Color(0.75, 0.45, 1.0), 10, 90.0)
 
 	if fx:
-		fx.floating_text(parent_node, global_position + Vector2(0, -64), "¡Clones de Sombra! ¡Encuentra al real!", Color(0.95, 0.65, 1.0), 13)
+		fx.floating_text(parent_node, global_position + Vector2(0, -64), "Clones de Sombra · Encuentra al real", Color(0.95, 0.65, 1.0), 13)
 
 func _update_fake_clones(delta: float) -> void:
 	_prune_clones()
@@ -1077,10 +1170,20 @@ func _update_fake_clones(delta: float) -> void:
 		var dir := to_p.normalized() if to_p.length_squared() > 25.0 else Vector2.RIGHT
 		var perp := Vector2(-dir.y, dir.x) * sin(_anim_time * 3.0 + float(idx) * 2.1) * 0.55
 		var move_v := (dir + perp).normalized() * spd
-		clone.global_position = Vector2(
-			clampf(clone.global_position.x + move_v.x * delta, 80.0, bounds.x - 80.0),
-			clampf(clone.global_position.y + move_v.y * delta, 90.0, bounds.y - 80.0)
+		var cur_pos := clone.global_position
+		var next_pos := Vector2(
+			clampf(cur_pos.x + move_v.x * delta, 80.0, bounds.x - 80.0),
+			clampf(cur_pos.y + move_v.y * delta, 90.0, bounds.y - 80.0)
 		)
+		if not _is_pos_inside_obstacle(next_pos, 16.0):
+			clone.global_position = next_pos
+		else:
+			var slide_x := Vector2(next_pos.x, cur_pos.y)
+			var slide_y := Vector2(cur_pos.x, next_pos.y)
+			if not _is_pos_inside_obstacle(slide_x, 16.0):
+				clone.global_position = slide_x
+			elif not _is_pos_inside_obstacle(slide_y, 16.0):
+				clone.global_position = slide_y
 
 func _clear_fake_clones() -> void:
 	for c in active_clones:
@@ -1201,7 +1304,7 @@ func trigger_cover_and_vanish(duration: float = 3.0) -> void:
 	if fx:
 		var parent_node: Node = get_parent() if get_parent() else self
 		fx.burst(parent_node, global_position + Vector2(0, -24), Color(0.55, 0.78, 1.0), 16, 120.0)
-		fx.floating_text(parent_node, global_position + Vector2(0, -52), "¡Cubierto y Oculto (3s)!", Color(0.65, 0.88, 1.0), 13)
+		fx.floating_text(parent_node, global_position + Vector2(0, -52), "Cubierto y Oculto (3s)", Color(0.65, 0.88, 1.0), 13)
 	queue_redraw()
 
 func _end_cover_and_vanish() -> void:
@@ -1283,10 +1386,14 @@ func _show_dramatic_pause(message: String, accent: Color, duration: float) -> vo
 	get_tree().root.add_child(layer)
 	_pause_banner_layer = layer
 
-	var is_headless := DisplayServer.get_name() == "headless"
-	if not is_headless and not get_tree().paused:
+	var gs_pause := get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	var skip_pause := (bool(gs_pause.should_skip_window_ops()) if (gs_pause and gs_pause.has_method("should_skip_window_ops")) else DisplayServer.get_name() == "headless")
+	if not skip_pause and not get_tree().paused:
 		_pause_owned_by_boss = true
-		get_tree().paused = true
+		if gs_pause and gs_pause.has_method("request_pause"):
+			gs_pause.request_pause(&"boss_dramatic_pause")
+		else:
+			get_tree().paused = true
 	else:
 		_pause_owned_by_boss = false
 	var t := get_tree().create_timer(duration, true, false, false)
@@ -1298,8 +1405,15 @@ func _dismiss_dramatic_pause() -> void:
 	if _pause_banner_layer and is_instance_valid(_pause_banner_layer):
 		_pause_banner_layer.queue_free()
 	_pause_banner_layer = null
-	if _pause_owned_by_boss and is_inside_tree() and get_tree() and get_tree().paused:
-		get_tree().paused = false
+	if _pause_owned_by_boss and is_inside_tree() and get_tree():
+		var gs_pause := get_node_or_null("/root/GameSettings")
+		if gs_pause and gs_pause.has_method("release_pause"):
+			gs_pause.release_pause(&"boss_dramatic_pause")
+		elif get_tree().paused:
+			var cur_scene := get_tree().current_scene
+			var hud_n := cur_scene.get_node_or_null("HUD") if cur_scene else null
+			if hud_n == null or not bool(hud_n.get("is_paused")):
+				get_tree().paused = false
 	_pause_owned_by_boss = false
 
 ## Activa la ventaja ESPERANZA: durante 15s el jefe no puede generar clones ni niebla y queda indefenso
@@ -1324,15 +1438,17 @@ func apply_esperanza_debuff(duration: float = 15.0) -> void:
 	if lvl and lvl.has_method("set_boss_desperation_fog"):
 		lvl.set_boss_desperation_fog(false)
 	if current_state != State.APPEARING:
+		_esperanza_stagger_timer = ESPERANZA_STAGGER_DURATION_HARD if _difficulty_idx_cache >= 2 else ESPERANZA_STAGGER_DURATION_NORMAL
 		current_state = State.STUNNED
-		_state_timer = maxf(_state_timer, esperanza_debuff_timer)
-	last_special_message = "¡ESPERANZA ACTIVA! Jefe indefenso"
+		_state_timer = _esperanza_stagger_timer
+		_stun_immunity_timer = maxf(_stun_immunity_timer, STUN_IMMUNITY_COOLDOWN)
+	last_special_message = "ESPERANZA ACTIVA · Jefe indefenso"
 	special_phase_message.emit(last_special_message)
 	var fx := _get_fx()
 	if fx and is_inside_tree():
 		var parent_node: Node = get_parent() if get_parent() else self
 		fx.burst(parent_node, global_position + Vector2(0, -24), Color(1.0, 0.90, 0.35), 24, 180.0)
-		fx.floating_text(parent_node, global_position + Vector2(0, -64), "¡ESPERANZA! Sin clones ni niebla (15s)", Color(1.0, 0.92, 0.38), 15)
+		fx.floating_text(parent_node, global_position + Vector2(0, -64), "ESPERANZA · Sin clones ni niebla (15s)", Color(1.0, 0.92, 0.38), 15)
 	queue_redraw()
 
 ## Fase Clímax al 8% de vida: Pausa ("No dejare que liberes tan facil a la escuela"), intento de transformación y reducción a 1 HP
@@ -1360,6 +1476,19 @@ func _trigger_five_hp_final_climax() -> void:
 
 func _spawn_rescue_students() -> void:
 	_clear_rescue_students()
+	var lvl_ref := _get_level_node()
+	if lvl_ref and "students" in lvl_ref:
+		for existing_s in lvl_ref.students:
+			if is_instance_valid(existing_s):
+				existing_s.visible = false
+				existing_s.set_physics_process(false)
+				existing_s.set_process(false)
+	if is_inside_tree() and get_tree():
+		for grp_s in get_tree().get_nodes_in_group("students"):
+			if is_instance_valid(grp_s) and (lvl_ref == null or lvl_ref.is_ancestor_of(grp_s)):
+				grp_s.visible = false
+				grp_s.set_physics_process(false)
+				grp_s.set_process(false)
 	var parent_node: Node = get_parent() if get_parent() else self
 	var bounds := _get_arena_bounds()
 	var fx := _get_fx()
@@ -1373,7 +1502,7 @@ func _spawn_rescue_students() -> void:
 
 		var node := Node2D.new()
 		node.name = "RescuedAlly_%s" % str(info["name"])
-		node.position = pos
+		node.position = _to_parent_local(pos)
 		node.z_index = 25
 
 		var tex := _load_boss_texture(str(info["tex"]))
@@ -1407,7 +1536,7 @@ func _spawn_rescue_students() -> void:
 			fx.floating_text(parent_node, pos + Vector2(0, -64), str(info["virtue"]), info["color"], 11)
 
 	if fx:
-		fx.floating_text(parent_node, global_position + Vector2(0, -82), "¡Toda la escuela unida en valores!", Color(1.0, 0.95, 0.45), 15)
+		fx.floating_text(parent_node, global_position + Vector2(0, -82), "Toda la escuela unida en valores", Color(1.0, 0.95, 0.45), 15)
 
 func _clear_rescue_students() -> void:
 	for s in rescued_attack_students:
@@ -1495,7 +1624,7 @@ func _start_one_hp_shatter_sequence() -> void:
 	if fx and is_inside_tree():
 		var parent_node: Node = get_parent() if get_parent() else self
 		fx.shake(6.0, 0.4)
-		fx.floating_text(parent_node, global_position + Vector2(0, -64), "¡SE QUIEBRA...!", Color(0.95, 0.95, 1.0), 15)
+		fx.floating_text(parent_node, global_position + Vector2(0, -64), "Cede su postura", Color(0.95, 0.95, 1.0), 15)
 	queue_redraw()
 
 ## Finaliza el clímax Undertale (cuando los 8 corazones de valores completan el diálogo y rayo de luz)
@@ -1555,7 +1684,7 @@ func _attack_apathy_cyclone() -> void:
 	# Rafaga dirigida 0.22s después
 	if is_inside_tree() and get_tree():
 		get_tree().create_timer(0.22).timeout.connect(func():
-			if is_instance_valid(self) and is_inside_tree() and current_state != State.REDEEMED and player and is_instance_valid(player):
+			if _can_fire_delayed_attack() and player and is_instance_valid(player):
 				var aim_dir := (player.global_position - global_position).normalized()
 				for k in range(3):
 					var offset_ang := float(k - 1) * 0.18
@@ -1659,7 +1788,7 @@ func _attack_targeted_snipe_stream(stream_count: int, spd: float) -> void:
 	if is_inside_tree() and get_tree():
 		for i in range(stream_count):
 			get_tree().create_timer(float(i) * 0.075).timeout.connect(func():
-				if is_instance_valid(self) and is_inside_tree() and current_state != State.REDEEMED and player and is_instance_valid(player):
+				if _can_fire_delayed_attack() and player and is_instance_valid(player):
 					var aim_dir := (player.global_position - base_origin).normalized()
 					_spawn_boss_danmaku_bullet(base_origin, aim_dir, spd, Color(1.0, 0.4, 0.4), 0.0, 0.82)
 			)
@@ -1728,7 +1857,7 @@ func _attack_danmaku_sweeping_curtains(fan_count: int, spd: float) -> void:
 	for wave in range(2):
 		var delay := float(wave) * 0.24
 		var run_wave := func():
-			if not is_instance_valid(self) or not is_inside_tree() or current_state == State.REDEEMED:
+			if not _can_fire_delayed_attack():
 				return
 			var aim := (player.global_position - origin).normalized() if (player and is_instance_valid(player)) else _attack_dir
 			var dir_sign := 1.0 if wave == 0 else -1.0
@@ -1853,7 +1982,7 @@ func _attack_ciber_homing_swarm() -> void:
 	var fx := _get_fx()
 	if fx:
 		var parent = get_parent() if get_parent() else self
-		fx.floating_text(parent, global_position + Vector2(0, -48), "¡Ciber-Rastreo!", Color(0.4, 0.95, 1.0), 13)
+		fx.floating_text(parent, global_position + Vector2(0, -48), "Ciber-Rastreo", Color(0.4, 0.95, 1.0), 13)
 
 func _attack_glitch_teleport_starburst() -> void:
 	_state_timer = 0.55
@@ -1872,7 +2001,7 @@ func _attack_glitch_teleport_starburst() -> void:
 	teleport_count += 1
 	if fx:
 		fx.burst(parent, global_position, Color.MAGENTA, 14, 140.0)
-		fx.floating_text(parent, global_position + Vector2(0, -40), "¡GLITCH!", Color.CYAN, 12)
+		fx.floating_text(parent, global_position + Vector2(0, -40), "Desvío digital", Color.CYAN, 12)
 	# Ráfaga estelar de 8 balas + 2 proyectiles teledirigidos al materializarse
 	for k in range(8):
 		var ang := float(k) * (TAU / 8.0)
@@ -1896,7 +2025,7 @@ func _attack_classroom_lab() -> void:
 		var dir := Vector2(cos(ang), sin(ang))
 		var p = PROJECTILE_SCENE.instantiate()
 		p.is_enemy_projectile = true
-		p.position = global_position + Vector2(0, -20)
+		p.position = _to_parent_local(global_position + Vector2(0, -20))
 		p.direction = dir
 		p.speed = 210.0
 		p.modulate = Color(0.25, 0.95, 0.45) # Verde reactivo ácido
@@ -1907,11 +2036,13 @@ func _attack_classroom_lab() -> void:
 		p.lifetime = 3.5
 		p.collision_layer = 8
 		p.collision_mask = 3
+		p.remove_from_group("player_attack")
+		p.add_to_group("enemy_projectiles")
 		var parent = get_parent() if get_parent() else self
 		parent.add_child(p)
 	var fx = _get_fx()
 	if fx:
-		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -45), "¡Reactivo Autodirigido!", Color(0.3, 1.0, 0.5), 12)
+		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -45), "Reactivo Autodirigido", Color(0.3, 1.0, 0.5), 12)
 
 ## Salón 2: Exámenes y hojas de calificaciones que rebotan en las paredes
 func _attack_classroom_papers() -> void:
@@ -1921,7 +2052,7 @@ func _attack_classroom_papers() -> void:
 		var dir := Vector2(cos(ang), sin(ang))
 		var p = PROJECTILE_SCENE.instantiate()
 		p.is_enemy_projectile = true
-		p.position = global_position + Vector2(0, -20)
+		p.position = _to_parent_local(global_position + Vector2(0, -20))
 		p.direction = dir
 		p.speed = 240.0 + float(i) * 15.0
 		p.modulate = Color(0.95, 0.98, 1.0) # Blanco papel
@@ -1930,11 +2061,13 @@ func _attack_classroom_papers() -> void:
 		p.lifetime = 4.0
 		p.collision_layer = 8
 		p.collision_mask = 3
+		p.remove_from_group("player_attack")
+		p.add_to_group("enemy_projectiles")
 		var parent = get_parent() if get_parent() else self
 		parent.add_child(p)
 	var fx = _get_fx()
 	if fx:
-		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -45), "¡Exámenes Voladores!", Color(0.9, 0.95, 1.0), 12)
+		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -45), "Exámenes Voladores", Color(0.9, 0.95, 1.0), 12)
 
 ## Salón 3: Ondas expansivas de apatía cívica desde el podio
 func _attack_classroom_civic_shockwave() -> void:
@@ -1942,14 +2075,14 @@ func _attack_classroom_civic_shockwave() -> void:
 	_attack_expanding_ring(130.0, 1.0)
 	if is_inside_tree():
 		get_tree().create_timer(0.35).timeout.connect(func():
-			if is_instance_valid(self) and is_inside_tree() and current_state != State.REDEEMED:
+			if _can_fire_delayed_attack():
 				for i in range(10):
 					var ang := float(i) * (TAU / 10.0) + 0.3
 					_spawn_boss_danmaku_bullet(global_position + Vector2(0, -20), Vector2(cos(ang), sin(ang)), 170.0, Color(0.85, 0.70, 0.35))
 		)
 	var fx = _get_fx()
 	if fx:
-		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -45), "¡Onda de Indiferencia!", Color(1.0, 0.8, 0.4), 12)
+		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -45), "Onda de Indiferencia", Color(1.0, 0.8, 0.4), 12)
 
 ## Salón 4: Ráfaga en abanico denso de libros pesados
 func _attack_classroom_book_barrage() -> void:
@@ -1960,7 +2093,7 @@ func _attack_classroom_book_barrage() -> void:
 		_spawn_boss_danmaku_bullet(global_position + Vector2(0, -20), dir, 220.0, Color(0.85, 0.35, 0.30), 0.0, 0.9)
 	var fx = _get_fx()
 	if fx:
-		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -45), "¡Ráfaga de Libros!", Color(1.0, 0.45, 0.4), 12)
+		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -45), "Ráfaga de Libros", Color(1.0, 0.45, 0.4), 12)
 
 ## Salón 5: Glitch digital en cruz que se detiene y acelera
 func _attack_classroom_digital_glitch() -> void:
@@ -1971,25 +2104,27 @@ func _attack_classroom_digital_glitch() -> void:
 	for d in dirs:
 		var p = PROJECTILE_SCENE.instantiate()
 		p.is_enemy_projectile = true
-		p.position = global_position + Vector2(0, -20)
+		p.position = _to_parent_local(global_position + Vector2(0, -20))
 		p.direction = d
 		p.speed = 120.0
 		p.modulate = Color(0.2, 0.85, 1.0) # Cian digital
 		p.lifetime = 3.5
 		p.collision_layer = 8
 		p.collision_mask = 3
+		p.remove_from_group("player_attack")
+		p.add_to_group("enemy_projectiles")
 		var parent = get_parent() if get_parent() else self
 		parent.add_child(p)
 		if is_inside_tree():
 			get_tree().create_timer(0.4).timeout.connect(func():
-				if is_instance_valid(self) and is_inside_tree() and current_state != State.REDEEMED and is_instance_valid(p) and player and is_instance_valid(player):
+				if _can_fire_delayed_attack() and is_instance_valid(p) and player and is_instance_valid(player):
 					p.set_direction((player.global_position - p.global_position).normalized())
 					p.speed = 260.0
 					p.modulate = Color(1.0, 0.3, 0.8)
 			)
 	var fx = _get_fx()
 	if fx:
-		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -45), "¡Sobrecarga de Datos!", Color(0.3, 0.9, 1.0), 12)
+		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -45), "Sobrecarga de Datos", Color(0.3, 0.9, 1.0), 12)
 
 ## Salón 6: Balones deportivos rebotantes y embestida veloz
 func _attack_classroom_sports_slam() -> void:
@@ -1999,7 +2134,7 @@ func _attack_classroom_sports_slam() -> void:
 		var dir := Vector2(cos(ang), sin(ang))
 		var p = PROJECTILE_SCENE.instantiate()
 		p.is_enemy_projectile = true
-		p.position = global_position + Vector2(0, -20)
+		p.position = _to_parent_local(global_position + Vector2(0, -20))
 		p.direction = dir
 		p.speed = 280.0
 		p.modulate = Color(1.0, 0.55, 0.15) # Naranja básquetbol
@@ -2008,12 +2143,14 @@ func _attack_classroom_sports_slam() -> void:
 		p.lifetime = 4.2
 		p.collision_layer = 8
 		p.collision_mask = 3
+		p.remove_from_group("player_attack")
+		p.add_to_group("enemy_projectiles")
 		var parent = get_parent() if get_parent() else self
 		parent.add_child(p)
 	_dash_velocity = _attack_dir * 180.0
 	var fx = _get_fx()
 	if fx:
-		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -45), "¡Balonazo Rápido!", Color(1.0, 0.6, 0.2), 12)
+		fx.floating_text(get_parent() if get_parent() else self, global_position + Vector2(0, -45), "Balonazo Rápido", Color(1.0, 0.6, 0.2), 12)
 
 func _attack_rotating_barrier(duration: float) -> void:
 	_state_timer = duration
@@ -2022,18 +2159,18 @@ func _attack_rotating_barrier(duration: float) -> void:
 	var fx = _get_fx()
 	if fx:
 		var parent = get_parent() if get_parent() else self
-		fx.floating_text(parent, global_position + Vector2(0, -50), "¡Barrera Protectora!", Color(0.6, 0.8, 1.0), 13)
+		fx.floating_text(parent, global_position + Vector2(0, -50), "Barrera Protectora", Color(0.6, 0.8, 1.0), 13)
 
-## Instancia un proyectil Danmaku hostil con parámetros Touhou
-func _spawn_boss_danmaku_bullet(pos: Vector2, dir: Vector2, spd: float, col: Color, curve: float = 0.0, sz_scale: float = 0.75) -> void:
+## Instancia un proyectil Danmaku hostil con tamaño estandarizado
+func _spawn_boss_danmaku_bullet(pos: Vector2, dir: Vector2, spd: float, col: Color, curve: float = 0.0, _sz_scale: float = BOSS_PROJECTILE_SCALE) -> void:
 	var p = PROJECTILE_SCENE.instantiate()
 	p.is_enemy_projectile = true
-	p.position = pos
+	p.position = _to_parent_local(pos)
 	p.direction = dir
 	p.speed = spd
 	p.modulate = col
 	p.curve_speed = curve
-	p.scale = Vector2(sz_scale, sz_scale)
+	p.scale = Vector2(BOSS_PROJECTILE_SCALE, BOSS_PROJECTILE_SCALE)
 	p.lifetime = 3.6
 	p.collision_layer = 8
 	p.collision_mask = 3
@@ -2046,14 +2183,14 @@ func _spawn_boss_danmaku_bullet(pos: Vector2, dir: Vector2, spd: float, col: Col
 func _spawn_homing_boss_bullet(pos: Vector2, dir: Vector2, spd: float, col: Color, homing_str: float = 3.1, lifetime_sec: float = 3.6) -> void:
 	var p = PROJECTILE_SCENE.instantiate()
 	p.is_enemy_projectile = true
-	p.position = pos
+	p.position = _to_parent_local(pos)
 	p.direction = dir
 	p.speed = spd
 	p.modulate = col
 	p.is_homing = true
 	p.homing_strength = homing_str
 	p.homing_target = player
-	p.scale = Vector2(0.85, 0.85)
+	p.scale = Vector2(BOSS_PROJECTILE_SCALE, BOSS_PROJECTILE_SCALE)
 	p.lifetime = lifetime_sec
 	p.collision_layer = 8
 	p.collision_mask = 3
@@ -2073,7 +2210,7 @@ func _update_attack(delta: float) -> void:
 		_state_timer = randf_range(0.8, 1.5)
 
 func _on_hitbox_body_entered(body: Node2D) -> void:
-	if body.is_in_group("player") and current_state != State.REDEEMED and current_state != State.APPEARING and not _is_covered_and_vanished and not _is_transforming:
+	if body.is_in_group("player") and current_state != State.REDEEMED and current_state != State.APPEARING and current_state != State.STUNNED and not is_esperanza_defenseless and not _is_covered_and_vanished and not _is_transforming:
 		body.take_damage(1, global_position)
 
 # -----------------------------------------------------------------------------

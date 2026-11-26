@@ -9,7 +9,10 @@ signal closed
 
 const GameSettingsScript := preload("res://scripts/game_settings.gd")
 const BossRendererClass := preload("res://scripts/boss_renderer.gd")
-const CATEGORY_ORDER := ["Personajes", "Canciones", "Escenarios", "Enemigos y Jefes", "Habilidades e Ítems", "Videos"]
+const UNDERTALE_BATTLE_SCENE := preload("res://scenes/undertale_battle.tscn")
+const CLASSROOM_MINIGAME_SCENE := preload("res://scenes/classroom_minigame.tscn")
+const INTERLUDE_MINIGAME_SCENE := preload("res://scenes/interlude_minigame.tscn")
+const CATEGORY_ORDER := ["Personajes", "Canciones", "Escenarios", "Enemigos y Jefes", "Habilidades e Ítems", "Videos", "Minijuegos"]
 
 const COLOR_MAP_PREVIEW := {
 	"esperanza": Color(1.0, 0.88, 0.25),
@@ -52,6 +55,9 @@ var _video_fs_aspect: AspectRatioContainer
 var _video_fs_btn_pause: Button
 var _is_video_fullscreen: bool = false
 var _prev_window_mode: int = -1
+var _minigame_row: HBoxContainer
+var _btn_play_minigame: Button
+var _active_minigame: CanvasLayer = null
 var _detail_title: Label
 var _detail_rich: RichTextLabel
 var _btn_close: Button
@@ -78,10 +84,22 @@ func _ready() -> void:
 	_update_safe_layout()
 
 func _exit_tree() -> void:
+	_cleanup_active_minigame()
 	close_video_fullscreen()
 	var vp := get_viewport()
 	if vp and vp.size_changed.is_connected(_update_safe_layout):
 		vp.size_changed.disconnect(_update_safe_layout)
+
+func _cleanup_active_minigame() -> void:
+	if _active_minigame != null and is_instance_valid(_active_minigame):
+		_active_minigame.queue_free()
+	_active_minigame = null
+
+func _can_change_window_mode() -> bool:
+	var gs := _get_gs()
+	if gs and gs.has_method("should_skip_window_ops"):
+		return not bool(gs.should_skip_window_ops())
+	return DisplayServer.get_name() != "headless"
 
 func _get_gs() -> Node:
 	if not is_inside_tree():
@@ -110,57 +128,57 @@ static func get_all_categories() -> Dictionary:
 			"name": "Mateo",
 			"folder": "res://assets/characters/mateo_laboratorio/",
 			"portrait": "res://assets/portraits/mateo_laboratorio.png",
-			"what": "Alumno curioso del taller científico que sufre desaliento al inicio de la jornada.",
-			"where": "Escenario 1 (Acceso / Edificio D) y Salón 1 (Laboratorio de Usos Múltiples); apoya como aliado en la Cancha.",
-			"symbolizes": "La curiosidad académica, el rigor científico y el valor de atreverse a preguntar sin miedo a la burla."
+			"what": "Alumno curioso de 1º que camina 40 min cada mañana. Ataque: Triple Reacción (3 chispas de estudio en abanico con pausa central).",
+			"where": "Escenario 1 (Acceso / Edificio D) y Salón 1 (Laboratorio D); apoya como aliado en la Cancha.",
+			"symbolizes": "La curiosidad que vence el miedo a preguntar y contagia entusiasmo al grupo."
 		},
 		{
 			"name": "María",
 			"folder": "res://assets/characters/maria_cafeteria/",
 			"portrait": "res://assets/portraits/maria_cafeteria.png",
-			"what": "Compañera solidaria de la cafetería escolar que comparte alimento y escucha.",
+			"what": "Compañera de 2º en el desayunador. Ataque: Escudo Firme (aro de respeto que limpia proyectiles hostiles).",
 			"where": "Escenario 2 (Edificio A — Cafetería) y Salón 2 (Aula 1); asiste en el rescate final.",
-			"symbolizes": "La empatía cotidiana, la hospitalidad y el apoyo silencioso hacia quien almuerza solo."
+			"symbolizes": "Cuidar a los demás sin cargar injusticias: poner límites con respeto."
 		},
 		{
 			"name": "Valeria",
 			"folder": "res://assets/characters/valeria_plaza/",
 			"portrait": "res://assets/portraits/valeria_plaza.png",
-			"what": "Estudiante de escolta y oratoria con banda de liderazgo estudiantil.",
+			"what": "Compañera de 3º con pulsera tejida ñähñu. Ataque: Pulso Estéreo (dos ondas sonoras curvas entrelazadas).",
 			"where": "Escenario 3 (Plaza Cívica y Escalinata Sur) y Salón 3 (Sala Cívica); combate como aliada.",
-			"symbolizes": "El civismo, la inclusión y la igualdad de trato sin distinción de origen o estatus."
+			"symbolizes": "Soltar la coraza defensiva y unir voces sin distinción de origen ni acento."
 		},
 		{
 			"name": "Fernanda",
 			"folder": "res://assets/characters/fernanda_biblioteca/",
 			"portrait": "res://assets/portraits/fernanda_biblioteca.png",
-			"what": "Alumna lectora de la biblioteca escolar víctima de rumores digitales.",
+			"what": "Lectora de 4º que deja notas breves en libros usados. Ataque: Nota al Margen (marcador teledirigido).",
 			"where": "Escenario 4 (Edificio B — Biblioteca) y Salón 4 (Biblioteca Escolar).",
-			"symbolizes": "La sabiduría, la veracidad y el rechazo consciente a la difamación y el ciberacoso."
+			"symbolizes": "Romper el silencio cómodo para que la verdad alcance y detenga los rumores."
 		},
 		{
 			"name": "Diego",
 			"folder": "res://assets/characters/diego_computo/",
 			"portrait": "res://assets/portraits/diego_computo.png",
-			"what": "Estudiante de informática comprometido con proyectos auténticos y ética digital.",
-			"where": "Escenario 5 (Edificio C — Cómputo y Dirección) y Salón 5 (Taller de Cómputo).",
-			"symbolizes": "La ciudadanía digital responsable, la honestidad intelectual y el mérito del esfuerzo propio."
+			"what": "Programador de 5º fan de calcomanías de gatos. Ataque: Señal Abierta (manos unidas en sprite ataque_senal.png y pulso protector).",
+			"where": "Escenario 5 (Edificio C — Cómputo) y Salón 5 (Taller de Cómputo).",
+			"symbolizes": "Salir del aislamiento digital usando la tecnología para unir y cuidar al grupo."
 		},
 		{
 			"name": "Sofía",
 			"folder": "res://assets/characters/sofia_direccion/",
 			"portrait": "res://assets/portraits/sofia_direccion.png",
-			"what": "Representante estudiantil organizada que coordina la respuesta pacífica del plantel.",
-			"where": "Edificio C (Dirección), pasillos cívicos y escuadrón aliado frente a Titanor en Escenario 6.",
-			"symbolizes": "El respeto institucional, la organización justa y el diálogo mediador en la comunidad."
+			"what": "Representante de 5º en Dirección. Ataque: Turno Abierto (proyectil perforante que acelera la respuesta del equipo).",
+			"where": "Edificio C (Dirección) y escuadrón aliado frente a Titanor en Escenario 6.",
+			"symbolizes": "Soltar el control individual para coordinar y confiar en la fuerza colectiva."
 		},
 		{
 			"name": "Alejandro",
 			"folder": "res://assets/characters/alejandro_cancha/",
 			"portrait": "res://assets/portraits/alejandro_cancha.png",
-			"what": "Deportista de la cancha múltiple que defiende a los compañeros de menor grado.",
-			"where": "Escenario 6 (Cancha de Usos Múltiples) y Salón 6 (Aula Magna Deportiva).",
-			"symbolizes": "El juego limpio (Fair Play), la fraternidad deportiva y el usar la fuerza únicamente para proteger."
+			"what": "Capitán de 6º con balón extra en la mochila. Ataque: Pase de Rebote (ataque_balon.png rápido que rebota con fuerza en bordes).",
+			"where": "Escenario 6 (Cancha de Usos Múltiples) y Salón 6 (Gimnasio / Aula Magna).",
+			"symbolizes": "El Fair Play y la fraternidad: abrir el juego limpio para todo el plantel."
 		},
 		{
 			"name": "Coordinador Escolar",
@@ -199,31 +217,31 @@ static func get_all_categories() -> Dictionary:
 		{ "name": "Salón 2: Aula 1 — Edificio A", "img": "res://escenarios/salones/salon_2_aula_a.png", "what": "Salón de clases tradicional con pupitres organizados y pizarrón central (20×12 m).", "where": "Salón Interior 2/6 — Puerta en Edificio A.", "symbolizes": "El diálogo en clase frente al murmullo indiferente." },
 		{ "name": "3. Plaza Cívica y Escalinata Sur", "img": "res://escenarios/nivel_3_plaza_civica_escalinata.png", "what": "Explanada cívica central con asta bandera y escalinatas (748 m²).", "where": "Escenario Exterior 3/6.", "symbolizes": "Igualdad cívica y orgullo comunitario de Temoaya y COBAEM." },
 		{ "name": "Salón 3: Sala Cívica de Asambleas", "img": "res://escenarios/salones/salon_3_sala_civica.png", "what": "Auditorio de asambleas estudiantiles con podio central (20×12 m).", "where": "Salón Interior 3/6 — Puerta en Plaza Cívica.", "symbolizes": "La palabra respetuosa y la escucha en comunidad." },
-		{ "name": "4. Edificio B — Biblioteca y Aulas", "img": "res://escenarios/nivel_4_edificio_b.png", "what": "Pasillo tecnológico y acceso al edificio de biblioteca (280 m²).", "where": "Escenario Exterior 4/6.", "symbolizes": "Información veraz frente a rumores anónimos." },
+		{ "name": "4. Edificio B — Biblioteca y Aulas", "img": "res://escenarios/nivel_4_edificio_b.png", "what": "Pasillo tecnológico y acceso al edificio de biblioteca (313 m²).", "where": "Escenario Exterior 4/6.", "symbolizes": "Información veraz frente a rumores anónimos." },
 		{ "name": "Salón 4: Biblioteca Escolar", "img": "res://escenarios/salones/salon_4_biblioteca.png", "what": "Sala de lectura con estanterías y mesas de estudio (20×12 m).", "where": "Salón Interior 4/6 — Puerta en Edificio B.", "symbolizes": "Pensamiento crítico y paz intelectual." },
 		{ "name": "5. Edificio C — Cómputo y Dirección", "img": "res://escenarios/nivel_5_edificio_c_computo.png", "what": "Área administrativa, talleres digitales y patio contiguo (625 m²).", "where": "Escenario Exterior 5/6.", "symbolizes": "Integridad académica y ética en el entorno digital." },
 		{ "name": "Salón 5: Taller de Cómputo", "img": "res://escenarios/salones/salon_5_computo.png", "what": "Laboratorio equipado con mesas de cómputo (20×12 m).", "where": "Salón Interior 5/6 — Puerta en Edificio C.", "symbolizes": "Uso creativo y honesto de la tecnología." },
-		{ "name": "6. Cancha de Usos Múltiples", "img": "res://escenarios/nivel_6_cancha_usos_multiples.png", "what": "Cancha techada de básquetbol y gradas de convivencia (540 m²).", "where": "Escenario Exterior 6/6 (Clímax Final).", "symbolizes": "Juego limpio, unión total y erradicación definitiva del bullying." },
+		{ "name": "6. Cancha de Usos Múltiples", "img": "res://escenarios/nivel_6_cancha_usos_multiples.png", "what": "Cancha techada de básquetbol y gradas de convivencia (540 m²).", "where": "Escenario Exterior 6/6 (Clímax Final).", "symbolizes": "Juego limpio, unión total y convivencia libre de acoso." },
 		{ "name": "Salón 6: Aula Magna Deportiva", "img": "res://escenarios/salones/salon_6_gimnasio.png", "what": "Salón deportivo de activación física y salud escolar (20×12 m).", "where": "Salón Interior 6/6 — Puerta en Cancha Múltiple.", "symbolizes": "Trabajo en equipo y respeto corporal." },
 	]
 
 	var enemies := [
-		{ "name": "Grosería (Antivalor Base)", "kind": "sprite", "tex": "res://assets/sprites/enemigo_groseria.png", "what": "Antivalor ágil e impulsivo que salta buscando intimidar en pasillos.", "where": "Todos los escenarios exteriores e interiores.", "symbolizes": "Faltas de respeto verbales; al redimirse proclama «¡Amabilidad!»." },
-		{ "name": "Acoso (Antivalor Acechante)", "kind": "sprite", "tex": "res://assets/sprites/enemigo_acoso.png", "what": "Sombra vigilante con amplio rango de alerta en grupo.", "where": "Patios, bibliotecas y salones cerrados.", "symbolizes": "Hostigamiento persistente; al redimirse proclama «¡Respeto!»." },
-		{ "name": "Bullying (Antivalor Pesado)", "kind": "sprite", "tex": "res://assets/sprites/enemigo_bullying.png", "what": "Antivalor territorial resistente (doble vida en Difícil).", "where": "Zonas de conflicto y rondas avanzadas.", "symbolizes": "Abuso físico o exclusión grupal; al redimirse proclama «¡Empatía!»." },
-		{ "name": "Apatyx, Espectro del Desgano", "kind": "boss", "boss_type": BossData.BossType.APATIA, "what": "Jefe 1: genera charcos de desánimo y vórtices espirales.", "where": "Escenario 1 — Acceso y Laboratorio D.", "symbolizes": "La desmotivación escolar; al redimirse devuelve «¡Entusiasmo y Curiosidad!»." },
-		{ "name": "Desperdicius, Titán del Desperdicio", "kind": "boss", "boss_type": BossData.BossType.DESPERDICIO, "what": "Jefe 2: lanza abanicos de desechos y pisotones.", "where": "Escenario 2 — Cafetería Edif. A.", "symbolizes": "El descuido ambiental y material; se redime en «¡Responsabilidad!»." },
-		{ "name": "Superbus, Heraldo de Arrogancia", "kind": "boss", "boss_type": BossData.BossType.INTOLERANCIA, "what": "Jefe 3: emite anillos de rechazo y descargas cruzadas.", "where": "Escenario 3 — Plaza Cívica.", "symbolizes": "La discriminación por prejuicios; se redime en «¡Tolerancia!»." },
-		{ "name": "Ciber-Murmullus", "kind": "boss", "boss_type": BossData.BossType.CIBERACOSO, "what": "Jefe 4: enjambres teledirigidos y teletransporte Glitch.", "where": "Escenario 4 — Edificio B y Biblioteca.", "symbolizes": "El ciberacoso anónimo; se redime en «¡Empatía Digital y Honestidad!»." },
-		{ "name": "Plagiatrix, Señor de la Falsedad", "kind": "boss", "boss_type": BossData.BossType.PLAGIO, "what": "Jefe 5: copias espejo y barrera reflectante de atajos.", "where": "Escenario 5 — Edificio C y Cómputo.", "symbolizes": "La deshonestidad académica; se redime en «¡Integridad Académica!»." },
-		{ "name": "Maestro Desinterés", "kind": "sprite", "tex": "res://assets/characters/maestro_desinteres/idle.png", "what": "Jefe de Salón: proyectiles temáticos por aula y niebla de inacción.", "where": "Salones Interiores 1 al 6.", "symbolizes": "La omisión adulta ante el conflicto; se redime en «¡Compromiso y Escucha!»." },
+		{ "name": "Grosería (Antivalor Base)", "kind": "sprite", "tex": "res://assets/sprites/enemigo_groseria.png", "what": "Antivalor ágil e impulsivo que salta buscando intimidar en pasillos.", "where": "Todos los escenarios exteriores e interiores.", "symbolizes": "Faltas de respeto verbales; al redimirse proclama «Amabilidad»." },
+		{ "name": "Acoso (Antivalor Acechante)", "kind": "sprite", "tex": "res://assets/sprites/enemigo_acoso.png", "what": "Sombra vigilante con amplio rango de alerta en grupo.", "where": "Patios, bibliotecas y salones cerrados.", "symbolizes": "Hostigamiento persistente; al redimirse proclama «Respeto»." },
+		{ "name": "Bullying (Antivalor Pesado)", "kind": "sprite", "tex": "res://assets/sprites/enemigo_bullying.png", "what": "Antivalor territorial resistente (doble vida en Difícil).", "where": "Zonas de conflicto y rondas avanzadas.", "symbolizes": "Abuso físico o exclusión grupal; al redimirse proclama «Empatía»." },
+		{ "name": "Apatyx, Espectro del Desgano", "kind": "boss", "boss_type": BossData.BossType.APATIA, "what": "Jefe 1: genera charcos de desánimo y vórtices espirales.", "where": "Escenario 1 — Acceso y Laboratorio D.", "symbolizes": "La desmotivación escolar; al redimirse devuelve «Entusiasmo y Curiosidad»." },
+		{ "name": "Desperdicius, Titán del Desperdicio", "kind": "boss", "boss_type": BossData.BossType.DESPERDICIO, "what": "Jefe 2: lanza abanicos de desechos y pisotones.", "where": "Escenario 2 — Cafetería Edif. A.", "symbolizes": "El descuido ambiental y material; se redime en «Responsabilidad»." },
+		{ "name": "Superbus, Heraldo de Arrogancia", "kind": "boss", "boss_type": BossData.BossType.INTOLERANCIA, "what": "Jefe 3: emite anillos de rechazo y descargas cruzadas.", "where": "Escenario 3 — Plaza Cívica.", "symbolizes": "La discriminación por prejuicios; se redime en «Tolerancia»." },
+		{ "name": "Ciber-Murmullus", "kind": "boss", "boss_type": BossData.BossType.CIBERACOSO, "what": "Jefe 4: enjambres teledirigidos y teletransporte.", "where": "Escenario 4 — Edificio B y Biblioteca.", "symbolizes": "El ciberacoso anónimo; se redime en «Empatía Digital y Honestidad»." },
+		{ "name": "Plagiatrix, Señor de la Falsedad", "kind": "boss", "boss_type": BossData.BossType.PLAGIO, "what": "Jefe 5: copias espejo y barrera reflectante de atajos.", "where": "Escenario 5 — Edificio C y Cómputo.", "symbolizes": "La deshonestidad académica; se redime en «Integridad Académica»." },
+		{ "name": "Maestro Desinterés", "kind": "sprite", "tex": "res://assets/characters/maestro_desinteres/idle.png", "what": "Jefe de Salón: proyectiles temáticos por aula y niebla de inacción.", "where": "Salones Interiores 1 al 6.", "symbolizes": "La omisión adulta ante el conflicto; se redime en «Compromiso y Escucha»." },
 		{ "name": "Titanor, Coloso del Bullying", "kind": "boss", "boss_type": BossData.BossType.BULLYING, "what": "Jefe Final Touhou Danmaku: 4 cartas de hechizo, clones, jaulas convergentes y fase 1 HP.", "where": "Escenario 6 — Cancha de Usos Múltiples.", "symbolizes": "La suma del acoso escolar; al quebrarse a 1 HP enfrenta a los 8 Corazones de Valores." },
 	]
 
 	var skills := [
-		{ "id": "virtue_shot", "name": "Disparo de Virtud (Espacio / Stick Der)", "what": "Proyectil luminoso de diálogo positivo que neutraliza antivalores y alegra alumnos tristes sin violencia.", "where": "Disponible desde el inicio en todos los niveles.", "symbolizes": "El poder de la palabra constructiva y el diálogo firme." },
+		{ "id": "virtue_shot", "name": "Pulso Guinda / Destello Guinda (Espacio / Ratón / Gamepad)", "what": "Dos estilos de disparo intercambiables para el protagonista: Pulso Guinda (preciso y recto) o Destello Guinda (doble estela convergente).", "where": "Seleccionable en la pantalla de personaje desde el Menú Inicial.", "symbolizes": "El poder de la palabra constructiva y el diálogo firme." },
 		{ "id": "focus_graze", "name": "Modo Enfoque y Graze (Shift / FOCUS)", "what": "Reduce velocidad al 52% mostrando la micro-hitbox de 5.5 px; rozar balas suma Graze (impulso cada 12, vida cada 35).", "where": "Mecánica táctica estilo Touhou activa siempre, indispensable contra Titanor.", "symbolizes": "La serenidad y autocontrol bajo presión extrema." },
-		{ "id": "empathy_pulse", "name": "Pulso de Empatía (E / PULSO)", "what": "Onda expansiva cada 10s que ralentiza antivalores cercanos y alivia a estudiantes en un radio de 140 px.", "where": "Habilidad equipada en todos los escenarios.", "symbolizes": "La escucha empática que desarma la agresividad." },
+		{ "id": "empathy_pulse", "name": "Onda de Calma (E / PULSO)", "what": "Onda expansiva cada 10s que calma antivalores cercanos y alivia a estudiantes en un radio de 140 px.", "where": "Habilidad equipada en todos los escenarios.", "symbolizes": "La escucha empática que desarma la agresividad." },
 		{ "id": "esperanza", "name": "Ventaja Esperanza (Ítem Dorado [Q])", "what": "Durante 15 segundos limpia toda la niebla, elimina clones falsos y deja al Jefe Final indefenso.", "where": "Aparece en el campo al rescatar alumnos o durante el duelo contra Titanor.", "symbolizes": "La esperanza colectiva que disipa la intimidación y el miedo." },
 		{ "id": "heart", "name": "Corazón de Aliento (Ítem [Q])", "what": "Restaura +1 corazón de salud cuando el jugador está herido.", "where": "Entregado por estudiantes alegres o recogido en zonas seguras.", "symbolizes": "La gratitud y apoyo recíproco entre compañeros." },
 		{ "id": "shield", "name": "Escudo de Resiliencia (Ítem [Q])", "what": "Otorga 4 segundos de invulnerabilidad temporal frente a proyectiles hostiles.", "where": "Drops tácticos dentro de salones y patios difíciles.", "symbolizes": "La fortaleza emocional frente a ataques verbales o digitales." },
@@ -256,6 +274,40 @@ static func get_all_categories() -> Dictionary:
 		}
 	]
 
+	var minigames := [
+		{
+			"id": "undertale_battle",
+			"kind": "undertale",
+			"name": "Duelo del Corazón (Estilo Undertale)",
+			"scene": "res://scenes/undertale_battle.tscn",
+			"what": "Duelo interactivo de esquive de más de 2 minutos (10 oleadas, 126 s) con Alma Roja 8D, Alma Azul con gravedad, ataques celestes y naranjas, cañones láser, ítems escolares y soundtrack original a 148 BPM.",
+			"where": "Pestaña Minijuegos de la Biblioteca de Materiales (⋮) y secuencia especial previa al Clímax de Corazones contra Titanor.",
+			"symbolizes": "La determinación serena, la empatía bajo presión y la convicción pacífica frente al acoso escolar."
+		}
+	]
+	for c_idx in range(6):
+		var cfg := ClassroomMinigame.get_classroom_config(c_idx)
+		minigames.append({
+			"id": "classroom_%d" % c_idx,
+			"kind": "classroom",
+			"classroom_index": c_idx,
+			"name": "%s — %s" % [str(cfg.get("classroom_name", "")), str(cfg.get("title", ""))],
+			"what": "Encuentro estilo Undertale/Deltarune contra «%s» junto a %s (%s). Llena Armonía al 100%% para resolver en paz." % [str(cfg.get("eco_name", "")), str(cfg.get("ally", "")), str(cfg.get("ally_attack", ""))],
+			"where": "%s y Galería de Minijuegos (⋮)." % str(cfg.get("classroom_name", "")),
+			"symbolizes": str(cfg.get("eco_sub", ""))
+		})
+	for i_kind in [InterludeMinigame.Kind.TERMO_RECESO, InterludeMinigame.Kind.APUNTES_VIENTO, InterludeMinigame.Kind.CHAT_GRUPO]:
+		var i_info := InterludeMinigame.get_kind_info(i_kind)
+		minigames.append({
+			"id": str(i_info.get("id", "interlude")),
+			"kind": "interlude",
+			"interlude_kind": int(i_kind),
+			"name": "Receso: %s" % str(i_info.get("title", "")),
+			"what": "%s. %s." % [str(i_info.get("subtitle", "")), str(i_info.get("reward_desc", ""))],
+			"where": "Aparece aleatoriamente entre edificios y en la Galería (⋮).",
+			"symbolizes": "Los pequeños gestos de compañerismo entre clases."
+		})
+
 	return {
 		"Personajes": chars,
 		"Canciones": songs,
@@ -263,6 +315,7 @@ static func get_all_categories() -> Dictionary:
 		"Enemigos y Jefes": enemies,
 		"Habilidades e Ítems": skills,
 		"Videos": videos,
+		"Minijuegos": minigames,
 	}
 
 func _build_ui() -> void:
@@ -318,8 +371,8 @@ func _build_ui() -> void:
 		tb.text = cat_name
 		tb.toggle_mode = true
 		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tb.custom_minimum_size = Vector2(60, 32)
-		tb.add_theme_font_size_override("font_size", 11)
+		tb.custom_minimum_size = Vector2(48, 32)
+		tb.add_theme_font_size_override("font_size", 10)
 		tb.pressed.connect(_select_category.bind(cat_name))
 		tabs_hbox.add_child(tb)
 		UiJuice.attach_button(tb)
@@ -412,6 +465,21 @@ func _build_ui() -> void:
 	_btn_fullscreen_video.pressed.connect(open_video_fullscreen)
 	_video_row.add_child(_btn_fullscreen_video)
 	UiJuice.attach_button(_btn_fullscreen_video)
+
+	_minigame_row = HBoxContainer.new()
+	_minigame_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_minigame_row.add_theme_constant_override("separation", 8)
+	_minigame_row.visible = false
+	detail_vbox.add_child(_minigame_row)
+
+	_btn_play_minigame = Button.new()
+	_btn_play_minigame.name = "BtnPlayMinigame"
+	_btn_play_minigame.text = "▶ Jugar Minijuego"
+	_btn_play_minigame.custom_minimum_size = Vector2(184, 34)
+	_btn_play_minigame.add_theme_font_size_override("font_size", 12)
+	_btn_play_minigame.pressed.connect(_on_minigame_play_pressed)
+	_minigame_row.add_child(_btn_play_minigame)
+	UiJuice.attach_button(_btn_play_minigame)
 
 	# Selector de poses para Personajes
 	_pose_row = HBoxContainer.new()
@@ -534,17 +602,7 @@ func _select_pose(pose_key: String) -> void:
 		_refresh_preview(items[_current_index])
 
 func _load_tex_safe(path: String) -> Texture2D:
-	if path.is_empty():
-		return null
-	if ResourceLoader.exists(path):
-		var r := ResourceLoader.load(path)
-		if r is Texture2D:
-			return r
-	if FileAccess.file_exists(path):
-		var img := Image.load_from_file(ProjectSettings.globalize_path(path))
-		if img != null and not img.is_empty():
-			return ImageTexture.create_from_image(img)
-	return null
+	return AssetLoader.load_texture(path)
 
 func _resolve_character_pose_path(entry: Dictionary, pose_key: String) -> String:
 	var folder := str(entry.get("folder", ""))
@@ -582,6 +640,10 @@ func _on_video_play_pressed() -> void:
 		return
 	var ogv_path := str(items[_current_index].get("video_ogv", ""))
 	if ogv_path.is_empty() or (not ResourceLoader.exists(ogv_path) and not FileAccess.file_exists(ogv_path)):
+		var mp4_path := str(items[_current_index].get("video_mp4", ""))
+		var abs_mp4 := ProjectSettings.globalize_path(mp4_path) if not mp4_path.is_empty() else ""
+		if not mp4_path.is_empty() and not OS.has_feature("web") and not OS.has_feature("mobile") and (FileAccess.file_exists(mp4_path) or FileAccess.file_exists(abs_mp4)):
+			OS.shell_open(abs_mp4)
 		return
 	var vstream := ResourceLoader.load(ogv_path) as VideoStream
 	if vstream == null:
@@ -605,6 +667,10 @@ func open_video_fullscreen() -> void:
 		return
 	var ogv_path := str(items[_current_index].get("video_ogv", ""))
 	if ogv_path.is_empty() or (not ResourceLoader.exists(ogv_path) and not FileAccess.file_exists(ogv_path)):
+		var mp4_path := str(items[_current_index].get("video_mp4", ""))
+		var abs_mp4 := ProjectSettings.globalize_path(mp4_path) if not mp4_path.is_empty() else ""
+		if not mp4_path.is_empty() and not OS.has_feature("web") and not OS.has_feature("mobile") and (FileAccess.file_exists(mp4_path) or FileAccess.file_exists(abs_mp4)):
+			OS.shell_open(abs_mp4)
 		return
 	var vstream := ResourceLoader.load(ogv_path) as VideoStream
 	if vstream == null:
@@ -614,7 +680,7 @@ func open_video_fullscreen() -> void:
 	if gs and gs.has_method("stop_music"):
 		gs.stop_music(0.15)
 
-	if DisplayServer.get_name() != "headless":
+	if _can_change_window_mode():
 		_prev_window_mode = DisplayServer.window_get_mode()
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 
@@ -692,7 +758,7 @@ func close_video_fullscreen() -> void:
 	_video_fs_player = null
 	_video_fs_aspect = null
 	_video_fs_btn_pause = null
-	if DisplayServer.get_name() != "headless" and _prev_window_mode >= 0:
+	if _can_change_window_mode() and _prev_window_mode >= 0:
 		DisplayServer.window_set_mode(_prev_window_mode)
 		_prev_window_mode = -1
 
@@ -702,6 +768,8 @@ func _refresh_preview(entry: Dictionary) -> void:
 	_jukebox_row.visible = (_current_category == "Canciones")
 	if _video_row:
 		_video_row.visible = (_current_category == "Videos")
+	if _minigame_row:
+		_minigame_row.visible = (_current_category == "Minijuegos")
 	if _preview_video:
 		_preview_video.visible = false
 
@@ -731,9 +799,12 @@ func _refresh_preview(entry: Dictionary) -> void:
 		_preview_custom.visible = false
 	elif _current_category == "Videos":
 		var has_ogv := not str(entry.get("video_ogv", "")).is_empty()
+		var mp4_path := str(entry.get("video_mp4", ""))
+		var abs_mp4 := ProjectSettings.globalize_path(mp4_path) if not mp4_path.is_empty() else ""
+		var can_open_mp4 := (not has_ogv) and (not mp4_path.is_empty()) and (not OS.has_feature("web")) and (not OS.has_feature("mobile")) and (FileAccess.file_exists(mp4_path) or FileAccess.file_exists(abs_mp4))
 		if _btn_play_video:
-			_btn_play_video.disabled = not has_ogv
-			_btn_play_video.text = "▶ Reproducir Video" if has_ogv else "MP4 en assets/video/"
+			_btn_play_video.disabled = not has_ogv and not can_open_mp4
+			_btn_play_video.text = "▶ Reproducir Video" if has_ogv else ("▶ Abrir Video (MP4)" if can_open_mp4 else "MP4 en assets/video/")
 		if _btn_fullscreen_video:
 			_btn_fullscreen_video.disabled = not has_ogv
 		_preview_tex.visible = false
@@ -742,6 +813,9 @@ func _refresh_preview(entry: Dictionary) -> void:
 		_preview_tex.visible = false
 		_preview_custom.visible = true
 		_refresh_jukebox_buttons()
+	elif _current_category == "Minijuegos":
+		_preview_tex.visible = false
+		_preview_custom.visible = true
 	else:
 		_preview_tex.visible = false
 		_preview_custom.visible = true
@@ -830,6 +904,19 @@ func _on_custom_preview_draw() -> void:
 		_preview_custom.draw_rect(Rect2(cx - 56, cy - 36, 112, 72), Color(0.14, 0.17, 0.28))
 		_preview_custom.draw_rect(Rect2(cx - 56, cy - 36, 112, 72), Color(0.95, 0.82, 0.36), false, 2.0)
 		_preview_custom.draw_polygon(PackedVector2Array([Vector2(cx - 12, cy - 16), Vector2(cx + 18, cy), Vector2(cx - 12, cy + 16)]), [Color(1.0, 0.88, 0.35)])
+	elif _current_category == "Minijuegos":
+		# Vista previa estilo Undertale: Titanor monocromo + cuadro blanco + Alma Roja + 4 botones naranjas
+		_preview_custom.draw_rect(Rect2(cx - 92, cy - 56, 184, 112), Color(0.02, 0.02, 0.04))
+		_preview_custom.draw_rect(Rect2(cx - 92, cy - 56, 184, 112), Color(0.95, 0.82, 0.36), false, 1.5)
+		BossRendererClass.draw_boss_silhouette(_preview_custom, 5, Vector2(cx, cy - 4.0), _anim_time, Color(0.32, 0.32, 0.36), Color(0.94, 0.94, 0.96), false, false, 0.48)
+		var eye_c := Color(0.22, 0.92, 1.0) if int(_anim_time * 8.0) % 2 == 0 else Color(1.0, 0.90, 0.30)
+		_preview_custom.draw_circle(Vector2(cx - 4.5, cy - 30.0), 2.5, eye_c)
+		var box_r := Rect2(cx - 28, cy + 4, 56, 28)
+		_preview_custom.draw_rect(box_r, Color.BLACK)
+		_preview_custom.draw_rect(box_r, Color.WHITE, false, 2.0)
+		_preview_custom.draw_circle(box_r.get_center(), 4.2, Color(1.0, 0.16, 0.28))
+		for bi in range(4):
+			_preview_custom.draw_rect(Rect2(cx - 72.0 + float(bi) * 38.0, cy + 38.0, 30.0, 9.0), Color(0.96, 0.50, 0.14), false, 1.5)
 	else:
 		# Habilidades e Ítems con emblemas únicos animados
 		var skill_id := str(entry.get("id", "virtue_shot"))
@@ -942,7 +1029,48 @@ static func draw_skill_emblem(canvas: CanvasItem, skill_id: String, center: Vect
 			]), Color(1.0, 0.94, 0.60), 3.4 * scale_f)
 			canvas.draw_arc(center, 42.0 * scale_f, anim_time, anim_time + TAU, 6, Color(0.45, 0.92, 1.0, 0.55), 1.8 * scale_f)
 
+func _on_minigame_play_pressed() -> void:
+	if _active_minigame != null and is_instance_valid(_active_minigame):
+		return
+	_stop_preview_video()
+	_is_preview_playing = false
+	var list: Array = get_all_categories().get("Minijuegos", [])
+	var entry: Dictionary = list[clampi(_current_index, 0, maxi(0, list.size() - 1))] if not list.is_empty() else {}
+	var mg_kind := str(entry.get("kind", "undertale"))
+	var mg: CanvasLayer = null
+	if mg_kind == "classroom":
+		var cm := CLASSROOM_MINIGAME_SCENE.instantiate() as ClassroomMinigame
+		if cm:
+			cm.setup_classroom(int(entry.get("classroom_index", 0)))
+			cm.minigame_finished.connect(func(_ok: bool, _idx: int): _on_minigame_finished(), CONNECT_ONE_SHOT)
+			mg = cm
+	elif mg_kind == "interlude":
+		var im := INTERLUDE_MINIGAME_SCENE.instantiate() as InterludeMinigame
+		if im:
+			var allies: Array[String] = ["Mateo", "María", "Valeria", "Fernanda", "Diego", "Sofía", "Alejandro"]
+			im.setup_interlude(int(entry.get("interlude_kind", 0)) as InterludeMinigame.Kind, allies)
+			im.interlude_finished.connect(func(_rew: Dictionary): _on_minigame_finished(), CONNECT_ONE_SHOT)
+			mg = im
+	else:
+		mg = UNDERTALE_BATTLE_SCENE.instantiate() as CanvasLayer
+		if mg and mg.has_signal("battle_finished"):
+			mg.connect("battle_finished", _on_minigame_finished, CONNECT_ONE_SHOT)
+	if mg == null:
+		return
+	mg.layer = 130
+	mg.set("allow_standalone_exit", true)
+	_active_minigame = mg
+	add_child(mg)
+
+func _on_minigame_finished() -> void:
+	_active_minigame = null
+	var gs := _get_gs()
+	if gs and gs.has_method("play_menu_music"):
+		gs.play_menu_music()
+
 func _unhandled_input(event: InputEvent) -> void:
+	if _active_minigame != null and is_instance_valid(_active_minigame):
+		return
 	if _is_video_fullscreen:
 		if (event is InputEventKey and event.pressed and not event.is_echo() and event.keycode == KEY_ESCAPE) or (event is InputEventJoypadButton and event.pressed and not event.is_echo() and event.button_index == JOY_BUTTON_B):
 			close_video_fullscreen()
@@ -961,6 +1089,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 
 func _close_gallery() -> void:
+	_cleanup_active_minigame()
 	close_video_fullscreen()
 	closed.emit()
 	queue_free()

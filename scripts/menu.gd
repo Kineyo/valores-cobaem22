@@ -90,6 +90,7 @@ var _record_label: Label = null
 var _btn_materials_menu: Button = null
 var _materials_gallery: Control = null
 var _btn_credits: Button = null
+var _btn_shot_style: Button = null
 var _credits_screen: Control = null
 
 var _game_settings: Node:
@@ -191,7 +192,10 @@ func _ensure_nodes() -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	if is_inside_tree() and get_tree():
+	var gs_init := get_node_or_null("/root/GameSettings") if is_inside_tree() else null
+	if gs_init and gs_init.has_method("clear_all_pauses"):
+		gs_init.clear_all_pauses()
+	elif is_inside_tree() and get_tree():
 		get_tree().paused = false
 	_ensure_nodes()
 
@@ -241,6 +245,8 @@ func _ready() -> void:
 	if btn_back_to_menu and not btn_back_to_menu.pressed.is_connected(_close_character_select):
 		btn_back_to_menu.pressed.connect(_close_character_select)
 		UiJuice.attach_button(btn_back_to_menu)
+
+	_ensure_shot_style_button()
 
 	if main_view:
 		main_view.visible = true
@@ -485,21 +491,11 @@ func _navigate_horizontal(step: int, is_in_char_view: bool) -> void:
 	elif _is_utility_or_quit_focused():
 		var vp := get_viewport()
 		var foc := vp.gui_get_focus_owner() if vp else null
-		if foc == btn_play and step > 0 and btn_quit and btn_quit.visible:
-			btn_quit.grab_focus()
-		elif foc == btn_quit and step < 0 and btn_play:
-			btn_play.grab_focus()
-		else:
-			var util_row := _get_focus_row_controls()
-			var idx := util_row.find(foc)
-			if idx >= 0 and not util_row.is_empty():
-				util_row[posmod(idx + step, util_row.size())].grab_focus()
+		var util_row := _get_focus_row_controls()
+		var idx := util_row.find(foc)
+		if idx >= 0 and not util_row.is_empty():
+			util_row[posmod(idx + step, util_row.size())].grab_focus()
 	else:
-		var vp := get_viewport() if is_inside_tree() else null
-		var foc := vp.gui_get_focus_owner() if vp else null
-		if foc == btn_play and step > 0 and btn_quit and btn_quit.visible:
-			# Allow quick right arrow from BtnPlay only if user keeps pressing, or keep difficulty horizontal:
-			pass
 		var current_d: int = _game_settings.difficulty if _game_settings else 1
 		_select_difficulty(clampi(current_d + step, 0, 2))
 
@@ -641,6 +637,8 @@ func _unhandled_input(event: InputEvent) -> void:
 						_select_character(1)
 					KEY_Q, KEY_E, KEY_C, KEY_TAB:
 						_select_character(1 if current_c == 0 else 0)
+					KEY_F:
+						_toggle_shot_style()
 					KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
 						_start_game()
 					KEY_ESCAPE:
@@ -653,8 +651,10 @@ func _unhandled_input(event: InputEvent) -> void:
 						_navigate_horizontal(-1, false)
 					KEY_D:
 						_navigate_horizontal(1, false)
-					KEY_W, KEY_S:
-						_select_mode(1 if current_m == 0 else 0)
+					KEY_W:
+						_navigate_vertical(-1, false)
+					KEY_S:
+						_navigate_vertical(1, false)
 					KEY_C, KEY_P, KEY_TAB:
 						_select_character(1 if current_c == 0 else 0)
 					KEY_V:
@@ -702,6 +702,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				match jb.button_index:
 					JOY_BUTTON_X, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER:
 						_select_character(1 if current_c == 0 else 0)
+					JOY_BUTTON_Y:
+						_toggle_shot_style()
 					JOY_BUTTON_A, JOY_BUTTON_START:
 						_start_game()
 					JOY_BUTTON_B, JOY_BUTTON_BACK:
@@ -714,6 +716,8 @@ func _unhandled_input(event: InputEvent) -> void:
 						_select_mode(1 if current_m == 0 else 0)
 					JOY_BUTTON_X, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER:
 						_select_character(1 if current_c == 0 else 0)
+					JOY_BUTTON_Y:
+						_toggle_shot_style()
 					JOY_BUTTON_A, JOY_BUTTON_START:
 						var foc_joy := get_viewport().gui_get_focus_owner() if get_viewport() else null
 						if jb.button_index == JOY_BUTTON_A and foc_joy is Button and foc_joy != btn_play and foc_joy.is_inside_tree():
@@ -740,7 +744,12 @@ func _select_mode(index: int) -> void:
 		sfx_select.pitch_scale = 1.05 + index * 0.15
 		sfx_select.play()
 	if _game_settings:
-		_game_settings.game_mode = index
+		if _game_settings.has_method("set_game_mode"):
+			_game_settings.set_game_mode(index)
+		else:
+			_game_settings.game_mode = index
+			if _game_settings.has_method("save_settings"):
+				_game_settings.save_settings()
 	_refresh_mode(true)
 
 func _refresh_mode(_animate: bool = false) -> void:
@@ -799,20 +808,45 @@ func _refresh_character(_animate: bool = false) -> void:
 		else:
 			char_info_label.text = "Uniforme escolar femenino · CEMSaD 22"
 		char_info_label.modulate = Color(0.84, 0.78, 0.62)
+	_refresh_shot_style_button()
+
+func _ensure_shot_style_button() -> void:
+	if char_select_view == null or _btn_shot_style != null:
+		return
+	_btn_shot_style = Button.new()
+	_btn_shot_style.name = "BtnShotStyle"
+	_btn_shot_style.custom_minimum_size = Vector2(320, 28)
+	_btn_shot_style.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_btn_shot_style.add_theme_font_size_override("font_size", 11)
+	_btn_shot_style.pressed.connect(_toggle_shot_style)
+	char_select_view.add_child(_btn_shot_style)
+	var action_row := char_select_view.get_node_or_null("CharActionRow")
+	if action_row:
+		char_select_view.move_child(_btn_shot_style, action_row.get_index())
+	UiJuice.attach_button(_btn_shot_style, sfx_select)
+	_refresh_shot_style_button()
+
+func _toggle_shot_style() -> void:
+	var eff: int = int(_game_settings.get_effective_shot_style()) if (_game_settings and _game_settings.has_method("get_effective_shot_style")) else 0
+	var next_style := 1 if eff == 0 else 0
+	if _game_settings and _game_settings.has_method("set_selected_shot_style"):
+		_game_settings.set_selected_shot_style(next_style)
+	if sfx_select and sfx_select.is_inside_tree():
+		sfx_select.pitch_scale = 1.12 if next_style == 1 else 0.98
+		sfx_select.play()
+	_refresh_shot_style_button()
+
+func _refresh_shot_style_button() -> void:
+	if _btn_shot_style == null:
+		return
+	var eff: int = int(_game_settings.get_effective_shot_style()) if (_game_settings and _game_settings.has_method("get_effective_shot_style")) else 0
+	if eff == 1:
+		_btn_shot_style.text = "Disparo: Destello Guinda (Doble haz · F / Y para cambiar)"
+	else:
+		_btn_shot_style.text = "Disparo: Pulso Guinda (Recto preciso · F / Y para cambiar)"
 
 func _load_texture_resilient(path: String) -> Texture2D:
-	if ResourceLoader.exists(path):
-		var res = load(path)
-		if res is Texture2D:
-			return res
-	var global_path := ProjectSettings.globalize_path(path)
-	var check_path := global_path if not global_path.is_empty() else path
-	if FileAccess.file_exists(check_path) or FileAccess.file_exists(path):
-		var img := Image.new()
-		var p := path if FileAccess.file_exists(path) else check_path
-		if img.load(p) == OK:
-			return ImageTexture.create_from_image(img)
-	return null
+	return AssetLoader.load_texture(path)
 
 func _select_difficulty(index: int) -> void:
 	var current_d: int = _game_settings.difficulty if _game_settings else 1

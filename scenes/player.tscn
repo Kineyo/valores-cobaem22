@@ -50,6 +50,7 @@ disabled = true
 
 [node name="AttackFX" type="Sprite2D" parent="AttackArea"]
 visible = false
+scale = Vector2(0.5, 0.5)
 texture = ExtResource("3_fx")
 
 [node name="InvulnerableTimer" type="Timer" parent="."]

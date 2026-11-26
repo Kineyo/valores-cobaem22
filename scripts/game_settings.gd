@@ -18,7 +18,7 @@ const PRESETS := {
 		"max_health": 5,
 		"enemy_speed_mult": 0.85,
 		"shot_cooldown": 0.28,
-		"shot_scale": 1.4,
+		"shot_scale": 1.0,
 		"shot_speed": 540.0,
 		"invulnerable_time": 1.3,
 	},
@@ -26,7 +26,7 @@ const PRESETS := {
 		"max_health": 3,
 		"enemy_speed_mult": 1.25,
 		"shot_cooldown": 0.32,
-		"shot_scale": 1.15,
+		"shot_scale": 1.0,
 		"shot_speed": 500.0,
 		"invulnerable_time": 0.85,
 	},
@@ -41,6 +41,7 @@ const PRESETS := {
 }
 
 const HIMNO_OGG_PATH := "res://assets/audio/himno.ogg"
+const UNDERTALE_BATTLE_PATH := "res://assets/audio/music_undertale_battle.wav"
 const FINALE_SOULS_PATH := "res://assets/audio/music_finale_souls.wav"
 const HARD_PERC_PATH := "res://assets/audio/music_hard_perc.wav"
 
@@ -136,6 +137,15 @@ const SOUNDTRACK_CATALOG := [
 		"desc": "Duelo bullet-hell a 176 BPM con campanas escolares resonando entre ráfagas Danmaku."
 	},
 	{
+		"id": "undertale_battle",
+		"title": "Juicio del Corazón (Duelo Undertale)",
+		"file_m": UNDERTALE_BATTLE_PATH,
+		"file_f": UNDERTALE_BATTLE_PATH,
+		"bpm": 148,
+		"where": "Duelo especial estilo Undertale previo al Clímax de Corazones",
+		"desc": "Tema original chiptune-rock en Re menor a 148 BPM compuesto para el duelo de esquive contra Titanor."
+	},
+	{
 		"id": "finale_souls",
 		"title": "Corazones de los Valores (Clímax 1 HP)",
 		"file_m": FINALE_SOULS_PATH,
@@ -158,6 +168,7 @@ const SOUNDTRACK_CATALOG := [
 var MUSIC_MENU: AudioStream
 var MUSIC_GAME: AudioStream
 var MUSIC_HIMNO: AudioStream
+var MUSIC_UNDERTALE_BATTLE: AudioStream
 var MUSIC_FINALE_SOULS: AudioStream
 var MUSIC_HARD_PERC: AudioStream
 
@@ -168,6 +179,8 @@ var difficulty: int = Difficulty.NORMAL
 var initial_difficulty: int = Difficulty.NORMAL
 var game_mode: int = GameMode.ARCADE
 var selected_character: int = CharacterSkin.MASCULINO
+var selected_shot_style: int = -1 ## -1 = automático según personaje, 0 = Pulso Guinda, 1 = Destello Guinda
+var _web_audio_unlocked: bool = false
 var music_volume_db: float = -8.0
 var sfx_volume_db: float = 0.0
 var muted: bool = false
@@ -182,12 +195,35 @@ var _fade_tween: Tween
 var _ducked: bool = false
 var _stopping: bool = false
 var _stream_cache: Dictionary = {}
+var _stream_cache_order: Array[String] = []
 var _active_allow_diff_fx: bool = true
+var _active_track_bpm: float = 142.0
 
+const MAX_STREAM_CACHE := 6
 const SETTINGS_PATH := "user://settings.cfg"
+const SETTINGS_SCHEMA_VERSION := 2
+
+var is_test_mode: bool = false
+var last_save_error: Error = OK
+var touch_controls_override: int = -1 ## -1 = automático, 0 = oculto, 1 = forzado visible
+var _save_dirty: bool = false
+var _save_debounce_left: float = 0.0
+var _pause_owners: Dictionary = {}
+
+static func is_headless_runtime() -> bool:
+	return DisplayServer.get_name() == "headless"
+
+func is_silent_headless() -> bool:
+	return DisplayServer.get_name() == "headless" and not is_test_mode
+
+func should_skip_window_ops() -> bool:
+	return is_test_mode or DisplayServer.get_name() == "headless"
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	var cmd_args := OS.get_cmdline_args()
+	if cmd_args.has("-s") or cmd_args.has("--script"):
+		is_test_mode = true
 	load_settings()
 	MUSIC_MENU = _load_audio_stream("res://assets/audio/music_menu.wav")
 	MUSIC_GAME = _load_audio_stream("res://assets/audio/music_game.wav")
@@ -209,8 +245,26 @@ func _ready() -> void:
 	apply_audio_settings()
 	_apply_app_icon()
 
+func _process(delta: float) -> void:
+	if _save_dirty:
+		_save_debounce_left -= delta
+		if _save_debounce_left <= 0.0:
+			save_settings()
+
+func _input(event: InputEvent) -> void:
+	if _web_audio_unlocked or not OS.has_feature("web") or is_silent_headless():
+		return
+	var is_gesture := (event is InputEventKey and (event as InputEventKey).pressed) \
+		or (event is InputEventMouseButton and (event as InputEventMouseButton).pressed) \
+		or (event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed)
+	if is_gesture:
+		_web_audio_unlocked = true
+		if _music and _music.stream and not _music.playing and not _stopping and not muted:
+			_music.play()
+		_sync_hard_perc_layer(difficulty)
+
 func _apply_app_icon() -> void:
-	if DisplayServer.get_name() == "headless":
+	if should_skip_window_ops():
 		return
 	var icon_path := "res://icon.jpeg"
 	var img: Image = null
@@ -229,15 +283,36 @@ func _apply_app_icon() -> void:
 		copy_img.resize(256, 256, Image.INTERPOLATE_LANCZOS)
 	DisplayServer.window_set_icon(copy_img)
 
+func _cache_audio_stream(path: String, stream: AudioStream) -> void:
+	if _stream_cache.has(path):
+		_stream_cache_order.erase(path)
+	_stream_cache[path] = stream
+	_stream_cache_order.append(path)
+	while _stream_cache_order.size() > MAX_STREAM_CACHE:
+		var evict_idx := 0
+		var active_stream: AudioStream = _music.stream if _music else null
+		var perc_stream: AudioStream = _music_perc_layer.stream if _music_perc_layer else null
+		while evict_idx < _stream_cache_order.size() - 1:
+			var candidate_key: String = _stream_cache_order[evict_idx]
+			var candidate_stream: AudioStream = _stream_cache.get(candidate_key)
+			if candidate_stream != active_stream and candidate_stream != perc_stream:
+				break
+			evict_idx += 1
+		var evicted: String = _stream_cache_order[evict_idx]
+		_stream_cache_order.remove_at(evict_idx)
+		_stream_cache.erase(evicted)
+
 func _load_audio_stream(path: String) -> AudioStream:
 	if path.is_empty():
 		return null
 	if _stream_cache.has(path):
+		_stream_cache_order.erase(path)
+		_stream_cache_order.append(path)
 		return _stream_cache[path] as AudioStream
 	if ResourceLoader.exists(path):
 		var res := ResourceLoader.load(path) as AudioStream
 		if res != null:
-			_stream_cache[path] = res
+			_cache_audio_stream(path, res)
 			return res
 	if FileAccess.file_exists(path):
 		var lower := path.to_lower()
@@ -247,12 +322,12 @@ func _load_audio_stream(path: String) -> AudioStream:
 		elif lower.ends_with(".wav"):
 			loaded = AudioStreamWAV.load_from_file(ProjectSettings.globalize_path(path))
 		if loaded != null:
-			_stream_cache[path] = loaded
+			_cache_audio_stream(path, loaded)
 			return loaded
 	return null
 
 func _on_perc_finished() -> void:
-	if _music_perc_layer and _music_perc_layer.stream and not _stopping and difficulty == Difficulty.DIFICIL and _active_allow_diff_fx:
+	if _music_perc_layer and _music_perc_layer.stream and not _stopping and not muted and difficulty == Difficulty.DIFICIL and _active_allow_diff_fx and current_track_id != "menu":
 		_music_perc_layer.play()
 
 func _notification(what: int) -> void:
@@ -262,18 +337,27 @@ func _notification(what: int) -> void:
 			# Pausar stream musical en segundo plano para ahorrar batería y respetar el SO
 			if _music and _music.playing:
 				_music.stream_paused = true
+			if _music_perc_layer and _music_perc_layer.playing:
+				_music_perc_layer.stream_paused = true
 		NOTIFICATION_APPLICATION_RESUMED:
 			# Reanudar música suavemente al regresar a primer plano
 			if _music and _music.stream_paused:
 				_music.stream_paused = false
+			if _music_perc_layer and _music_perc_layer.stream_paused:
+				_music_perc_layer.stream_paused = false
 		NOTIFICATION_APPLICATION_FOCUS_OUT:
 			if OS.has_feature("mobile") or OS.has_feature("web"):
 				save_settings()
 				if _music and _music.playing:
 					_music.stream_paused = true
+				if _music_perc_layer and _music_perc_layer.playing:
+					_music_perc_layer.stream_paused = true
 		NOTIFICATION_APPLICATION_FOCUS_IN:
-			if (OS.has_feature("mobile") or OS.has_feature("web")) and _music and _music.stream_paused:
-				_music.stream_paused = false
+			if OS.has_feature("mobile") or OS.has_feature("web"):
+				if _music and _music.stream_paused:
+					_music.stream_paused = false
+				if _music_perc_layer and _music_perc_layer.stream_paused:
+					_music_perc_layer.stream_paused = false
 
 func _exit_tree() -> void:
 	save_settings()
@@ -292,41 +376,112 @@ func _exit_tree() -> void:
 		_music_perc_layer.stream = null
 		_music_perc_layer = null
 	_stream_cache.clear()
+	_stream_cache_order.clear()
 	MUSIC_MENU = null
 	MUSIC_GAME = null
 	MUSIC_HIMNO = null
+	MUSIC_UNDERTALE_BATTLE = null
 	MUSIC_FINALE_SOULS = null
 	MUSIC_HARD_PERC = null
 
-func save_settings() -> void:
+static func sanitize_best_records(raw: Variant) -> Dictionary:
+	var clean: Dictionary = {}
+	if not (raw is Dictionary):
+		return clean
+	var src: Dictionary = raw as Dictionary
+	for k in ["0", "1", "2"]:
+		if not src.has(k):
+			continue
+		var entry = src[k]
+		if not (entry is Dictionary):
+			continue
+		var d: Dictionary = entry as Dictionary
+		var raw_time = d.get("best_time", -1.0)
+		var b_time: float = -1.0
+		if raw_time is int or raw_time is float:
+			var t := float(raw_time)
+			if not is_nan(t) and not is_inf(t) and t >= 0.0:
+				b_time = t
+		var raw_def = d.get("best_defeated", 0)
+		var b_def: int = maxi(0, int(raw_def)) if (raw_def is int or raw_def is float) else 0
+		var raw_comp = d.get("completions", 0)
+		var comps: int = maxi(0, int(raw_comp)) if (raw_comp is int or raw_comp is float) else 0
+		clean[k] = {
+			"best_time": b_time,
+			"best_defeated": b_def,
+			"completions": comps,
+		}
+	return clean
+
+func request_save_settings(delay: float = 0.35) -> void:
+	_save_dirty = true
+	_save_debounce_left = maxf(0.05, delay)
+
+func save_settings() -> Error:
+	_save_dirty = false
+	_save_debounce_left = 0.0
 	var cfg := ConfigFile.new()
+	cfg.set_value("meta", "schema_version", SETTINGS_SCHEMA_VERSION)
 	cfg.set_value("game", "difficulty", difficulty)
 	cfg.set_value("game", "game_mode", game_mode)
 	cfg.set_value("game", "selected_character", selected_character)
+	cfg.set_value("gameplay", "selected_shot_style", selected_shot_style)
 	cfg.set_value("game", "unlocked_stage_max", unlocked_stage_max)
 	cfg.set_value("game", "selected_start_stage", selected_start_stage)
 	cfg.set_value("audio", "music_volume_db", music_volume_db)
 	cfg.set_value("audio", "sfx_volume_db", sfx_volume_db)
 	cfg.set_value("audio", "muted", muted)
+	cfg.set_value("ui", "touch_controls_override", touch_controls_override)
 	cfg.set_value("records", "best_records", best_records)
-	cfg.save(SETTINGS_PATH)
+	var err := cfg.save(SETTINGS_PATH)
+	last_save_error = err
+	if err != OK:
+		push_warning("GameSettings: error al guardar settings.cfg (%s)" % error_string(err))
+	return err
 
 func load_settings() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(SETTINGS_PATH) == OK:
+		var _schema_ver := int(cfg.get_value("meta", "schema_version", 1))
 		difficulty = clampi(int(cfg.get_value("game", "difficulty", Difficulty.NORMAL)), 0, DIFFICULTY_NAMES.size() - 1)
 		initial_difficulty = difficulty
 		game_mode = clampi(int(cfg.get_value("game", "game_mode", GameMode.ARCADE)), 0, GAME_MODE_NAMES.size() - 1)
 		selected_character = clampi(int(cfg.get_value("game", "selected_character", CharacterSkin.PANTALON)), 0, CHARACTER_NAMES.size() - 1)
+		selected_shot_style = clampi(int(cfg.get_value("gameplay", "selected_shot_style", -1)), -1, 1)
 		unlocked_stage_max = clampi(int(cfg.get_value("game", "unlocked_stage_max", 0)), 0, 5)
 		selected_start_stage = clampi(int(cfg.get_value("game", "selected_start_stage", 0)), 0, unlocked_stage_max)
 		music_volume_db = clampf(float(cfg.get_value("audio", "music_volume_db", -8.0)), -60.0, 6.0)
 		sfx_volume_db = clampf(float(cfg.get_value("audio", "sfx_volume_db", 0.0)), -60.0, 6.0)
 		muted = bool(cfg.get_value("audio", "muted", false))
-		var loaded_rec = cfg.get_value("records", "best_records", {})
-		if loaded_rec is Dictionary:
-			best_records = loaded_rec
+		touch_controls_override = clampi(int(cfg.get_value("ui", "touch_controls_override", -1)), -1, 1)
+		best_records = sanitize_best_records(cfg.get_value("records", "best_records", {}))
 	apply_audio_settings()
+
+func set_touch_controls_override(mode: int) -> void:
+	touch_controls_override = clampi(mode, -1, 1)
+	save_settings()
+
+func request_pause(owner: StringName) -> void:
+	_pause_owners[owner] = true
+	_sync_tree_pause()
+
+func release_pause(owner: StringName) -> void:
+	_pause_owners.erase(owner)
+	_sync_tree_pause()
+
+func clear_all_pauses() -> void:
+	_pause_owners.clear()
+	_sync_tree_pause()
+
+func has_pause_owner(owner: StringName) -> bool:
+	return _pause_owners.has(owner)
+
+func get_pause_owner_count() -> int:
+	return _pause_owners.size()
+
+func _sync_tree_pause() -> void:
+	if is_inside_tree() and get_tree():
+		get_tree().paused = not _pause_owners.is_empty()
 
 func _on_music_finished() -> void:
 	if _music and _music.stream and not _stopping:
@@ -342,6 +497,12 @@ func set_difficulty(value: int) -> void:
 	difficulty = clampi(value, 0, DIFFICULTY_NAMES.size() - 1)
 	initial_difficulty = difficulty
 	_refresh_active_music_dynamics()
+	save_settings()
+
+## Establece el modo de juego activo (Arcade o Historia) y persiste la selección
+func set_game_mode(mode: int) -> void:
+	game_mode = clampi(mode, 0, GAME_MODE_NAMES.size() - 1)
+	save_settings()
 
 ## Selecciona personaje (0 = Masculino, 1 = Femenino) y actualiza la variante musical si aplica
 func set_selected_character(idx: int) -> void:
@@ -349,6 +510,15 @@ func set_selected_character(idx: int) -> void:
 	save_settings()
 	if current_track_id == "menu":
 		play_menu_music()
+
+func set_selected_shot_style(style_idx: int) -> void:
+	selected_shot_style = clampi(style_idx, -1, 1)
+	save_settings()
+
+func get_effective_shot_style() -> int:
+	if selected_shot_style == 0 or selected_shot_style == 1:
+		return selected_shot_style
+	return clampi(selected_character, 0, 1)
 
 ## Retorna la escala de pitch/tempo según dificultad (Fácil pausado, Normal equilibrado, Difícil enérgico)
 func get_difficulty_pitch_scale(diff_override: int = -1) -> float:
@@ -381,14 +551,15 @@ func _refresh_active_music_dynamics(diff_override: int = -1) -> void:
 func _sync_hard_perc_layer(d: int) -> void:
 	if _music_perc_layer == null:
 		return
-	var should_play := _active_allow_diff_fx and d == Difficulty.DIFICIL and not _stopping and not muted
+	var should_play := _active_allow_diff_fx and d == Difficulty.DIFICIL and current_track_id != "menu" and not _stopping and not muted
 	if should_play:
 		if MUSIC_HARD_PERC == null:
 			MUSIC_HARD_PERC = _load_audio_stream(HARD_PERC_PATH)
 		if MUSIC_HARD_PERC != null:
 			_music_perc_layer.stream = MUSIC_HARD_PERC
 			_music_perc_layer.volume_db = -18.0 if _ducked else -8.0
-			if not (DisplayServer.get_name() == "headless" and not OS.get_cmdline_args().has("-s")):
+			_music_perc_layer.pitch_scale = clampf((_active_track_bpm / 160.0) * get_difficulty_pitch_scale(d), 0.75, 1.35)
+			if not is_silent_headless():
 				if not _music_perc_layer.playing:
 					_music_perc_layer.play()
 	else:
@@ -443,6 +614,9 @@ func play_stage_music(stage_index: int, is_classroom: bool = false, is_boss: boo
 		track_id = "classroom"
 	play_track_by_id(track_id)
 
+func play_undertale_battle_music() -> void:
+	play_track_by_id("undertale_battle", -1, -1, false)
+
 func play_finale_climax_music() -> void:
 	play_track_by_id("finale_souls", -1, -1, false)
 
@@ -457,9 +631,12 @@ func play_himno_music() -> void:
 func play_track_by_id(track_id: String, char_override: int = -1, diff_override: int = -1, allow_diff_fx: bool = true) -> void:
 	current_track_id = track_id
 	if track_id == "himno":
+		_active_track_bpm = 108.0
 		play_himno_music()
 		return
-	var use_diff_fx := allow_diff_fx and (track_id != "finale_souls")
+	var entry := _get_track_entry(track_id)
+	_active_track_bpm = float(entry.get("bpm", 142.0))
+	var use_diff_fx := allow_diff_fx and (track_id != "finale_souls") and (track_id != "undertale_battle")
 	var path := get_track_path(track_id, char_override)
 	var st := _load_audio_stream(path)
 	if st == null:
@@ -487,18 +664,19 @@ func apply_audio_settings() -> void:
 	var sfx_bus := AudioServer.get_bus_index("SFX")
 	if sfx_bus >= 0:
 		AudioServer.set_bus_volume_db(sfx_bus, SILENT_DB if muted else sfx_volume_db)
-	if _music:
+	if _music and (_fade_tween == null or not _fade_tween.is_valid()):
 		_music.volume_db = (-10.0 if _ducked else 0.0)
+	_sync_hard_perc_layer(difficulty)
 
 func set_music_volume_db(db: float) -> void:
 	music_volume_db = clampf(db, -60.0, 6.0)
 	apply_audio_settings()
-	save_settings()
+	request_save_settings()
 
 func set_sfx_volume_db(db: float) -> void:
 	sfx_volume_db = clampf(db, -60.0, 6.0)
 	apply_audio_settings()
-	save_settings()
+	request_save_settings()
 
 func toggle_mute() -> bool:
 	muted = not muted
@@ -588,9 +766,12 @@ func _start_stream(stream: AudioStream, allow_diff_fx: bool = true, diff_overrid
 	_active_allow_diff_fx = allow_diff_fx
 	_music.stream = stream
 	_refresh_active_music_dynamics(diff_override)
-	if DisplayServer.get_name() == "headless" and not OS.get_cmdline_args().has("-s"):
+	if is_silent_headless():
 		return
 	_music.play()
+	var d := clampi(diff_override if diff_override >= 0 else difficulty, 0, 2)
+	if _music_perc_layer and _music_perc_layer.stream and _active_allow_diff_fx and d == Difficulty.DIFICIL and current_track_id != "menu" and not muted:
+		_music_perc_layer.play(0.0)
 
 func _fade_to(db: float, time: float) -> Tween:
 	if _fade_tween and _fade_tween.is_valid():
